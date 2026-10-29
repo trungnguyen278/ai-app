@@ -2,6 +2,7 @@
 
 | Document | Contents |
 |---|---|
+| [architecture.md](architecture.md) | Modules, ports and adapters, set-up end to end, security, testing, configuration |
 | [decisions/](decisions/README.md) | The app's own decision records (ADRs) |
 | [devlog/](devlog/README.md) | Development log |
 
