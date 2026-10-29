@@ -1,0 +1,32 @@
+# ---- OS / editors ----
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~
+.idea/
+.vscode/
+*.code-workspace
+
+# ---- Secrets (commit .env.example instead) ----
+.env
+.env.*
+!.env.example
+secrets/
+*.pem
+*.key
+# The stores' signing material
+*.jks
+*.keystore
+*.p12
+*.p8
+*.mobileprovision
+
+# ---- Claude Code: local settings (skills in .claude/skills/ are shared) ----
+.claude/settings.json
+.claude/settings.local.json
+CLAUDE.local.md
+
+# ---- Runtime output ----
+*.log
+tmp/
