@@ -1,6 +1,6 @@
 # ai-app
 
-> **Status:** new. The repository's conventions are in place; there is no code yet. Proposed so far: React Native with Expo, Android first ([ADR-0001](docs/decisions/0001-platforms-and-framework.md)), and the [architecture](docs/architecture.md) ([ADR-0002](docs/decisions/0002-architecture.md)). How owners sign in to ai-cloud comes next ([dev log](docs/devlog/2026-10.md)).
+> **Status:** new. The repository's conventions are in place; there is no code yet. Decided: React Native with Expo, Android first ([ADR-0001](docs/decisions/0001-platforms-and-framework.md)), and the [architecture](docs/architecture.md) ([ADR-0002](docs/decisions/0002-architecture.md)). How owners sign in to ai-cloud comes next ([dev log](docs/devlog/2026-10.md)).
 
 The owner's app for the project's AI devices, the first of which is [ai-robot](https://github.com/trungnguyen278/ai-robot), a mobile robot with an expressive face that people talk to. With it, an owner sets a device up, brings the people of their home in, changes a device's settings and controls it. The app signs in to [ai-cloud](https://github.com/trungnguyen278/ai-cloud), which registers the devices it sets up.
 

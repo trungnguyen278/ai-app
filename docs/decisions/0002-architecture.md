@@ -1,6 +1,6 @@
 # 0002 — The architecture: modules with ports and adapters, as on the robot and in the cloud
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-29
 
 ## Context
