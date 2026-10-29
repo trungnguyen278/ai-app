@@ -1,6 +1,6 @@
 # Architecture
 
-> **Status:** proposed in [ADR-0002](decisions/0002-architecture.md) (the shape), on [ADR-0001](decisions/0001-platforms-and-framework.md) (the framework). Nothing is built yet.
+> **Status:** accepted in [ADR-0002](decisions/0002-architecture.md) (the shape), on [ADR-0001](decisions/0001-platforms-and-framework.md) (the framework). Nothing is built yet.
 
 The app is how an owner reaches their devices and their home. It sets a device up, signs in to ai-cloud, manages homes and their people, changes settings and controls devices. One person builds it, for Android first and iOS from the same code (ADR-0001), and it serves every kind of device the project makes.
 
@@ -131,5 +131,5 @@ ai-app/
 | ADR | Decides |
 |---|---|
 | [0001](decisions/0001-platforms-and-framework.md) | The platforms and the framework: React Native with Expo, Android first |
-| [0002](decisions/0002-architecture.md) | This architecture (proposed) |
+| [0002](decisions/0002-architecture.md) | This architecture |
 | ai-platform, to come | The owners' sign-in; the app ⇄ cloud protocol; the catalogs' format |
