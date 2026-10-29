@@ -6,7 +6,7 @@ The owner's app for the project's AI devices, the first of which is [ai-robot](h
 
 ## What it does
 
-The protocols it speaks, and their requirements, are defined in [ai-platform](https://github.com/trungnguyen278/ai-platform), with the decisions behind them: set-up with a device (`protocols/setup/`) now, and the app's link to the cloud later.
+The protocols it speaks, and their requirements, are defined in [ai-platform](https://github.com/trungnguyen278/ai-platform), with the decisions behind them: set-up with a device (`platform/protocols/setup/`) now, and the app's link to the cloud later.
 
 - **Set-up.** It finds a device waiting to be set up, over Bluetooth LE, and opens a session secured by the code the device shows. It gives the device its Wi-Fi network, its first languages and its time zone, then relays the device's registration to ai-cloud, which binds the device into the home the owner chose (SEC-3, [ai-platform ADR-0005](https://github.com/trungnguyen278/ai-platform/blob/main/docs/decisions/0005-homes.md)).
 - **Homes and their people.** The owner signs in to ai-cloud. A home has an owner, admins and members, and profiles for people who never sign in (ai-platform ADR-0005).
@@ -20,10 +20,11 @@ The protocols it speaks, and their requirements, are defined in [ai-platform](ht
 ```
 ai-app/
 ├── docs/        Decision records (ADRs) and the dev log
+├── platform/    ai-platform, pinned: the protocols, and the decisions that span the repositories
 └── .claude/     Task checklists for AI assistants (see AGENTS.md)
 ```
 
-`platform/` comes with the pin of ai-platform, and the code's layout with the decision on the framework.
+The code's layout comes with the decision on the framework. Clone with `git clone --recurse-submodules`, or run `git submodule update --init` after a plain clone.
 
 ## Documentation
 
