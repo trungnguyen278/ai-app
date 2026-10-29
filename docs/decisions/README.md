@@ -8,3 +8,4 @@ Each significant decision is a short file: context, decision, alternatives consi
 
 | # | Decision | Status | Date |
 |---|---|---|---|
+| [0001](0001-platforms-and-framework.md) | Platforms and framework: React Native with Expo, Android first | Proposed | 2026-10-29 |
