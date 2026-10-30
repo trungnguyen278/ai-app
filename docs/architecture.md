@@ -132,5 +132,6 @@ ai-app/
 |---|---|
 | [0001](decisions/0001-platforms-and-framework.md) | The platforms and the framework: React Native with Expo, Android first |
 | [0002](decisions/0002-architecture.md) | This architecture |
-| [0003](decisions/0003-interface-and-motion.md) | The interface: the robot's visual language, in motion (proposed) |
-| ai-platform, to come | The owners' sign-in; the app ⇄ cloud protocol; the catalogs' format |
+| [0003](decisions/0003-interface-and-motion.md) | The interface: the robot's visual language, in motion |
+| [ai-platform 0007](https://github.com/trungnguyen278/ai-platform/blob/main/docs/decisions/0007-catalogs.md) | The catalogs: Unicode MessageFormat 2, one JSON file per language |
+| ai-platform, to come | The owners' sign-in; the app ⇄ cloud protocol |
