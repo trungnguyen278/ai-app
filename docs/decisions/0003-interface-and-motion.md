@@ -1,6 +1,6 @@
 # 0003 — The interface: the robot's visual language, in motion
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-30
 
 ## Context
