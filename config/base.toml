@@ -1,0 +1,17 @@
+# The app's configuration, shared by every environment (docs/architecture.md, Configuration).
+#
+# An environment's file (environments/<name>.toml) changes what it needs on top, then a
+# git-ignored local.toml, for one machine. Every value is required, and is checked against
+# schema.json when the app starts or is built. The app holds no secret.
+
+[app]
+# The name people see on their phone: the one place it is written (CONTRIBUTING.md, rule 4).
+name = "AI App"
+# Expo's name for the project, in its tools and links.
+slug = "ai-app"
+# The scheme of the app's own links, such as aiapp://homes.
+scheme = "aiapp"
+# The app's identity in the stores. It can still change until the first release in a store,
+# and never after it.
+android_package = "io.github.trungnguyen278.aiapp"
+ios_bundle_identifier = "io.github.trungnguyen278.aiapp"

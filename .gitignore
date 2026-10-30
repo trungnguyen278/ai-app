@@ -22,6 +22,24 @@ secrets/
 *.p8
 *.mobileprovision
 
+# ---- Node, Expo and React Native ----
+node_modules/
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+.metro-health-check*
+*.tsbuildinfo
+coverage/
+npm-debug.*
+# Generated from the configuration at each build (docs/decisions/0001), never kept
+/android/
+/ios/
+.kotlin/
+
+# ---- Settings for one machine (config/base.toml says how they merge) ----
+config/local.toml
+
 # ---- Claude Code: local settings (skills in .claude/skills/ are shared) ----
 .claude/settings.json
 .claude/settings.local.json

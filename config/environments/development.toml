@@ -1,0 +1,7 @@
+# Development: on a developer's phone or emulator, beside the released app, which keeps its
+# own identity and data.
+
+[app]
+name = "AI App (development)"
+android_package = "io.github.trungnguyen278.aiapp.dev"
+ios_bundle_identifier = "io.github.trungnguyen278.aiapp.dev"

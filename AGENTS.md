@@ -19,10 +19,10 @@ This repository is one of the project's ([README](README.md#related-repositories
 
   Lists of files, settings and tests, and what a review found, go in the conversation or the dev log, never in git.
 - **No hard-coded values.** Before writing a number, a name or a duration in code, decide where it belongs:
-  - a value someone may want to tune (a timeout, a retry, a limit, a colour, a size) goes in the app's configuration, with a comment. The code takes it as a required setting, with no default, so that the configuration shows what the app really uses;
+  - a value someone may want to tune (a timeout, a retry, a limit, a colour, a size) goes in the app's configuration (`config/base.toml`, or an environment's file), with a comment. The code takes it as a required setting, with no default, so that the configuration shows what the app really uses;
   - a value a protocol fixes (a version, a code, a field's limit, a Bluetooth UUID) lives in ai-platform and, once, in the code that speaks the protocol, named and pointing to the spec;
   - a fact (a constant, a published formula) stays in the code, named, with its source;
-  - a value for one build or one machine (a server's address, a signing key, a store's credential) is never committed: a git-ignored local file for a setting; environment variables or the CI's secret store for a secret.
+  - a value for one build or one machine (a server's address, a signing key, a store's credential) is never committed: `config/local.toml`, which git ignores, for a setting; environment variables or the CI's secret store for a secret.
 - No text that people see is written in code: it comes from a catalog, in the language asked for (ai-platform ADR-0002).
 
 ## Task checklists

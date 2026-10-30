@@ -1,6 +1,6 @@
 # ai-app
 
-> **Status:** new. The repository's conventions are in place; there is no code yet. Decided: React Native with Expo, Android first ([ADR-0001](docs/decisions/0001-platforms-and-framework.md)), and the [architecture](docs/architecture.md) ([ADR-0002](docs/decisions/0002-architecture.md)). How owners sign in to ai-cloud comes next ([dev log](docs/devlog/2026-10.md)).
+> **Status:** new. The skeleton runs: one screen, with its texts in English and Vietnamese. CI checks it, and builds it for Android and the iOS simulator. Decided: React Native with Expo, Android first ([ADR-0001](docs/decisions/0001-platforms-and-framework.md)), and the [architecture](docs/architecture.md) ([ADR-0002](docs/decisions/0002-architecture.md)). How owners sign in to ai-cloud comes next ([dev log](docs/devlog/2026-10.md)).
 
 The owner's app for the project's AI devices, the first of which is [ai-robot](https://github.com/trungnguyen278/ai-robot), a mobile robot with an expressive face that people talk to. With it, an owner sets a device up, brings the people of their home in, changes a device's settings and controls it. The app signs in to [ai-cloud](https://github.com/trungnguyen278/ai-cloud), which registers the devices it sets up.
 
@@ -19,12 +19,39 @@ The protocols it speaks, and their requirements, are defined in [ai-platform](ht
 
 ```
 ai-app/
-├── docs/        Decision records (ADRs) and the dev log
-├── platform/    ai-platform, pinned: the protocols, and the decisions that span the repositories
+├── app/         Routes (Expo Router), each rendering a module's screen
+├── src/         The modules, and shared beneath them (docs/architecture.md)
+├── locales/     The catalogs: one file per language, English the source
+├── config/      The app's settings: base.toml, and a file per environment
+├── tests/       By module, and the routes
+├── docs/        The architecture, decision records (ADRs) and the dev log
+├── platform/    ai-platform, pinned: the protocols, the catalogs' rules, the decisions that span the repositories
 └── .claude/     Task checklists for AI assistants (see AGENTS.md)
 ```
 
-The code's layout comes with the decision on the framework. Clone with `git clone --recurse-submodules`, or run `git submodule update --init` after a plain clone.
+Clone with `git clone --recurse-submodules`, or run `git submodule update --init` after a plain clone.
+
+## Development
+
+It needs Node.js, at the version `.nvmrc` names. Copy `.env.example` to `.env`; it names the configuration's environment.
+
+```sh
+npm ci                # the dependencies, as package-lock.json has them
+npx expo start        # then scan the QR code with Expo Go, on an Android phone
+```
+
+Expo Go runs the app while it has no native code of its own. Once it has, such as Bluetooth LE for set-up, it runs in a development build: on Windows that needs Android Studio, for its SDK, and JDK 17.
+
+The checks, as CI runs them, which also builds the app for Android and for the iOS simulator:
+
+```sh
+npm run typecheck
+npm run lint          # ESLint, and Prettier's formatting
+npm run boundaries    # the modules' boundaries (dependency-cruiser)
+npm test              # Jest, with the catalogs' checks and MF2's test suite
+```
+
+The configuration is `config/base.toml`, then the environment's file in `config/environments/`, then an optional `config/local.toml` for one machine, which git ignores. Every value is required, and is checked when the app starts or is built.
 
 ## Documentation
 
