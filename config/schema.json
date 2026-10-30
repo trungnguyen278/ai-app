@@ -3,7 +3,7 @@
   "title": "The app's configuration, once merged (config/base.toml)",
   "type": "object",
   "additionalProperties": false,
-  "required": ["app"],
+  "required": ["app", "studio"],
   "properties": {
     "app": {
       "type": "object",
@@ -23,6 +23,14 @@
           "type": "string",
           "pattern": "^[a-zA-Z0-9-]+(\\.[a-zA-Z0-9-]+)+$"
         }
+      }
+    },
+    "studio": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled"],
+      "properties": {
+        "enabled": { "type": "boolean" }
       }
     }
   }

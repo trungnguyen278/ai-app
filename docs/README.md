@@ -3,6 +3,7 @@
 | Document | Contents |
 |---|---|
 | [architecture.md](architecture.md) | Modules, ports and adapters, set-up end to end, security, testing, configuration |
+| [design.md](design.md) | The design system: colour and the tone, type, space and corners, the studio |
 | [decisions/](decisions/README.md) | The app's own decision records (ADRs) |
 | [devlog/](devlog/README.md) | Development log |
 

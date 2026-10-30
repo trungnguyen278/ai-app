@@ -15,3 +15,9 @@ scheme = "aiapp"
 # and never after it.
 android_package = "io.github.trungnguyen278.aiapp"
 ios_bundle_identifier = "io.github.trungnguyen278.aiapp"
+
+[studio]
+# The studio shows every token, component and motion of the design system, in both themes
+# (ADR-0003). Only the development app has it, in a debug build or in a release build, where
+# motion is judged.
+enabled = false

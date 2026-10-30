@@ -1,18 +1,19 @@
 // SPDX-License-Identifier: MIT
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { useText } from '@/src/shared/catalog';
+import { Screen, Text } from '@/src/shared/design';
 
 /** The owner's homes: none until sign-in and the cloud's homes exist (docs/architecture.md). */
 export function HomeScreen() {
   const text = useText();
   return (
-    <View style={styles.page}>
-      <Text>{text('homes.empty')}</Text>
-    </View>
+    <Screen style={styles.page}>
+      <Text ink="textMuted">{text('homes.empty')}</Text>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  page: { alignItems: 'center', justifyContent: 'center' },
 });

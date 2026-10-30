@@ -1,6 +1,6 @@
 # Architecture
 
-> **Status:** accepted in [ADR-0002](decisions/0002-architecture.md) (the shape), on [ADR-0001](decisions/0001-platforms-and-framework.md) (the framework). Its skeleton is built: the routes, the catalogs in `shared`, and the first screen of `homes`.
+> **Status:** accepted in [ADR-0002](decisions/0002-architecture.md) (the shape), on [ADR-0001](decisions/0001-platforms-and-framework.md) (the framework). Its skeleton is built: the routes, the catalogs and the foundation of the design system in `shared`, the first screen of `homes`, and the `studio`.
 
 The app is how an owner reaches their devices and their home. It sets a device up, signs in to ai-cloud, manages homes and their people, changes settings and controls devices. One person builds it, for Android first and iOS from the same code (ADR-0001), and it serves every kind of device the project makes.
 
@@ -44,7 +44,8 @@ The app is how an owner reaches their devices and their home. It sets a device u
 | `settings` | A device's settings: through the cloud, or near the device for those the cloud cannot change |
 | `control` | Driving a device's capabilities, within their safety classes |
 | `notifications` | Registering the phone for push, and showing what the cloud sends |
-| `shared` | Configuration, catalogs, the protocols' schemas read from `platform/`, errors, logs, the design system |
+| `studio` | The design system, a page for each of its parts, in both themes: in the development app only ([ADR-0003](decisions/0003-interface-and-motion.md)) |
+| `shared` | Configuration, catalogs, the protocols' schemas read from `platform/`, errors, logs, the [design system](design.md) |
 
 Each module has the same shape:
 

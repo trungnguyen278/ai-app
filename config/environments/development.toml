@@ -5,3 +5,6 @@
 name = "AI App (development)"
 android_package = "io.github.trungnguyen278.aiapp.dev"
 ios_bundle_identifier = "io.github.trungnguyen278.aiapp.dev"
+
+[studio]
+enabled = true
