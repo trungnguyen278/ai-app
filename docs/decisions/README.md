@@ -10,3 +10,4 @@ Each significant decision is a short file: context, decision, alternatives consi
 |---|---|---|---|
 | [0001](0001-platforms-and-framework.md) | Platforms and framework: React Native with Expo, Android first | Accepted | 2026-10-29 |
 | [0002](0002-architecture.md) | The architecture: modules with ports and adapters, as on the robot and in the cloud | Accepted | 2026-10-29 |
+| [0003](0003-interface-and-motion.md) | The interface: the robot's visual language, in motion | Proposed | 2026-10-30 |
