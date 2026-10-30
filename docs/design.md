@@ -1,6 +1,6 @@
 # The design system
 
-> **Status:** its foundation is built: the colours of both themes and the tone, type, space and corners, and the studio. Motion's primitives come next. Decided in [ADR-0003](decisions/0003-interface-and-motion.md).
+> **Status:** built: the colours of both themes and the tone, type, space and corners, motion and its components, and the studio. The home screen comes next on them. Decided in [ADR-0003](decisions/0003-interface-and-motion.md).
 
 The app speaks the robot's visual language: one tone, glowing, on a quiet canvas. This page is for whoever builds a screen. It says where each value lives and what rule it keeps.
 
@@ -28,6 +28,7 @@ They do not change with the tone. They are in `palette.json`, which the splash s
 | `outline` | Lines that show where a control is | 3:1 with every background (WCAG 1.4.11) |
 | `text` | Text | 7:1 with every background (1.4.6, AAA) |
 | `textMuted` | Text that comes second | 4.5:1 with every background (1.4.3) |
+| `shimmer` | The light that crosses a shape still loading | Lighter than the `fill` it crosses |
 
 ### The tone
 
@@ -71,15 +72,58 @@ The tone is the robot's colour of the moment: its calm cyan while it is not know
 - **`RADIUS`:** `sm` 8, `md` 14, `lg` 22, `full`. Each corner is drawn with a continuous curve.
 - **`RING_WIDTH`** is the ring around what is chosen. **`GLOW_RADIUS`** is how far light glows.
 
+## Motion
+
+Motion has a budget, set by how often it is seen (ADR-0003, from Expo's animation skill). What is touched a hundred times a day does not move; a press, touched tens of times, barely moves; the richest motion waits for rare moments. Every motion runs on the UI thread.
+
+| Token | Value | For |
+|---|---|---|
+| `DURATION.press` | 120 ms | A press, as a spring that does not bounce (`CSS_SPRING`) |
+| `DURATION.change` | 180 ms | A small change, and neighbours making room |
+| `DURATION.enter`, `exit` | 250, 200 ms | Arriving, and leaving a fifth faster, on a strong ease-out |
+| `DURATION.fade` | 150 ms | What would move or scale, with reduce motion on |
+| `TONE_BLEND` | 280 ms | A change of tone, as the robot's face blends its expressions |
+| `BREATH` | 4.4 s | Light breathing, with the robot's breath |
+| `WAIT` | 1.2 s, 1.4 s | A pulse of the tone; a shimmer's sweep |
+
+- **Nothing passes 300 ms,** and nothing starts slow: no curve eases in.
+- **Reduce motion:** the phone's setting, read as the app starts and followed when it changes. The studio can force it either way.
+  - What would move or scale fades instead, in `DURATION.fade`.
+  - Loops stop: the shimmer, the pulse, the breath.
+  - Colour still blends.
+- **Haptics:** one for what a touch does, where the platforms' guidance puts one, and never the only sign of it.
+  - `select` is a choice that moves, `success` and `error` the end of a wait.
+  - iOS plays its feedback generators.
+  - Android plays its haptics engine (`performHapticFeedback`), never the vibrator.
+  - Both follow the phone's own setting for haptics.
+- **120 Hz:** Expo's template for SDK 58 already lets iPhones with ProMotion animate at 120 frames a second (`CADisableMinimumFrameDurationOnPhone`).
+
+## Components
+
+| Component | What it is | How it moves |
+|---|---|---|
+| `Screen` | A page: the canvas, the gutter, room for the system's bars; a long page scrolls | |
+| `Text` | Text on the scale, in an ink: `text`, `textMuted`, `accent` or `onAccent` | Accent inks blend with the tone |
+| `Press` | Anything a finger presses | Shrinks a little, or dims with reduce motion. A row as wide as the screen lights up instead. It can play a haptic as the press commits. |
+| `Button` | `primary`, filled with the tone and glowing; `secondary`, on a tint of it; `plain`, its text alone | Presses as `Press` does. Disabled, it is faint; busy, the tone pulses where its label was, and screen readers still hear the label. |
+| `Appear` | Something that arrives once, such as what a person waited for | Rises and grows into place, staggered; leaves the way it came; its neighbours make room |
+| `Skeleton` | The shape of content still loading | A light crosses it |
+| `Pulse` | Waiting, in the tone, with a name for screen readers | Three dots pulse one after another |
+| `Glow` | Light in the tone, drawn with Skia, for rare moments | Blends with the tone; can breathe |
+
 ## Building a screen
 
-- **`Screen`** is a page: the canvas, the gutter, and room for the system's bars. A long page scrolls.
-- **`Text`** sets text on the scale, in an ink: `text`, `textMuted`, `accent` or `onAccent`.
-- **`useTheme()`** gives the theme's colours to anything else.
+- **Build it from the components above.** `useTheme()` gives the theme's colours to anything else, and `useMotion()` says whether motion is reduced.
 - **A new value** goes into the tokens, named for what it does, and the studio shows it. A new colour role comes with its contrast rule, and a test of it.
+- **A new motion** names its purpose, keeps the budget, and ships with its reduce-motion form.
 
 ## The studio
 
 - **Where:** the development app has it; production does not (`studio.enabled` in `config/`). It opens from the header of the homes screen.
-- **What:** choose the appearance and one of the robot's tones; the pages then show the colours with their contrasts, the type with Vietnamese's marks, and the spacing and corners.
+- **What:** choose the appearance, the motion and one of the robot's tones. The pages then show:
+  - the colours, with their contrasts;
+  - the type, with Vietnamese's marks;
+  - the spacing and corners;
+  - the components, to press;
+  - motion, to watch.
 - **Judging motion:** on a release build of the development app, on the slowest phone the app supports (ADR-0003).

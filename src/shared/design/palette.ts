@@ -23,7 +23,12 @@ export interface Neutrals {
   text: string;
   /** Text that comes second: TEXT_CONTRAST with every background. */
   textMuted: string;
+  /** The light that crosses a shape still loading, over `fill`. */
+  shimmer: string;
 }
+
+/** How faint what cannot be used is: Material Design's 38 % for disabled content. */
+export const DISABLED_OPACITY = 0.38;
 
 /** A theme in palette.json. */
 export interface ThemeData extends Neutrals {

@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
-// The theme follows the phone, or the appearance chosen, with the current tone.
+// The theme and the motion follow the phone, or what was chosen, with the current tone.
 import { act, screen } from '@testing-library/react-native';
 import * as SystemUI from 'expo-system-ui';
+import { AccessibilityInfo } from 'react-native';
 
 import {
   buildTheme,
@@ -20,6 +21,11 @@ jest.mock('react-native/Libraries/Utilities/useColorScheme', () => ({
   default: () => mockScheme(),
 }));
 jest.mock('expo-system-ui', () => ({ setBackgroundColorAsync: jest.fn(async () => {}) }));
+const mockReducedAtStart = jest.fn(() => false);
+jest.mock('react-native-reanimated', () => ({
+  ...jest.requireActual('react-native-reanimated'),
+  useReducedMotion: () => mockReducedAtStart(),
+}));
 
 // A page of the theme's canvas.
 function Page() {
@@ -28,6 +34,7 @@ function Page() {
 
 beforeEach(() => {
   mockScheme.mockReturnValue('light');
+  mockReducedAtStart.mockReturnValue(false);
   jest.mocked(SystemUI.setBackgroundColorAsync).mockClear();
 });
 
@@ -85,4 +92,32 @@ test("the navigation's views take the theme's colours and fonts", () => {
     text: PALETTE.dark.text,
   });
   expect(navigation.fonts.bold.fontFamily).toBe(FONTS.semibold);
+});
+
+test("motion follows the phone's reduce-motion setting, as the app starts and as it changes", async () => {
+  let changed: ((reduced: boolean) => void) | undefined;
+  const remove = jest.fn();
+  // React Native's own mock of the listener, answering once for the provider below.
+  jest.mocked(AccessibilityInfo.addEventListener).mockImplementationOnce((_, handler) => {
+    changed = handler as (reduced: boolean) => void;
+    return { remove };
+  });
+  mockReducedAtStart.mockReturnValue(true);
+  const { unmount } = await renderScreen(<Page />);
+  expect(design().reducedMotion).toBe(true);
+  await act(() => changed?.(false));
+  expect(design().reducedMotion).toBe(false);
+  await unmount();
+  expect(remove).toHaveBeenCalled();
+});
+
+test("the motion chosen wins over the phone's", async () => {
+  mockReducedAtStart.mockReturnValue(true);
+  await renderScreen(<Page />);
+  await act(() => design().setMotion('full'));
+  expect(design().reducedMotion).toBe(false);
+  await act(() => design().setMotion('reduced'));
+  expect(design().reducedMotion).toBe(true);
+  await act(() => design().setMotion('system'));
+  expect(design().reducedMotion).toBe(true);
 });

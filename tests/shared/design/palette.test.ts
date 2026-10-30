@@ -12,6 +12,7 @@ const NEUTRALS: (keyof Neutrals)[] = [
   'outline',
   'text',
   'textMuted',
+  'shimmer',
 ];
 
 test('both themes have the same colours, and nothing else', () => {
@@ -50,6 +51,10 @@ describe.each(SCHEMES)('in the %s theme', (scheme) => {
     for (const background of backgrounds) {
       expect(ratio(theme[name], background)).toBeGreaterThanOrEqual(least);
     }
+  });
+
+  test('the shimmer is lighter than the fill it crosses', () => {
+    expect(ratio(theme.shimmer, '#000000')).toBeGreaterThan(ratio(theme.fill, '#000000'));
   });
 
   test('the tint and the glow are in range', () => {

@@ -50,6 +50,7 @@ export function ColorsScreen() {
         <ColorRow name="surface" value={color.surface} />
         <ColorRow name="fill" value={color.fill} />
         <ColorRow name="hairline" value={color.hairline} />
+        <ColorRow name="shimmer" value={color.shimmer} />
         <ColorRow name="outline" value={color.outline} detail={least(color.outline, backgrounds)} />
         <ColorRow
           name="textMuted"

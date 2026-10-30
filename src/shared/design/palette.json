@@ -8,6 +8,7 @@
     "outline": "#6f757b",
     "text": "#eaeff5",
     "textMuted": "#9fa5ac",
+    "shimmer": "#2c3136",
     "tint": { "lightness": 0.22, "chroma": 0.05 },
     "glowOpacity": 0.55
   },
@@ -19,6 +20,7 @@
     "outline": "#7b8187",
     "text": "#171b20",
     "textMuted": "#5c6167",
+    "shimmer": "#f8fafc",
     "tint": { "lightness": 0.93, "chroma": 0.045 },
     "glowOpacity": 0.35
   }

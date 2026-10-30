@@ -19,7 +19,14 @@ test("the first screen is the owner's homes", async () => {
 });
 
 test('the studio has its pages', () => {
-  expect(STUDIO.sort()).toEqual(['/studio', '/studio/colors', '/studio/layout', '/studio/type']);
+  expect(STUDIO.sort()).toEqual([
+    '/studio',
+    '/studio/colors',
+    '/studio/components',
+    '/studio/layout',
+    '/studio/motion',
+    '/studio/type',
+  ]);
 });
 
 test.each(STUDIO)('the development app opens %s', async (path) => {

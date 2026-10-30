@@ -13,11 +13,13 @@
   },
   "dependencies": {
     "@expo-google-fonts/be-vietnam-pro": "^0.4.1",
+    "@shopify/react-native-skia": "2.14.0",
     "culori": "^4.0.2",
     "expo": "~58.0.21",
     "expo-asset": "~58.0.19",
     "expo-constants": "~58.0.14",
     "expo-font": "~58.0.11",
+    "expo-haptics": "~58.0.7",
     "expo-linking": "~58.0.15",
     "expo-localization": "~58.0.5",
     "expo-router": "~58.0.28",

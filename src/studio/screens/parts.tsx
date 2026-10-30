@@ -1,11 +1,24 @@
 // SPDX-License-Identifier: MIT
-// The studio's own parts: grouped sections, their rows, and a choice among a few options.
+// The studio's own parts: grouped sections, their rows, and choices among a few options.
 import { Link, type Href } from 'expo-router';
-import { Children, useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Children, type ReactNode } from 'react';
+import { StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { RADIUS, RING_WIDTH, SPACE, TARGET, Text, useTheme, VIEW_BLEND } from '@/src/shared/design';
+import { useText } from '@/src/shared/catalog';
+import {
+  Press,
+  RADIUS,
+  RING_WIDTH,
+  SPACE,
+  TARGET,
+  Text,
+  useDesign,
+  useTheme,
+  VIEW_BLEND,
+} from '@/src/shared/design';
+
+import { ROBOT_TONES } from '../tones';
 
 /** A titled group of rows on a surface, separated by hairlines. */
 export function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -30,23 +43,15 @@ export function Section({ title, children }: { title: string; children: ReactNod
   );
 }
 
-/** A row that opens a page. Rows highlight when pressed; they do not scale. */
+/** A row that opens a page. A row as wide as the screen lights up when pressed. */
 export function LinkRow({ href, label }: { href: Href; label: string }) {
-  const { color } = useTheme();
-  const [pressed, setPressed] = useState(false);
-  // A Link hands its child one flat style object: a function or a list would be lost.
-  const style = StyleSheet.flatten([styles.row, pressed && { backgroundColor: color.fill }]);
   return (
+    // A Link hands its child one flat style object, which Press then animates.
     <Link href={href} asChild>
-      <Pressable
-        accessibilityLabel={label}
-        onPressIn={() => setPressed(true)}
-        onPressOut={() => setPressed(false)}
-        style={style}
-      >
+      <Press feedback="light" accessibilityLabel={label} style={styles.row}>
         <Text style={styles.grow}>{label}</Text>
         <Text ink="textMuted">›</Text>
-      </Pressable>
+      </Press>
     </Link>
   );
 }
@@ -87,7 +92,7 @@ export interface Option<T extends string> {
   label: string;
 }
 
-/** One of a few options, side by side. */
+/** One of a few options, side by side. A choice ticks under the finger. */
 export function Choice<T extends string>({
   options,
   value,
@@ -103,8 +108,10 @@ export function Choice<T extends string>({
       {options.map((option) => {
         const selected = option.value === value;
         return (
-          <Pressable
+          <Press
             key={option.value}
+            feedback="light"
+            haptic={selected ? undefined : 'select'}
             accessibilityRole="radio"
             accessibilityState={{ checked: selected }}
             onPress={() => onChange(option.value)}
@@ -113,14 +120,14 @@ export function Choice<T extends string>({
             <Text variant="label" ink={selected ? 'text' : 'textMuted'}>
               {option.label}
             </Text>
-          </Pressable>
+          </Press>
         );
       })}
     </View>
   );
 }
 
-/** One of a set of colours, as round swatches named for screen readers: the chosen one is ringed with the accent. */
+/** One of a set of colours, as round swatches named for screen readers, the chosen one ringed. */
 export function ColorChoice({
   options,
   value,
@@ -136,29 +143,32 @@ export function ColorChoice({
       {options.map(({ value: swatch, label }) => {
         const selected = swatch === value;
         return (
-          <Pressable
+          <Press
             key={swatch}
+            haptic={selected ? undefined : 'select'}
             accessibilityRole="radio"
             accessibilityLabel={label}
             accessibilityState={{ checked: selected }}
             onPress={() => onChange(swatch)}
+            style={[styles.ring, { borderColor: selected ? color.accent : color.surface }]}
           >
-            <Animated.View
-              style={[
-                styles.ring,
-                { borderColor: selected ? color.accent : color.surface },
-                VIEW_BLEND,
-              ]}
-            >
-              <View
-                style={[styles.dot, { backgroundColor: swatch, borderColor: color.hairline }]}
-              />
-            </Animated.View>
-          </Pressable>
+            <View style={[styles.dot, { backgroundColor: swatch, borderColor: color.hairline }]} />
+          </Press>
         );
       })}
     </View>
   );
+}
+
+/** The robot's tones, to try the app's with. */
+export function ToneChoice() {
+  const text = useText();
+  const { tone, setTone } = useDesign();
+  const options = Object.entries(ROBOT_TONES).map(([name, value]) => ({
+    value,
+    label: text(`studio.tone.${name}`),
+  }));
+  return <ColorChoice options={options} value={tone} onChange={setTone} />;
 }
 
 const styles = StyleSheet.create({
