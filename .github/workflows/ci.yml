@@ -1,0 +1,79 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Types, lint, boundaries and tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true # ai-platform, at platform/: the catalogs' rules and MF2's tests
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run boundaries
+      - run: npm test
+
+  android:
+    name: Android build
+    runs-on: ubuntu-latest
+    env:
+      AI_APP_ENVIRONMENT: production
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17' # React Native 0.88's toolchain
+      - run: npm ci
+      - name: Generate the Android project from the configuration
+        run: npx expo prebuild --platform android --no-install
+      - name: Build
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+
+  ios:
+    name: iOS simulator build
+    runs-on: macos-26 # Xcode 26.6 by default; SDK 58 needs 26.4 or later
+    env:
+      AI_APP_ENVIRONMENT: production
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Generate the iOS project from the configuration, with its pods
+        run: npx expo prebuild --platform ios
+      - name: Build for the simulator, unsigned
+        run: |
+          workspace=$(ls -d ios/*.xcworkspace)
+          xcodebuild -workspace "$workspace" -scheme "$(basename "$workspace" .xcworkspace)" \
+            -configuration Debug -sdk iphonesimulator \
+            -destination "generic/platform=iOS Simulator" \
+            CODE_SIGNING_ALLOWED=NO build

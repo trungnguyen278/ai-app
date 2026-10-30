@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "The app's configuration, once merged (config/base.toml)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["app"],
+  "properties": {
+    "app": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "slug", "scheme", "android_package", "ios_bundle_identifier"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 50 },
+        "slug": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+        "scheme": { "type": "string", "pattern": "^[a-z][a-z0-9+.-]*$" },
+        "android_package": {
+          "description": "Android's rule: segments of letters, digits and underscores, each starting with a letter",
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z][a-zA-Z0-9_]*)+$"
+        },
+        "ios_bundle_identifier": {
+          "description": "Apple's rule: letters, digits, hyphens and periods",
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9-]+(\\.[a-zA-Z0-9-]+)+$"
+        }
+      }
+    }
+  }
+}

@@ -1,6 +1,6 @@
 # Architecture
 
-> **Status:** accepted in [ADR-0002](decisions/0002-architecture.md) (the shape), on [ADR-0001](decisions/0001-platforms-and-framework.md) (the framework). Nothing is built yet.
+> **Status:** accepted in [ADR-0002](decisions/0002-architecture.md) (the shape), on [ADR-0001](decisions/0001-platforms-and-framework.md) (the framework). Its skeleton is built: the routes, the catalogs in `shared`, and the first screen of `homes`.
 
 The app is how an owner reaches their devices and their home. It sets a device up, signs in to ai-cloud, manages homes and their people, changes settings and controls devices. One person builds it, for Android first and iOS from the same code (ADR-0001), and it serves every kind of device the project makes.
 
@@ -99,7 +99,7 @@ Steps 5 and 6 need the owner's sign-in and the app ⇄ cloud protocol, which ai-
 ## Configuration
 
 - **What someone may tune** (a timeout, a retry, a limit, a colour) is in the app's configuration, required and commented. It comes as one file for every build, then a file for each environment: development, with the simulated device and cloud, and production.
-- **What belongs to one machine,** such as the address of a developer's own cloud, goes in a git-ignored local file.
+- **What belongs to one machine,** such as the address of a developer's own cloud, goes in `config/local.toml`, which git ignores.
 - **The app holds no secret of the project's:** the cloud keeps the providers' keys.
 - **The name people see** comes from one setting.
 
