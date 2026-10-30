@@ -14,6 +14,8 @@ export const ENVIRONMENT_VARIABLE = 'AI_APP_ENVIRONMENT';
 
 const CONFIG_DIR = join(__dirname, 'config');
 const LOCALES_DIR = join(__dirname, 'locales');
+// The design system's colours (ADR-0003), which the splash screen shares with the app.
+const PALETTE = join(__dirname, 'src', 'shared', 'design', 'palette.json');
 
 type Table = { [key: string]: unknown };
 
@@ -25,6 +27,12 @@ export interface Settings {
     android_package: string;
     ios_bundle_identifier: string;
   };
+  studio: { enabled: boolean };
+}
+
+/** What the app reads of its settings while it runs, in Expo's `extra` (src/shared/config). */
+export function runtimeSettings(settings: Settings) {
+  return { studio: settings.studio.enabled };
 }
 
 /** The settings of `environment`, from the files of `directory`, checked. */
@@ -91,8 +99,10 @@ export function catalogLanguages(directory = LOCALES_DIR): string[] {
 }
 
 export default ({ config }: ConfigContext): ExpoConfig => {
-  const { app } = loadSettings(process.env[ENVIRONMENT_VARIABLE]);
+  const settings = loadSettings(process.env[ENVIRONMENT_VARIABLE]);
+  const { app } = settings;
   const { version } = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf8'));
+  const { light, dark } = JSON.parse(readFileSync(PALETTE, 'utf8'));
   const languages = catalogLanguages();
   return {
     ...config,
@@ -100,13 +110,21 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     slug: app.slug,
     scheme: app.scheme,
     version,
+    // The app follows the phone's light or dark appearance (ADR-0003).
+    userInterfaceStyle: 'automatic',
     android: { package: app.android_package },
     ios: { bundleIdentifier: app.ios_bundle_identifier },
     plugins: [
       'expo-router',
       'expo-status-bar',
+      'expo-system-ui',
+      [
+        'expo-splash-screen',
+        { backgroundColor: light.canvas, dark: { backgroundColor: dark.canvas } },
+      ],
       ['expo-localization', { supportedLocales: { android: languages, ios: languages } }],
     ],
+    extra: { ...config.extra, settings: runtimeSettings(settings) },
     experiments: { typedRoutes: true },
   };
 };

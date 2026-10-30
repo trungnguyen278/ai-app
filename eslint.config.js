@@ -17,4 +17,10 @@ module.exports = defineConfig([
       ],
     },
   },
+  {
+    // Expo writes process.env's values into the app when it bundles it, and only those it can
+    // see by name. Tests and configuration run in Node, which reads process.env as it is.
+    files: ['tests/**', '*.config.{js,ts}'],
+    rules: { 'expo/no-dynamic-env-var': 'off' },
+  },
 ]);

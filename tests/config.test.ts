@@ -3,7 +3,16 @@ import { cpSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { catalogLanguages, ENVIRONMENT_VARIABLE, loadSettings, merge } from '@/app.config';
+import type { ConfigContext } from 'expo/config';
+
+import appConfig, {
+  catalogLanguages,
+  ENVIRONMENT_VARIABLE,
+  loadSettings,
+  merge,
+  runtimeSettings,
+} from '@/app.config';
+import { PALETTE } from '@/src/shared/design';
 
 const CONFIG = join(__dirname, '..', 'config');
 
@@ -79,4 +88,42 @@ test('merge merges tables and replaces the rest', () => {
 
 test('the languages offered to the system are the catalogs in locales/', () => {
   expect(catalogLanguages()).toEqual(['en', 'vi']);
+});
+
+test('only the development app has the studio', () => {
+  expect(runtimeSettings(loadSettings('development'))).toEqual({ studio: true });
+  expect(runtimeSettings(loadSettings('production'))).toEqual({ studio: false });
+});
+
+describe("Expo's configuration", () => {
+  const environment = process.env[ENVIRONMENT_VARIABLE];
+
+  beforeEach(() => {
+    process.env[ENVIRONMENT_VARIABLE] = 'production';
+  });
+
+  afterEach(() => {
+    if (environment === undefined) {
+      delete process.env[ENVIRONMENT_VARIABLE];
+    } else {
+      process.env[ENVIRONMENT_VARIABLE] = environment;
+    }
+  });
+
+  const expo = () => appConfig({ config: {} } as ConfigContext);
+
+  test("follows the phone's appearance, from a splash screen in the design's colours", () => {
+    expect(expo().userInterfaceStyle).toBe('automatic');
+    const splash = expo().plugins?.find(
+      (plugin) => Array.isArray(plugin) && plugin[0] === 'expo-splash-screen',
+    );
+    expect(splash).toEqual([
+      'expo-splash-screen',
+      { backgroundColor: PALETTE.light.canvas, dark: { backgroundColor: PALETTE.dark.canvas } },
+    ]);
+  });
+
+  test('carries the settings the app reads while it runs', () => {
+    expect(expo().extra?.settings).toEqual({ studio: false });
+  });
 });

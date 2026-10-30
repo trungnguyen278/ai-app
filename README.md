@@ -1,6 +1,6 @@
 # ai-app
 
-> **Status:** new. The skeleton runs: one screen, with its texts in English and Vietnamese. CI checks it, and builds it for Android and the iOS simulator. Decided: React Native with Expo, Android first ([ADR-0001](docs/decisions/0001-platforms-and-framework.md)), the [architecture](docs/architecture.md) ([ADR-0002](docs/decisions/0002-architecture.md)), and the interface, in the robot's visual language ([ADR-0003](docs/decisions/0003-interface-and-motion.md)). Its design system comes next ([dev log](docs/devlog/2026-10.md)).
+> **Status:** new. The skeleton runs: one screen, in English and Vietnamese, on the foundation of the [design system](docs/design.md), which the development app shows in a studio. CI checks it, and builds it for Android and the iOS simulator. Decided: React Native with Expo, Android first ([ADR-0001](docs/decisions/0001-platforms-and-framework.md)), the [architecture](docs/architecture.md) ([ADR-0002](docs/decisions/0002-architecture.md)), and the interface, in the robot's visual language ([ADR-0003](docs/decisions/0003-interface-and-motion.md)). Motion's primitives come next ([dev log](docs/devlog/2026-10.md)).
 
 The owner's app for the project's AI devices, the first of which is [ai-robot](https://github.com/trungnguyen278/ai-robot), a mobile robot with an expressive face that people talk to. With it, an owner sets a device up, brings the people of their home in, changes a device's settings and controls it. The app signs in to [ai-cloud](https://github.com/trungnguyen278/ai-cloud), which registers the devices it sets up.
 
@@ -40,6 +40,8 @@ npm ci                # the dependencies, as package-lock.json has them
 npx expo start        # then scan the QR code with Expo Go, on an Android phone
 ```
 
+In the development app, the studio opens from the header of the homes screen: it shows the design system in both themes ([docs/design.md](docs/design.md)).
+
 Expo Go runs the app while it has no native code of its own. Once it has, such as Bluetooth LE for set-up, it runs in a development build: on Windows that needs Android Studio, for its SDK, and JDK 17.
 
 The checks, as CI runs them, which also builds the app for Android and for the iOS simulator:
@@ -56,6 +58,7 @@ The configuration is `config/base.toml`, then the environment's file in `config/
 ## Documentation
 
 - [docs/architecture.md](docs/architecture.md) — modules, ports and adapters, set-up end to end, testing
+- [docs/design.md](docs/design.md) — the design system: colour and the tone, type, space and corners, the studio
 - [docs/](docs/README.md) — the app's own decisions and its dev log
 - [ai-platform](https://github.com/trungnguyen278/ai-platform) — the protocols, and the decisions that span the repositories
 - [CONTRIBUTING.md](CONTRIBUTING.md) — branches, commits, documentation, secrets, licensing
