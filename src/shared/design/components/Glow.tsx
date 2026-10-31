@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 import { BlurMask, Canvas, Circle, Group, interpolateColors } from '@shopify/react-native-skia';
 import { useEffect } from 'react';
-import type { StyleProp, ViewStyle } from 'react-native';
+import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import {
   cancelAnimation,
   Easing,
@@ -101,7 +101,8 @@ export function Glow({ size, breathing = false, style, testID }: GlowProps) {
       testID={testID}
       aria-hidden
       pointerEvents="none"
-      style={[{ width: size, height: size }, style]}
+      // Skia's canvas takes one flat style: on the web, it hands it to the page as it is.
+      style={StyleSheet.flatten([{ width: size, height: size }, style])}
     >
       <Group opacity={opacity}>
         <Circle cx={size / 2} cy={size / 2} r={radius} color={paint}>

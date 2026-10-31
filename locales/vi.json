@@ -1,6 +1,7 @@
 {
   "homes.title": "Nhà của bạn",
-  "homes.empty": "Bạn chưa có nhà nào.",
+  "homes.welcome": "Chào mừng bạn",
+  "homes.empty": "Bạn chưa có nhà nào. Nhà của bạn, cùng các robot trong đó, sẽ hiện ở đây.",
   "studio.title": "Studio",
   "studio.appearance": "Giao diện",
   "studio.appearance.system": "Theo máy",

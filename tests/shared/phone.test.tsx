@@ -6,11 +6,11 @@ const mockLocales = jest.fn();
 jest.mock('expo-localization', () => ({ getLocales: () => mockLocales() }));
 
 test.each([
-  [['vi-VN', 'en-US'], ['vi', 'en'], 'Bạn chưa có nhà nào.'],
-  [['fr-FR'], ['en'], 'You have no home yet.'],
+  [['vi-VN', 'en-US'], ['vi', 'en'], 'Nhà của bạn'],
+  [['fr-FR'], ['en'], 'Your homes'],
 ])("follows the phone's languages %j", (tags, languages, text) => {
   mockLocales.mockReturnValue(tags.map((languageTag) => ({ languageTag })));
   const catalog = phoneCatalog();
   expect(catalog.languages).toEqual(languages);
-  expect(catalog.text('homes.empty')).toBe(text);
+  expect(catalog.text('homes.title')).toBe(text);
 });

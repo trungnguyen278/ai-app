@@ -1,6 +1,7 @@
 {
   "homes.title": "Your homes",
-  "homes.empty": "You have no home yet.",
+  "homes.welcome": "Welcome",
+  "homes.empty": "You have no home yet. Your homes, and the robots in them, will show here.",
   "studio.title": "Studio",
   "studio.appearance": "Appearance",
   "studio.appearance.system": "System",

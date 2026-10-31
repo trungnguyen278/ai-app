@@ -10,6 +10,7 @@ const mockReducedAtStart = jest.fn(() => false);
 jest.mock('react-native-reanimated', () => {
   const actual = jest.requireActual('react-native-reanimated');
   return {
+    __esModule: true,
     ...actual,
     useReducedMotion: () => mockReducedAtStart(),
     cancelAnimation: jest.fn(actual.cancelAnimation),
