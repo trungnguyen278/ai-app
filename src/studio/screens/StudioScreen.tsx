@@ -1,24 +1,24 @@
 // SPDX-License-Identifier: MIT
 import { useText } from '@/src/shared/catalog';
-import { Screen, useDesign, type Appearance } from '@/src/shared/design';
+import { Screen, useDesign, type Appearance, type MotionPreference } from '@/src/shared/design';
 
-import { ROBOT_TONES } from '../tones';
-import { Choice, ColorChoice, LinkRow, Row, Section } from './parts';
+import { Choice, LinkRow, Row, Section, ToneChoice } from './parts';
 
 const APPEARANCES: readonly Appearance[] = ['system', 'light', 'dark'];
+const MOTIONS: readonly MotionPreference[] = ['system', 'full', 'reduced'];
 
-/** The studio's first page: the appearance and the tone to look with, and the other pages. */
+/**
+ * The studio's first page: the appearance, the motion and the tone to look with, and the
+ * other pages.
+ */
 export function StudioScreen() {
   const text = useText();
-  const { appearance, setAppearance, tone, setTone } = useDesign();
+  const { appearance, setAppearance, motion, setMotion } = useDesign();
   const appearances = APPEARANCES.map((value) => ({
     value,
     label: text(`studio.appearance.${value}`),
   }));
-  const tones = Object.entries(ROBOT_TONES).map(([name, value]) => ({
-    value,
-    label: text(`studio.tone.${name}`),
-  }));
+  const motions = MOTIONS.map((value) => ({ value, label: text(`studio.motion.${value}`) }));
   return (
     <Screen scroll>
       <Section title={text('studio.appearance')}>
@@ -26,15 +26,22 @@ export function StudioScreen() {
           <Choice options={appearances} value={appearance} onChange={setAppearance} />
         </Row>
       </Section>
+      <Section title={text('studio.motion')}>
+        <Row>
+          <Choice options={motions} value={motion} onChange={setMotion} />
+        </Row>
+      </Section>
       <Section title={text('studio.tone')}>
         <Row>
-          <ColorChoice options={tones} value={tone} onChange={setTone} />
+          <ToneChoice />
         </Row>
       </Section>
       <Section title={text('studio.pages')}>
         <LinkRow href="/studio/colors" label={text('studio.colors')} />
         <LinkRow href="/studio/type" label={text('studio.type')} />
         <LinkRow href="/studio/layout" label={text('studio.layout')} />
+        <LinkRow href="/studio/components" label={text('studio.components')} />
+        <LinkRow href="/studio/motion" label={text('studio.motion')} />
       </Section>
     </Screen>
   );

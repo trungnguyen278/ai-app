@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+import { isRunningInExpoGo } from 'expo';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -8,9 +9,12 @@ import { CatalogProvider, phoneCatalog } from '@/src/shared/catalog';
 import { runtimeSettings } from '@/src/shared/config';
 import { DesignProvider, FONT_FILES } from '@/src/shared/design';
 
-// The splash screen stays until the fonts are in, then fades.
+// The splash screen stays until the fonts are in, then fades. Expo Go keeps its own splash
+// screen, whose options the app cannot set.
 void SplashScreen.preventAutoHideAsync();
-SplashScreen.setOptions({ fade: true });
+if (!isRunningInExpoGo()) {
+  SplashScreen.setOptions({ fade: true });
+}
 
 /**
  * The app's root: every screen gets the texts of the phone's languages and the theme. The
@@ -40,6 +44,8 @@ export default function RootLayout() {
             <Stack.Screen name="studio/colors" />
             <Stack.Screen name="studio/type" />
             <Stack.Screen name="studio/layout" />
+            <Stack.Screen name="studio/components" />
+            <Stack.Screen name="studio/motion" />
           </Stack.Protected>
         </Stack>
       </DesignProvider>
