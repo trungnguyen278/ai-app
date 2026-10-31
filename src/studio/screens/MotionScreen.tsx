@@ -7,6 +7,7 @@ import {
   Appear,
   Button,
   Glow,
+  HERO,
   Pulse,
   RADIUS,
   Screen,
@@ -17,9 +18,6 @@ import {
 } from '@/src/shared/design';
 
 import { Row, Section, ToneChoice } from './parts';
-
-// The size of the light on show.
-const GLOW_SIZE = 240;
 
 /** Motion, to watch: things arriving and leaving, waiting, and light that breathes. */
 export function MotionScreen() {
@@ -71,7 +69,7 @@ export function MotionScreen() {
       </Section>
       <Section title={text('studio.motion.glow')}>
         <View style={styles.light}>
-          <Glow size={GLOW_SIZE} breathing />
+          <Glow size={HERO} breathing />
         </View>
         <Row>
           <ToneChoice />

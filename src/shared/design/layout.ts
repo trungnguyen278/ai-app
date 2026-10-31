@@ -31,6 +31,9 @@ export const GLOW_RADIUS = {
   lg: 32,
 } as const;
 
+/** The light of a rare moment, such as a first screen with nothing on it yet: its size. */
+export const HERO = 240;
+
 /** Corners, round and soft as the robot's face is. Each is drawn with a continuous curve. */
 export const RADIUS = {
   sm: 8,

@@ -1,6 +1,6 @@
 # The design system
 
-> **Status:** built: the colours of both themes and the tone, type, space and corners, motion and its components, and the studio. The home screen comes next on them. Decided in [ADR-0003](decisions/0003-interface-and-motion.md).
+> **Status:** built: the colours of both themes and the tone, type, space and corners, motion and its components, and the studio. The first screen built on them is the homes', empty for now. Decided in [ADR-0003](decisions/0003-interface-and-motion.md).
 
 The app speaks the robot's visual language: one tone, glowing, on a quiet canvas. This page is for whoever builds a screen. It says where each value lives and what rule it keeps.
 

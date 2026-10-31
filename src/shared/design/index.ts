@@ -28,7 +28,7 @@ export { DesignProvider, useDesign, useMotion, useTheme } from './DesignProvider
 export type { Appearance, Design, MotionPreference } from './DesignProvider';
 export { haptic, HAPTICS } from './haptics';
 export type { HapticRole } from './haptics';
-export { GLOW_RADIUS, GUTTER, RADIUS, RING_WIDTH, SPACE, TARGET } from './layout';
+export { GLOW_RADIUS, GUTTER, HERO, RADIUS, RING_WIDTH, SPACE, TARGET } from './layout';
 export {
   BREATH,
   CSS_CURVE,

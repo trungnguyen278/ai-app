@@ -15,7 +15,7 @@ const STUDIO = readdirSync(join(__dirname, '..', 'app', 'studio'))
 test("the first screen is the owner's homes", async () => {
   await renderRouter('app', { initialUrl: '/' });
   expect(screen).toHavePathname('/');
-  expect(screen.getByText('You have no home yet.')).toBeOnTheScreen();
+  expect(screen.getByRole('header', { name: 'Welcome' })).toBeOnTheScreen();
 });
 
 test('the studio has its pages', () => {
@@ -48,6 +48,6 @@ describe('in the released app', () => {
   test.each(STUDIO)('%s does not open, and the homes do', async (path) => {
     await renderRouter('app', { initialUrl: path });
     expect(screen).toHavePathname('/');
-    expect(screen.getByText('You have no home yet.')).toBeOnTheScreen();
+    expect(screen.getByRole('header', { name: 'Welcome' })).toBeOnTheScreen();
   });
 });
