@@ -4,7 +4,15 @@ const expoConfig = require('eslint-config-expo/flat');
 const prettierRecommended = require('eslint-plugin-prettier/recommended');
 
 module.exports = defineConfig([
-  globalIgnores(['platform/*', 'android/*', 'ios/*', 'dist/*', '.expo/*']),
+  globalIgnores([
+    'platform/*',
+    'android/*',
+    'ios/*',
+    'dist/*',
+    '.expo/*',
+    // Made by `npm run protocols`, which checks them itself.
+    'src/shared/protocols/generated/*',
+  ]),
   expoConfig,
   prettierRecommended,
   {

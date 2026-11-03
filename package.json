@@ -9,11 +9,13 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint . && prettier --check .",
     "boundaries": "depcruise app src --config .dependency-cruiser.cjs",
+    "protocols": "node scripts/protocols.mjs",
     "test": "jest"
   },
   "dependencies": {
     "@expo-google-fonts/be-vietnam-pro": "^0.4.1",
     "@shopify/react-native-skia": "2.14.0",
+    "ajv": "^8.20.0",
     "culori": "^4.0.2",
     "expo": "~58.0.21",
     "expo-asset": "~58.0.19",
@@ -41,7 +43,6 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^24.19.2",
     "@types/react": "~19.3.0",
-    "ajv": "^8.20.0",
     "dependency-cruiser": "^18.7.0",
     "eslint": "^9.39.5",
     "eslint-config-expo": "~58.0.4",
@@ -49,6 +50,7 @@
     "eslint-plugin-prettier": "^5.5.7",
     "jest": "~30.5.2",
     "jest-expo": "~58.0.13",
+    "json-schema-to-typescript": "^16.0.0",
     "prettier": "^3.9.10",
     "smol-toml": "^1.9.1",
     "typescript": "~6.0.3"

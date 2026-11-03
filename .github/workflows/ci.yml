@@ -25,6 +25,8 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      - name: The protocols' types and checks are what platform/'s schemas make
+        run: npm run protocols -- --check
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run boundaries

@@ -5,3 +5,5 @@ dist/
 .expo/
 package-lock.json
 *.md
+# Made by `npm run protocols`, which checks them itself.
+src/shared/protocols/generated/
