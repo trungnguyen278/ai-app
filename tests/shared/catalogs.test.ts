@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import Ajv2020 from 'ajv/dist/2020';
 import { MessageFormat, parseMessage, visit } from 'messageformat';
 
+import { NATIVE_MESSAGES } from '@/app.config';
 import { CATALOGS, SOURCE } from '@/src/shared/catalog';
 
 const ROOT = join(__dirname, '..', '..');
@@ -78,6 +79,16 @@ test.each(files.filter((tag) => tag !== SOURCE))('%s translates every message', 
   if (missing.length > 0) {
     console.warn(`${tag}.json lacks ${missing.join(', ')}: they show in English`);
   }
+});
+
+test.each(files)("%s's messages for the phone's own system are plain text", (tag) => {
+  // The system shows them as they are written, so MF2 must give each back unchanged.
+  for (const id of Object.values(NATIVE_MESSAGES)) {
+    const message = read(tag)[id];
+    if (message === undefined) continue;
+    expect(new MessageFormat(tag, message).format()).toBe(message);
+  }
+  expect(Object.values(NATIVE_MESSAGES).every((id) => id in source)).toBe(true);
 });
 
 test('the variables of a message are those it is given', () => {

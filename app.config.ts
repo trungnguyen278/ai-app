@@ -16,6 +16,8 @@ export const CLOUD_ADDRESS_VARIABLE = 'AI_APP_CLOUD_ADDRESS';
 
 const CONFIG_DIR = join(__dirname, 'config');
 const LOCALES_DIR = join(__dirname, 'locales');
+/** The catalogs' source language, which has every message: the catalog's `SOURCE` (ADR-0002). */
+export const SOURCE_LANGUAGE = 'en';
 // The design system's colours (ADR-0003), which the splash screen shares with the app.
 const PALETTE = join(__dirname, 'src', 'shared', 'design', 'palette.json');
 
@@ -163,12 +165,41 @@ export function catalogLanguages(directory = LOCALES_DIR): string[] {
     .sort();
 }
 
+/**
+ * The catalogs' messages that the phone's own system shows, by the key that the platform reads
+ * them under: what iOS asks before the camera opens. They are plain text, which the catalogs'
+ * tests keep free of MF2's syntax, since the system shows them as they are written.
+ */
+export const NATIVE_MESSAGES = { NSCameraUsageDescription: 'native.camera' } as const;
+
+/** The native messages, in each catalog's language that has them (Expo's `locales`). */
+export function nativeLocales(directory = LOCALES_DIR): Record<string, { ios: Table }> {
+  const locales: Record<string, { ios: Table }> = {};
+  for (const language of catalogLanguages(directory)) {
+    const messages: Table = JSON.parse(readFileSync(join(directory, `${language}.json`), 'utf8'));
+    const ios = Object.fromEntries(
+      Object.entries(NATIVE_MESSAGES)
+        .filter(([, id]) => typeof messages[id] === 'string')
+        .map(([key, id]) => [key, messages[id]]),
+    );
+    if (Object.keys(ios).length > 0) locales[language] = { ios };
+  }
+  return locales;
+}
+
 export default ({ config }: ConfigContext): ExpoConfig => {
   const settings = loadSettings(process.env[ENVIRONMENT_VARIABLE], CONFIG_DIR, process.env);
   const { app } = settings;
   const { version } = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf8'));
   const { light, dark } = JSON.parse(readFileSync(PALETTE, 'utf8'));
   const languages = catalogLanguages();
+  const locales = nativeLocales();
+  const cameraReason = locales[SOURCE_LANGUAGE]?.ios.NSCameraUsageDescription;
+  if (typeof cameraReason !== 'string') {
+    throw new Error(
+      `locales/${SOURCE_LANGUAGE}.json lacks ${NATIVE_MESSAGES.NSCameraUsageDescription}`,
+    );
+  }
   return {
     ...config,
     name: app.name,
@@ -178,7 +209,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     // The app follows the phone's light or dark appearance (ADR-0003).
     userInterfaceStyle: 'automatic',
     android: { package: app.android_package },
-    ios: { bundleIdentifier: app.ios_bundle_identifier },
+    ios: {
+      bundleIdentifier: app.ios_bundle_identifier,
+      // What iOS shows of the app in the person's language, from `locales` (Expo's guide to
+      // localization asks for both).
+      infoPlist: { CFBundleAllowMixedLocalizations: true },
+    },
+    locales,
     plugins: [
       'expo-router',
       'expo-status-bar',
@@ -191,6 +228,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       // The session's refresh token: kept out of Android's backups, from which it could not be
       // decrypted. No read asks for Face ID, so iOS gets no reason to give for it.
       ['expo-secure-store', { faceIDPermission: false }],
+      // The camera reads QR codes, and records nothing: no microphone on either platform. iOS's
+      // reason is English's, which each language's `locales` replaces.
+      [
+        'expo-camera',
+        { cameraPermission: cameraReason, microphonePermission: false, recordAudioAndroid: false },
+      ],
     ],
     extra: { ...config.extra, settings: runtimeSettings(settings) },
     experiments: { typedRoutes: true },

@@ -18,6 +18,8 @@ export { Press } from './components/Press';
 export type { PressProps } from './components/Press';
 export { Pulse } from './components/Pulse';
 export type { PulseProps } from './components/Pulse';
+export { QrCode } from './components/QrCode';
+export type { QrCodeProps } from './components/QrCode';
 export { Screen } from './components/Screen';
 export type { ScreenProps } from './components/Screen';
 export { Skeleton } from './components/Skeleton';
@@ -30,7 +32,17 @@ export { DesignProvider, useDesign, useMotion, useTheme } from './DesignProvider
 export type { Appearance, Design, MotionPreference } from './DesignProvider';
 export { haptic, HAPTICS } from './haptics';
 export type { HapticRole } from './haptics';
-export { AVATAR, GLOW_RADIUS, GUTTER, HERO, RADIUS, RING_WIDTH, SPACE, TARGET } from './layout';
+export {
+  AVATAR,
+  CODE_SIZE,
+  GLOW_RADIUS,
+  GUTTER,
+  HERO,
+  RADIUS,
+  RING_WIDTH,
+  SPACE,
+  TARGET,
+} from './layout';
 export {
   BREATH,
   CSS_CURVE,

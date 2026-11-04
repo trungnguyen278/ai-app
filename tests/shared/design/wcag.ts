@@ -10,7 +10,8 @@ export const COMPONENT = 3;
 /** Text, enhanced, 1.4.6 (AAA): the bar for the main text. */
 export const ENHANCED = 7;
 
-function luminance(hex: string): number {
+/** The relative luminance of a colour written #rrggbb, from 0 for black to 1 for white. */
+export function luminance(hex: string): number {
   const [r, g, b] = [1, 3, 5].map((start) => {
     const channel = parseInt(hex.slice(start, start + 2), 16) / 255;
     return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;

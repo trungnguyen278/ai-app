@@ -38,6 +38,9 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 - A secret that a screen shows or sends, such as an invitation's code, stays in the cache only while that screen is open (`gcTime: 0`), and in no route but the link that brought it.
 - Every request is confined to the owner's homes and their devices (SEC-6).
 - The app asks for a permission, such as Bluetooth or notifications, when it first needs it, and says why, in the owner's language.
+  - The phone's own question, such as iOS's reason for the camera, comes from the catalogs too, through `NATIVE_MESSAGES` in `app.config.ts`, as plain text.
+  - A plugin asks for nothing the app does not use: `npx expo config --type introspect` shows the permissions a build gets.
+  - Expo's permission hooks read the permission only as they start: a screen that sends the person to the settings reads it again when the app comes back to the front.
 
 ### The interface
 
