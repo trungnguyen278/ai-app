@@ -37,6 +37,7 @@ export function ComponentsScreen() {
             onPress={nothing}
           />
           <Button variant="plain" label={text('studio.components.plain')} onPress={nothing} />
+          <Button variant="danger" label={text('studio.components.danger')} onPress={nothing} />
           <Button label={text('studio.components.disabled')} onPress={nothing} disabled />
           <Button label={text('studio.components.busy')} onPress={nothing} busy={busy} />
           <Button

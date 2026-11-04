@@ -53,7 +53,7 @@ async function createHome(name = 'Linh') {
   await screen.findByRole('header', { name: `${name}'s home` });
 }
 
-test('an owner adds a profile, and finds it among the people', async () => {
+test('an owner adds a profile, finds it among the people, and opens its page', async () => {
   const app = await renderRouter('app', { initialUrl: '/' });
   await createHome('Linh');
   const home = app.getPathname();
@@ -63,6 +63,9 @@ test('an owner adds a profile, and finds it among the people', async () => {
   await fireEvent.press(screen.getByRole('button', { name: 'Add the profile' }));
   expect(await screen.findByText('Bà')).toBeOnTheScreen();
   expect(app.getPathname()).toBe(home);
+  await fireEvent.press(screen.getByRole('link', { name: /Bà/ }));
+  expect(await screen.findByDisplayValue('Bà')).toBeOnTheScreen();
+  expect(app.getPathname()).toMatch(new RegExp(`^${home}/people/[0-9a-f-]{36}$`));
 });
 
 test("an invitation's link opens the app, signs the person in where it is, and joining opens the home", async () => {

@@ -7,3 +7,5 @@ export { HomeScreen } from './screens/HomeScreen';
 export { HomesScreen } from './screens/HomesScreen';
 export { InviteScreen } from './screens/InviteScreen';
 export { JoinScreen } from './screens/JoinScreen';
+export { PersonScreen } from './screens/PersonScreen';
+export { usePersonName } from './services/homes';

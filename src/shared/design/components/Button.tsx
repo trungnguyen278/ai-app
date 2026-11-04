@@ -15,9 +15,11 @@ import { Text } from './Text';
  * What a button weighs:
  * - `primary`: the one thing a screen is for, filled with the tone, and glowing;
  * - `secondary`: another thing it offers, on a tint of the tone;
- * - `plain`: a lesser one, the tone's text alone.
+ * - `plain`: a lesser one, the tone's text alone;
+ * - `danger`: what cannot be undone, such as removing a person, in danger's red on its tint,
+ *   whatever the tone. What it does is confirmed before it is done.
  */
-export type ButtonVariant = 'primary' | 'secondary' | 'plain';
+export type ButtonVariant = 'primary' | 'secondary' | 'plain' | 'danger';
 
 export interface ButtonProps {
   label: string;
@@ -59,6 +61,8 @@ function look(variant: ButtonVariant, { color, glowOpacity }: Theme) {
       return { ink: 'accent' as const, fill: { backgroundColor: color.accentSoft } };
     case 'plain':
       return { ink: 'accent' as const, fill: { backgroundColor: 'transparent' } };
+    case 'danger':
+      return { ink: 'danger' as const, fill: { backgroundColor: color.dangerSoft } };
   }
 }
 

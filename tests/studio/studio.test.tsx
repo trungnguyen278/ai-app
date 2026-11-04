@@ -108,7 +108,9 @@ test.each([
 
 test('the components page shows a button of every weight and state', async () => {
   await renderScreen(<ComponentsScreen />);
-  expect(screen.getAllByRole('button')).toHaveLength(6);
+  // Primary, secondary, plain, danger, disabled, busy, and the one that toggles busy.
+  expect(screen.getAllByRole('button')).toHaveLength(7);
+  expect(screen.getByRole('button', { name: 'Remove from the home' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Not available' })).toBeDisabled();
   expect(screen.queryByRole('progressbar')).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Start or stop it' }));

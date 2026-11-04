@@ -16,8 +16,8 @@ const BEAT = css.keyframes({
 });
 
 export interface PulseProps {
-  /** The colour of the dots: the accent, or the ink on an accent fill. */
-  ink?: Extract<Ink, 'accent' | 'onAccent'>;
+  /** The colour of the dots: the accent, the ink on an accent fill, or danger's. */
+  ink?: Extract<Ink, 'accent' | 'onAccent' | 'danger'>;
   /** What is under way, for screen readers, when nothing around the dots says it. */
   label?: string;
 }

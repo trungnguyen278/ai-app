@@ -24,6 +24,8 @@ export const PROBLEM_TYPES = '/app/v1/problems/';
 export const ABOUT_BLANK = 'about:blank';
 /** The OAuth error after which the person signs in again (the app API, Errors). */
 export const INVALID_GRANT = 'invalid_grant';
+/** HTTP's answer to a change whose `If-Match` names what changed since (RFC 9110, 15.5.13). */
+export const PRECONDITION_FAILED = 412;
 
 /** The cloud refused the request, with Problem Details (RFC 9457). */
 export class Refused extends Error {
@@ -42,6 +44,11 @@ export class Refused extends Error {
   /** Whether this is the problem `code`, whose type the app compares as written. */
   is(code: ProblemCode): boolean {
     return this.type === PROBLEM_TYPES + code;
+  }
+
+  /** Whether the change was refused because someone changed the same thing since it was read. */
+  get stale(): boolean {
+    return this.status === PRECONDITION_FAILED;
   }
 }
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-import { router } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
@@ -11,6 +11,7 @@ import {
   Glow,
   haptic,
   HERO,
+  Press,
   RADIUS,
   Screen,
   Skeleton,
@@ -130,7 +131,11 @@ function HomeView({ home, others }: { home: App.Home; others: boolean }) {
             {text(failureMessage(members.error))}
           </Text>
         ) : (
-          members.data.map((member) => <Person key={member.id} member={member} />)
+          <View>
+            {members.data.map((member) => (
+              <Person key={member.id} homeId={home.id} member={member} />
+            ))}
+          </View>
         )}
         {manages && (
           <View style={styles.actions}>
@@ -212,7 +217,7 @@ function Invitations({ homeId }: { homeId: string }) {
 }
 
 /** A person in the home: their name there, and their role, or that they never sign in. */
-function Person({ member }: { member: App.Member }) {
+function Person({ homeId, member }: { homeId: string; member: App.Member }) {
   const text = useText();
   const name = member.current
     ? text('homes.member.you', { name: member.display_name })
@@ -221,12 +226,16 @@ function Person({ member }: { member: App.Member }) {
     ? text(`homes.role.${roleOf(member.role)}`)
     : text('homes.kind.profile');
   return (
-    <View>
-      <Text>{name}</Text>
-      <Text variant="caption" ink="textMuted">
-        {what}
-      </Text>
-    </View>
+    <Link href={`/homes/${homeId}/people/${member.id}`} asChild>
+      <Press feedback="light" accessibilityLabel={text('homes.member.row', { name, what })}>
+        <View style={styles.person}>
+          <Text>{name}</Text>
+          <Text variant="caption" ink="textMuted">
+            {what}
+          </Text>
+        </View>
+      </Press>
+    </Link>
   );
 }
 
@@ -241,4 +250,5 @@ const styles = StyleSheet.create({
   actions: { gap: SPACE.md },
   row: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
   grow: { flex: 1 },
+  person: { paddingVertical: SPACE.sm },
 });
