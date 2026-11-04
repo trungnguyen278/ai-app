@@ -25,11 +25,11 @@ jest.mock('expo-localization', () => ({
 const HOME = { name: 'Nhà Linh', time_zone: 'Asia/Ho_Chi_Minh', languages: ['vi'] };
 
 test.each([
-  [['vi', 'en'], 'Chào mừng bạn', 'Tạo một nhà'],
-  [['en'], 'Welcome', 'Create a home'],
+  [['vi', 'en'], 'Chào mừng bạn', 'Tạo một nhà', 'Tham gia một nhà'],
+  [['en'], 'Welcome', 'Create a home', 'Join a home'],
 ])(
-  'in %j, a new owner with no home is welcomed, and offered to make one',
-  async (languages, welcome, create) => {
+  'in %j, a person with no home is welcomed, and offered to make one or join one',
+  async (languages, welcome, create, join) => {
     const { cloud, secrets } = await signedIn();
     await renderScreen(
       <Account transport={cloud} secrets={secrets}>
@@ -39,6 +39,7 @@ test.each([
     );
     expect(await screen.findByRole('header', { name: welcome })).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: create })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: join })).toBeOnTheScreen();
   },
 );
 
@@ -70,7 +71,7 @@ test("a home shows its name, the person's role, and its people", async () => {
   expect(screen.getAllByText('Owner')).toHaveLength(2);
   expect(screen.getByText('Bà')).toBeOnTheScreen();
   expect(screen.getByText('A profile, who does not sign in')).toBeOnTheScreen();
-  expect(screen.getByRole('button', { name: 'Create a home' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Create or join a home' })).toBeOnTheScreen();
 });
 
 test('with more than one home, the main screen leads to the others', async () => {

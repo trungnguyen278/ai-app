@@ -4,7 +4,7 @@
 // with the access token that their session gives. The session belongs to `account`.
 import { randomUUID } from 'expo-crypto';
 
-import type { App, AppDefinition } from '@/src/shared/protocols';
+import { ProtocolError, type App, type AppDefinition } from '@/src/shared/protocols';
 
 import { ABOUT_BLANK, Refused, SignedOut } from './errors';
 import { exchange, type Answer, type Call } from './exchange';
@@ -26,6 +26,9 @@ export interface PageRequest {
   /** From 1 to 50; the configuration's `page_size` when absent. */
   pageSize?: number;
 }
+
+/** An invitation as the answer that makes it has it: with its code. */
+export type NewInvitation = App.Invitation & { code: App.InvitationCode };
 
 /** An ID token just signed in, with Apple's authorization code if it is Apple's. */
 export interface FreshSignIn {
@@ -340,14 +343,20 @@ export class CloudClient {
   // Invitations.
 
   /** An invitation, whose code this answer is the only one to carry. */
-  async createInvitation(homeId: string): Promise<App.Invitation> {
-    return this.body({
+  async createInvitation(homeId: string): Promise<NewInvitation> {
+    const invitation = await this.body({
       operation: 'createInvitation',
       method: 'POST',
       path: `${API}/homes/${segment(homeId)}/invitations`,
       success: [201],
       answer: 'invitation',
     });
+    // The schema leaves the code out of a listed invitation; the one just made must carry it.
+    const { code } = invitation;
+    if (code === undefined) {
+      throw new ProtocolError('createInvitation', '/code', 'is missing');
+    }
+    return { ...invitation, code };
   }
 
   async invitations(homeId: string, page: PageRequest = {}): Promise<App.InvitationList> {

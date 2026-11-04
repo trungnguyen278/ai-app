@@ -9,7 +9,7 @@ import { Button, Press, Screen, SPACE, Text } from '@/src/shared/design';
 import { roleOf } from '../domain/people';
 import { useHomes } from '../services/homes';
 
-/** Every home the person is in, to open one, and a new one to create. */
+/** Every home the person is in, to open one, and a new one to create or join. */
 export function HomesScreen() {
   const text = useText();
   const homes = useHomes();
@@ -34,11 +34,18 @@ export function HomesScreen() {
           </Link>
         ))}
       </View>
-      <Button
-        variant="secondary"
-        label={text('homes.create')}
-        onPress={() => router.push('/homes/new')}
-      />
+      <View style={styles.actions}>
+        <Button
+          variant="secondary"
+          label={text('homes.create')}
+          onPress={() => router.push('/homes/new')}
+        />
+        <Button
+          variant="secondary"
+          label={text('homes.join')}
+          onPress={() => router.push('/join')}
+        />
+      </View>
     </Screen>
   );
 }
@@ -46,4 +53,5 @@ export function HomesScreen() {
 const styles = StyleSheet.create({
   page: { gap: SPACE.xl },
   row: { paddingVertical: SPACE.md },
+  actions: { gap: SPACE.md },
 });

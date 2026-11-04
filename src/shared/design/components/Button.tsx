@@ -21,6 +21,12 @@ export type ButtonVariant = 'primary' | 'secondary' | 'plain';
 
 export interface ButtonProps {
   label: string;
+  /**
+   * What screen readers say, when buttons with the same label sit side by side, such as one
+   * "Revoke" for each invitation: it starts with the label, which people who speak to their
+   * phone say to press it (WCAG 2.5.3).
+   */
+  accessibilityLabel?: string;
   onPress: () => void;
   variant?: ButtonVariant;
   /** It cannot be used now. */
@@ -59,6 +65,7 @@ function look(variant: ButtonVariant, { color, glowOpacity }: Theme) {
 /** A button: a press commits what its label says. */
 export function Button({
   label,
+  accessibilityLabel,
   onPress,
   variant = 'primary',
   disabled = false,
@@ -72,7 +79,7 @@ export function Button({
   return (
     <Press
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ disabled: inactive, busy }}
       disabled={inactive}
       haptic={haptic}

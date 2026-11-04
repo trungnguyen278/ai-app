@@ -2,7 +2,7 @@
 // Every test starts in Reanimated's test mode, with Skia's stand-in (mocks/skia.tsx), Node's
 // crypto for the phone's, and the settings that a build of the development app has
 // (app.config.ts puts them in Expo's `extra`).
-import Constants from 'expo-constants';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { setUpTests } from 'react-native-reanimated';
 
 import { loadSettings, runtimeSettings } from '@/app.config';
@@ -35,9 +35,14 @@ jest.mock('expo-network', () => ({
 
 setUpTests();
 
-// The development app's settings, but for the simulated cloud's pace: the tests do not wait.
-const settings = runtimeSettings(loadSettings('development'));
+// The tests run as a build of the development app, not as Expo Go: its own links start with its
+// scheme (expo-linking's createURL). Its settings are the development app's, but for the
+// simulated cloud's pace: the tests do not wait.
+Object.assign(Constants, { executionEnvironment: ExecutionEnvironment.Bare });
+const loaded = loadSettings('development');
+const settings = runtimeSettings(loaded);
 Object.assign(Constants.expoConfig ?? {}, {
+  scheme: loaded.app.scheme,
   extra: {
     settings: {
       ...settings,

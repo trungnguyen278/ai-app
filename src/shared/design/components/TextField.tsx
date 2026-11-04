@@ -17,7 +17,7 @@ import { TYPE } from '../typography';
 import { Text } from './Text';
 
 /** What a field holds: the keyboard, and what the phone may fill it with, follow from it. */
-export type FieldKind = 'text' | 'name' | 'email';
+export type FieldKind = 'text' | 'name' | 'email' | 'link';
 
 /** A field's input, as its `ref` holds it. */
 export type FieldInput = ComponentRef<typeof TextInput>;
@@ -36,6 +36,14 @@ const KINDS: Readonly<Record<FieldKind, Partial<TextInputProps>>> = {
     autoCorrect: false,
     keyboardType: 'email-address',
     textContentType: 'emailAddress',
+  },
+  // A link, typed or pasted, kept as it is: nothing capitalised or corrected in it.
+  link: {
+    autoCapitalize: 'none',
+    autoComplete: 'off',
+    autoCorrect: false,
+    keyboardType: 'url',
+    textContentType: 'URL',
   },
 };
 

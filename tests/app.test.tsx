@@ -9,6 +9,10 @@ import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { renderRouter } from 'expo-router/testing-library';
 
+// The first render of the router loads every route, which can take a busy machine longer than
+// Jest's 5 seconds.
+jest.setTimeout(15_000);
+
 // Every page in app/studio/, so that a new one cannot escape the guard.
 const STUDIO = readdirSync(join(__dirname, '..', 'app', 'studio'))
   .filter((name) => name.endsWith('.tsx'))
@@ -39,6 +43,51 @@ test('signed in, the homes; signed out from the account, signing in again', asyn
   await fireEvent.press(screen.getByRole('button', { name: 'Sign out' }));
   expect(await screen.findByRole('header', { name: 'Sign in' })).toBeOnTheScreen();
   expect(screen).toHavePathname('/sign-in');
+});
+
+/** Sign in, create a home named as the person's own, and wait for it. */
+async function createHome(name = 'Linh') {
+  await signIn(name);
+  await fireEvent.press(screen.getByRole('button', { name: 'Create a home' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Create the home' }));
+  await screen.findByRole('header', { name: `${name}'s home` });
+}
+
+test('an owner adds a profile, and finds it among the people', async () => {
+  const app = await renderRouter('app', { initialUrl: '/' });
+  await createHome('Linh');
+  const home = app.getPathname();
+  await fireEvent.press(screen.getByRole('button', { name: 'Add a profile' }));
+  expect(app.getPathname()).toBe(`${home}/profiles/new`);
+  await fireEvent.changeText(await screen.findByTestId('profile-name'), 'Bà');
+  await fireEvent.press(screen.getByRole('button', { name: 'Add the profile' }));
+  expect(await screen.findByText('Bà')).toBeOnTheScreen();
+  expect(app.getPathname()).toBe(home);
+});
+
+test("an invitation's link opens the app, signs the person in where it is, and joining opens the home", async () => {
+  const app = await renderRouter('app', { initialUrl: '/' });
+  await createHome('Linh');
+  const home = app.getPathname();
+  await fireEvent.press(screen.getByRole('button', { name: 'Invite someone' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Make a link' }));
+  // The simulated cloud has no address: its links are the app's own, with the scheme that Expo
+  // Router's testing library gives.
+  const link: string = (await screen.findByTestId('invitation-link')).props.children;
+  expect(link).toMatch(/^[a-z]+:\/\/join#[A-Za-z0-9_-]{43}$/);
+  // Linh signs out, and Minh opens the link on the same phone, with its simulated cloud.
+  await act(() => router.push('/account'));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Sign out' }));
+  await screen.findByRole('header', { name: 'Sign in' });
+  await act(() => router.push(`/join${link.slice(link.indexOf('#'))}`));
+  expect(await screen.findByRole('header', { name: 'You have an invitation' })).toBeOnTheScreen();
+  await fireEvent.changeText(screen.getByTestId('sign-in-name'), 'Minh');
+  await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
+  expect(await screen.findByText('\u2068Linh\u2069 invites you to join')).toBeOnTheScreen();
+  expect(app.getPathname()).toBe('/join');
+  await fireEvent.press(screen.getByRole('button', { name: 'Join the home' }));
+  expect(await screen.findByText('\u2068Minh\u2069 (you)')).toBeOnTheScreen();
+  expect(app.getPathname()).toBe(home);
 });
 
 test('a new owner creates a home, named as their own, and the main screen is that home', async () => {

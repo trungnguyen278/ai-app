@@ -22,11 +22,21 @@ import { accepts } from '@/src/shared/protocols';
 import { useSession } from '../AccountProvider';
 import { developmentProvider } from '../adapters/development';
 
+export interface SignInScreenProps {
+  /**
+   * What the person signs in for, when it is one thing rather than the app, such as the
+   * invitation that a link brought: a title, and a line under it.
+   */
+  reason?: { title: string; lead: string };
+}
+
 /**
  * Signing in: the robot's light, what signing in is for, and each provider the configuration
- * offers. A session the cloud ended is said so, before the person signs in again.
+ * offers. A session the cloud ended is said so, before the person signs in again. A screen that
+ * needs a person signed in shows it in its own place, with its reason, and carries on once they
+ * are: a link that brought them keeps its place.
  */
-export function SignInScreen() {
+export function SignInScreen({ reason }: SignInScreenProps) {
   const text = useText();
   const { state } = useSession();
   const { providers } = runtimeSettings().sign_in;
@@ -39,12 +49,12 @@ export function SignInScreen() {
       </Appear>
       <Appear index={1}>
         <Text variant="title" style={styles.centred}>
-          {text('sign_in.title')}
+          {reason?.title ?? text('sign_in.title')}
         </Text>
       </Appear>
       <Appear index={2}>
         <Text ink="textMuted" style={styles.centred}>
-          {text(state.ended ? 'sign_in.ended' : 'sign_in.lead')}
+          {reason?.lead ?? text(state.ended ? 'sign_in.ended' : 'sign_in.lead')}
         </Text>
       </Appear>
       {providers.includes('development') && (

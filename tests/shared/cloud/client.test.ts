@@ -293,12 +293,12 @@ test('joining tells a first join from a retry, and the invitation stays usable f
   const { client: joiner } = await person('Minh');
   const home = await owner.createHome(HOME);
   const { code } = await owner.createInvitation(home.id);
-  expect(await joiner.lookUpInvitation(code!)).toMatchObject({
+  expect(await joiner.lookUpInvitation(code)).toMatchObject({
     home_name: 'Nhà Linh',
     invited_by: 'Linh',
   });
-  const first = await joiner.acceptInvitation(code!);
-  const again = await joiner.acceptInvitation(code!);
+  const first = await joiner.acceptInvitation(code);
+  const again = await joiner.acceptInvitation(code);
   expect([first.joined, again.joined, again.home.member_id]).toEqual([
     true,
     false,
@@ -323,6 +323,17 @@ test('an answer that breaks the protocol fails where it arrives, and names no va
   expect((await refusal(client.account())).message).toBe('account: / is answered 302');
   spy.instead.push(answer(404, '<html>Not here</html>'));
   expect(await refusal(client.account())).toBeInstanceOf(ProtocolError);
+});
+
+test('a new invitation without its code breaks the protocol, though a listed one has none', async () => {
+  const { person, spy } = setUp();
+  const { client } = await person('Linh');
+  const home = await client.createHome(HOME);
+  const { code: _, ...listed } = await client.createInvitation(home.id);
+  spy.instead.push(async () => ({ status: 201, headers: {}, body: JSON.stringify(listed) }));
+  expect((await refusal(client.createInvitation(home.id))).message).toBe(
+    'createInvitation: /code is missing',
+  );
 });
 
 test('a status of 500 or more is Unavailable, with how long to wait', async () => {

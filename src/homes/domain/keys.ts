@@ -8,3 +8,13 @@ export const HOMES = ['homes'] as const;
 export function membersOf(homeId: string) {
   return ['homes', homeId, 'members'] as const;
 }
+
+/** A home's open invitations. */
+export function invitationsOf(homeId: string) {
+  return ['homes', homeId, 'invitations'] as const;
+}
+
+/** What the invitation whose code a person holds shows them before they agree. */
+export function previewOf(code: string | null) {
+  return ['invitations', code, 'preview'] as const;
+}
