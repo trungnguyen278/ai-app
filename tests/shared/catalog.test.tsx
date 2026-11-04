@@ -63,6 +63,14 @@ describe('Catalog', () => {
     expect(new Catalog(catalogs, ['en'], onFailure).text('devices.empty')).toBe('No device yet.');
   });
 
+  test('isolates the values it shows, and not those that become data', () => {
+    const catalog = new Catalog({ en: { home: "{$name}'s home" } }, ['en'], onFailure);
+    const shown = catalog.text('home', { name: 'Linh' });
+    expect(shown).not.toBe("Linh's home");
+    expect(plain(shown)).toBe("Linh's home");
+    expect(catalog.plainText('home', { name: 'Linh' })).toBe("Linh's home");
+  });
+
   test("selects a language's own variants, which English does not need", () => {
     const vi = new Catalog(catalogs, ['vi', 'en'], onFailure);
     expect(vi.text('greeting.hello', { relation: 'elder_male' })).toBe('Chào anh!');

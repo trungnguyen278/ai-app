@@ -14,6 +14,9 @@ export type {
   PageRequest,
 } from './client';
 export { cloudTransport } from './connect';
+export { failureMessage } from './failures';
+export { everyPage } from './paging';
+export type { Page } from './paging';
 export {
   ABOUT_BLANK,
   INVALID_GRANT,

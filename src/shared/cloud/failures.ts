@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 // What a person is told when a request to the cloud fails: a message of the catalogs, chosen by
 // what happened, never by the cloud's own words (the app API, Errors).
-import { Refused, Unavailable, Unreachable } from '@/src/shared/cloud';
+import { Refused, Unavailable } from './errors';
+import { Unreachable } from './transport';
 
 /** The catalog's message for `error`. */
 export function failureMessage(error: unknown): string {

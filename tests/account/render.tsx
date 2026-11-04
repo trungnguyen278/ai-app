@@ -6,12 +6,15 @@ import { useState, type ReactNode } from 'react';
 
 import { AccountProvider, MemorySecrets, useSession } from '@/src/account';
 import { refreshTokenName } from '@/src/account/services/session';
-import { SignInClient, SimulatedCloud, type Transport } from '@/src/shared/cloud';
+import { CloudClient, SignInClient, SimulatedCloud, type Transport } from '@/src/shared/cloud';
 import { runtimeSettings } from '@/src/shared/config';
 import { Text } from '@/src/shared/design';
 import { newQueryClient } from '@/src/shared/queries';
 
-/** A simulated cloud, and the secrets of a session signed in on it, as `name`. */
+/**
+ * A simulated cloud, and the secrets of a session signed in on it, as `name`. `api` speaks for
+ * the person with the session's first access token, for a test to set the cloud up.
+ */
 export async function signedIn(name = 'Linh') {
   const { cloud: settings } = runtimeSettings();
   const cloud = new SimulatedCloud(settings.simulated, [settings.client_id]);
@@ -19,10 +22,14 @@ export async function signedIn(name = 'Linh') {
   const { nonce } = await client.nonce();
   const email = `${name.toLowerCase()}@example.com`;
   const idToken = await client.developmentIdToken({ nonce, display_name: name, email });
-  const { refresh_token: token } = await client.exchange(idToken);
+  const { refresh_token: token, access_token: access } = await client.exchange(idToken);
   const secrets = new MemorySecrets();
   secrets.kept.set(refreshTokenName(settings.address), token);
-  return { cloud, secrets };
+  const api = new CloudClient(cloud, settings, {
+    accessToken: async () => access,
+    renew: async () => null,
+  });
+  return { cloud, secrets, api };
 }
 
 /** The providers the app's root gives every screen, but for the catalog and the design. */
