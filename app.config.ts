@@ -30,6 +30,9 @@ export interface Settings {
     ios_bundle_identifier: string;
   };
   studio: { enabled: boolean };
+  sign_in: { providers: string[] };
+  session: { refresh_margin: number };
+  queries: { retries: number; stale_time: number };
   cloud: {
     address: string;
     plain_http: boolean;
@@ -44,6 +47,7 @@ export interface Settings {
       nonce_lifetime: number;
       access_lifetime: number;
       refresh_idle: number;
+      refresh_reuse: number;
       recent_sign_in: number;
       idempotency_retention: number;
       homes_per_account: number;
@@ -59,7 +63,8 @@ export interface Settings {
 
 /** What the app reads of its settings while it runs, in Expo's `extra` (src/shared/config). */
 export function runtimeSettings(settings: Settings) {
-  return { studio: settings.studio.enabled, cloud: settings.cloud };
+  const { sign_in, session, queries, cloud } = settings;
+  return { studio: settings.studio.enabled, sign_in, session, queries, cloud };
 }
 
 /**
@@ -183,6 +188,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         { backgroundColor: light.canvas, dark: { backgroundColor: dark.canvas } },
       ],
       ['expo-localization', { supportedLocales: { android: languages, ios: languages } }],
+      // The session's refresh token: kept out of Android's backups, from which it could not be
+      // decrypted. No read asks for Face ID, so iOS gets no reason to give for it.
+      ['expo-secure-store', { faceIDPermission: false }],
     ],
     extra: { ...config.extra, settings: runtimeSettings(settings) },
     experiments: { typedRoutes: true },

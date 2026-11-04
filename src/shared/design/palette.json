@@ -1,5 +1,6 @@
 {
   "tone": "#5be9ff",
+  "danger": "#ff453a",
   "dark": {
     "canvas": "#06090d",
     "surface": "#101419",

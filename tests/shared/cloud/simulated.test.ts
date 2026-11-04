@@ -200,6 +200,42 @@ test('access tokens expire, and a session left unused ends', async () => {
   expect([idle.status, idle.body.error]).toEqual([400, 'invalid_grant']);
 });
 
+test('a refresh token refreshes again after a lost answer, while its replacement is unused', async () => {
+  const { signIn, refresh, later } = setUp();
+  const { refresh: first } = await signIn('Linh');
+  const lost = await refresh(first);
+  const again = await refresh(first);
+  const third = await refresh(first);
+  expect([lost.status, again.status, third.status]).toEqual([200, 200, 200]);
+  // The token of the answer that arrived goes on; a retry past refresh_reuse does not.
+  const next = await refresh(third.body.refresh_token as string);
+  expect(next.status).toBe(200);
+  const { refresh: other } = await signIn('Minh');
+  await refresh(other);
+  later(SETTINGS.refresh_reuse + 1);
+  expect((await refresh(other)).body.error).toBe('invalid_grant');
+});
+
+test('the token of a lost answer, or one presented after its replacement was used, ends the session', async () => {
+  const { signIn, refresh } = setUp();
+  const { refresh: first } = await signIn('Linh');
+  const lost = await refresh(first);
+  const again = await refresh(first);
+  expect((await refresh(lost.body.refresh_token as string)).body.error).toBe('invalid_grant');
+  expect((await refresh(again.body.refresh_token as string)).body.error).toBe('invalid_grant');
+  const { refresh: second } = await signIn('Minh');
+  const used = await refresh(second);
+  await refresh(used.body.refresh_token as string);
+  expect((await refresh(second)).body.error).toBe('invalid_grant');
+});
+
+test('no refresh token refreshes again when refresh_reuse is 0', async () => {
+  const { signIn, refresh } = setUp({ refresh_reuse: 0 });
+  const { refresh: first } = await signIn('Linh');
+  expect((await refresh(first)).status).toBe(200);
+  expect((await refresh(first)).body.error).toBe('invalid_grant');
+});
+
 test('signing out with either token ends the session at once; any other token ends nothing', async () => {
   const { signIn, send } = setUp();
   const linh = await signIn('Linh');

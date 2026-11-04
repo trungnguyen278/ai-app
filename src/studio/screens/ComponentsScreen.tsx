@@ -3,14 +3,16 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { useText } from '@/src/shared/catalog';
-import { Button, Press, Screen, SPACE, Text } from '@/src/shared/design';
+import { Button, Press, Screen, SPACE, Text, TextField } from '@/src/shared/design';
 
 import { Row, Section } from './parts';
 
-/** The components, to press and feel: buttons of every weight and state, and rows. */
+/** The components, to press and feel: buttons of every weight and state, rows and fields. */
 export function ComponentsScreen() {
   const text = useText();
   const [busy, setBusy] = useState(false);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('linh@');
   const nothing = () => {};
   return (
     <Screen scroll>
@@ -41,10 +43,35 @@ export function ComponentsScreen() {
           </Press>
         ))}
       </Section>
+      <Section title={text('studio.components.fields')}>
+        <View style={styles.fields}>
+          <TextField
+            label={text('studio.components.name')}
+            hint={text('studio.components.hint')}
+            kind="name"
+            value={name}
+            onChangeText={setName}
+          />
+          <TextField
+            label={text('studio.components.email')}
+            kind="email"
+            value={email}
+            onChangeText={setEmail}
+            error={email.includes('.') ? undefined : text('studio.components.error')}
+          />
+          <TextField
+            label={text('studio.components.disabled')}
+            value={text('studio.components.row')}
+            onChangeText={nothing}
+            disabled
+          />
+        </View>
+      </Section>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   buttons: { gap: SPACE.md, padding: SPACE.lg },
+  fields: { gap: SPACE.lg, padding: SPACE.lg },
 });

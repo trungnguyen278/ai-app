@@ -1,6 +1,6 @@
 # Architecture
 
-> **Status:** accepted in [ADR-0002](decisions/0002-architecture.md) (the shape), on [ADR-0001](decisions/0001-platforms-and-framework.md) (the framework). Its skeleton is built: the routes, the catalogs and the foundation of the design system in `shared`, the first screen of `homes`, and the `studio`. So is the client of the app API, with its simulated cloud, in `shared/cloud`.
+> **Status:** accepted in [ADR-0002](decisions/0002-architecture.md) (the shape), on [ADR-0001](decisions/0001-platforms-and-framework.md) (the framework). Its skeleton is built: the routes, the catalogs and the foundation of the design system in `shared`, the first screen of `homes`, and the `studio`. So are the client of the app API, with its simulated cloud, in `shared/cloud`; the cloud's cache, in `shared/queries`; and `account`: signing in with the development provider, the session, and the person's account.
 
 The app is how an owner reaches their devices and their home. It sets a device up, signs in to ai-cloud, manages homes and their people, changes settings and controls devices. One person builds it, for Android first and iOS from the same code (ADR-0001), and it serves every kind of device the project makes.
 
@@ -81,9 +81,11 @@ Steps 5 and 6 need the owner's sign-in and the app ⇄ cloud protocol, which ai-
 
 ## Security and privacy
 
-- **The owner's session** lives in secure storage.
+- **The owner's session** lives in secure storage: its refresh token, under a name of the cloud's own; its access token only in memory.
+  - Only while the phone is unlocked, and never restored to another phone (iOS's `WHEN_UNLOCKED_THIS_DEVICE_ONLY`); Android's Keystore keeps it out of backups.
   - Android loses it when the app is uninstalled, and the owner then signs in again.
   - A read guarded by biometrics blocks the interface, so none happens on the path that starts the app.
+  - On the simulated cloud, which forgets its sessions when the app stops, the session is kept in memory too.
 - **TLS on every connection to the cloud** (SEC-1). Plain HTTP only to a development cloud on the developer's own machine.
 - **Permissions** (Bluetooth, the camera, notifications) are asked for when first needed, with the reason in the owner's language.
 - **Logs and error reports** carry no secrets and no content: no codes, tokens, Wi-Fi passwords or conversations.

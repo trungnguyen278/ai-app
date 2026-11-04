@@ -22,6 +22,25 @@ ios_bundle_identifier = "io.github.trungnguyen278.aiapp"
 # motion is judged.
 enabled = false
 
+[sign_in]
+# The ways people sign in, in the order the sign-in screen offers them. "development" is the
+# development cloud's provider, which signs in a test person by name and email (the app API,
+# Development); the simulated cloud has it too. Google's and Apple's come with the project's
+# client IDs (ADR-0004, decision 4).
+providers = ["development"]
+
+[session]
+# Seconds before its access token expires when the session refreshes it, so that no request
+# leaves with a token about to expire.
+refresh_margin = 60
+
+[queries]
+# How many times a read is tried again when no answer came, or the cloud could not serve it,
+# each wait twice the last (TanStack Query's own backoff).
+retries = 3
+# Seconds that what a read brought stays fresh, before a screen showing it asks the cloud again.
+stale_time = 30
+
 [cloud]
 # The cloud that the app talks to (ADR-0004, decision 6): "simulated", the app API run inside
 # the app, in memory, which forgets everything when the app stops; or a cloud's address, such
@@ -60,6 +79,9 @@ nonce_lifetime = 300
 access_lifetime = 600
 # Seconds a session lasts unused: 90 days.
 refresh_idle = 7_776_000
+# Seconds after its first use within which a refresh token refreshes again, while its
+# replacement is unused: a retry after a lost answer (ai-platform ADR-0011).
+refresh_reuse = 60
 # Seconds since it was issued within which an ID token may delete its account or a home, or
 # hand a home over.
 recent_sign_in = 300

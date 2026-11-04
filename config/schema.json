@@ -3,8 +3,39 @@
   "title": "The app's configuration, once merged (config/base.toml)",
   "type": "object",
   "additionalProperties": false,
-  "required": ["app", "studio", "cloud"],
+  "required": ["app", "studio", "sign_in", "session", "queries", "cloud"],
   "properties": {
+    "sign_in": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["providers"],
+      "properties": {
+        "providers": {
+          "description": "The providers this version of the app has",
+          "type": "array",
+          "items": { "enum": ["development"] },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      }
+    },
+    "session": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["refresh_margin"],
+      "properties": {
+        "refresh_margin": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "queries": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["retries", "stale_time"],
+      "properties": {
+        "retries": { "type": "integer", "minimum": 0 },
+        "stale_time": { "type": "number", "minimum": 0 }
+      }
+    },
     "app": {
       "type": "object",
       "additionalProperties": false,
@@ -78,6 +109,7 @@
             "nonce_lifetime",
             "access_lifetime",
             "refresh_idle",
+            "refresh_reuse",
             "recent_sign_in",
             "idempotency_retention",
             "homes_per_account",
@@ -103,6 +135,11 @@
               "maximum": 86400
             },
             "refresh_idle": { "$ref": "#/$defs/seconds" },
+            "refresh_reuse": {
+              "description": "Seconds; 0 allows no retry",
+              "type": "integer",
+              "minimum": 0
+            },
             "recent_sign_in": { "$ref": "#/$defs/seconds" },
             "idempotency_retention": { "$ref": "#/$defs/seconds" },
             "homes_per_account": { "$ref": "#/$defs/count" },

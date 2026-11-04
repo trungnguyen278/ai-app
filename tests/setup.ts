@@ -26,8 +26,22 @@ jest.mock('expo-font', () => ({
   useFonts: () => [true, null],
 }));
 
+// The phone is online in the tests: jest-expo's stand-in for expo-network returns nothing.
+jest.mock('expo-network', () => ({
+  ...jest.requireActual('expo-network'),
+  addNetworkStateListener: () => ({ remove: () => {} }),
+  getNetworkStateAsync: async () => ({ isConnected: true, isInternetReachable: true }),
+}));
+
 setUpTests();
 
+// The development app's settings, but for the simulated cloud's pace: the tests do not wait.
+const settings = runtimeSettings(loadSettings('development'));
 Object.assign(Constants.expoConfig ?? {}, {
-  extra: { settings: runtimeSettings(loadSettings('development')) },
+  extra: {
+    settings: {
+      ...settings,
+      cloud: { ...settings.cloud, simulated: { ...settings.cloud.simulated, latency: 0 } },
+    },
+  },
 });

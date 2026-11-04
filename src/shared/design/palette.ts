@@ -43,6 +43,11 @@ export interface PaletteData {
    * The tone while the robot's is not known: its calm cyan, from ai-robot's ui/src/tones.js.
    */
   tone: string;
+  /**
+   * What went wrong, or cannot be undone: a red, whatever the tone, made readable in each theme
+   * as the tone is (`dangerColors`).
+   */
+  danger: string;
   light: ThemeData;
   dark: ThemeData;
 }

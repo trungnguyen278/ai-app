@@ -1,6 +1,13 @@
 // SPDX-License-Identifier: MIT
 // palette.json: both themes complete, and their neutrals readable.
-import { isHex, PALETTE, SCHEMES, type Neutrals } from '@/src/shared/design';
+import {
+  buildTheme,
+  dangerColors,
+  isHex,
+  PALETTE,
+  SCHEMES,
+  type Neutrals,
+} from '@/src/shared/design';
 
 import { COMPONENT, ENHANCED, ratio, TEXT } from './wcag';
 
@@ -16,7 +23,7 @@ const NEUTRALS: (keyof Neutrals)[] = [
 ];
 
 test('both themes have the same colours, and nothing else', () => {
-  expect(Object.keys(PALETTE).sort()).toEqual(['dark', 'light', 'tone']);
+  expect(Object.keys(PALETTE).sort()).toEqual(['danger', 'dark', 'light', 'tone']);
   for (const scheme of SCHEMES) {
     expect(Object.keys(PALETTE[scheme]).sort()).toEqual(
       [...NEUTRALS, 'tint', 'glowOpacity'].sort(),
@@ -26,6 +33,7 @@ test('both themes have the same colours, and nothing else', () => {
 
 test('every colour is written #rrggbb', () => {
   expect(isHex(PALETTE.tone)).toBe(true);
+  expect(isHex(PALETTE.danger)).toBe(true);
   for (const scheme of SCHEMES) {
     for (const name of NEUTRALS) {
       expect(isHex(PALETTE[scheme][name])).toBe(true);
@@ -63,5 +71,20 @@ describe.each(SCHEMES)('in the %s theme', (scheme) => {
     expect(theme.tint.chroma).toBeGreaterThanOrEqual(0);
     expect(theme.glowOpacity).toBeGreaterThan(0);
     expect(theme.glowOpacity).toBeLessThanOrEqual(1);
+  });
+
+  test("danger can be read on every background, its tint's too, and onDanger on it", () => {
+    const { danger, onDanger, dangerSoft } = dangerColors(scheme);
+    for (const background of [...backgrounds, dangerSoft]) {
+      expect(ratio(danger, background)).toBeGreaterThanOrEqual(TEXT);
+    }
+    expect(ratio(onDanger, danger)).toBeGreaterThanOrEqual(TEXT);
+  });
+
+  test('danger does not follow the tone', () => {
+    const { danger } = dangerColors(scheme);
+    for (const tone of ['#5be9ff', '#ff4d6d', '#7cff6b']) {
+      expect(buildTheme(scheme, tone).color.danger).toBe(danger);
+    }
   });
 });
