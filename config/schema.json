@@ -3,7 +3,7 @@
   "title": "The app's configuration, once merged (config/base.toml)",
   "type": "object",
   "additionalProperties": false,
-  "required": ["app", "studio"],
+  "required": ["app", "studio", "cloud"],
   "properties": {
     "app": {
       "type": "object",
@@ -31,6 +31,103 @@
       "required": ["enabled"],
       "properties": {
         "enabled": { "type": "boolean" }
+      }
+    },
+    "cloud": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "address",
+        "plain_http",
+        "client_id",
+        "timeout",
+        "retries",
+        "retry_delay",
+        "page_size",
+        "answer_limit",
+        "simulated"
+      ],
+      "properties": {
+        "address": {
+          "description": "simulated, or a cloud's address: https://, or http:// where plain_http allows it, then a host or an IP address, an optional port and an optional path, with no query or fragment",
+          "type": "string",
+          "pattern": "^(simulated|https?://([A-Za-z0-9.-]+|\\[[0-9A-Fa-f:.]+\\])(:[0-9]{1,5})?(/[A-Za-z0-9._~%/-]*)?)$"
+        },
+        "plain_http": { "type": "boolean" },
+        "client_id": {
+          "description": "The app API's $defs/client_id",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "timeout": { "type": "number", "exclusiveMinimum": 0 },
+        "retries": { "type": "integer", "minimum": 0 },
+        "retry_delay": { "type": "number", "exclusiveMinimum": 0 },
+        "page_size": {
+          "description": "The app API's page_size: from 1 to 50",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        },
+        "answer_limit": { "type": "integer", "minimum": 1024 },
+        "simulated": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "latency",
+            "nonce_lifetime",
+            "access_lifetime",
+            "refresh_idle",
+            "recent_sign_in",
+            "idempotency_retention",
+            "homes_per_account",
+            "members_per_home",
+            "invitation_lifetime",
+            "invitations_per_home",
+            "id_token_lifetime",
+            "nonce_rate",
+            "invitation_rate"
+          ],
+          "properties": {
+            "latency": { "type": "number", "minimum": 0 },
+            "nonce_lifetime": {
+              "description": "At most the app API's $defs/nonce_response, expires_in",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600
+            },
+            "access_lifetime": {
+              "description": "At most the app API's $defs/token_response, expires_in",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 86400
+            },
+            "refresh_idle": { "$ref": "#/$defs/seconds" },
+            "recent_sign_in": { "$ref": "#/$defs/seconds" },
+            "idempotency_retention": { "$ref": "#/$defs/seconds" },
+            "homes_per_account": { "$ref": "#/$defs/count" },
+            "members_per_home": { "$ref": "#/$defs/count" },
+            "invitation_lifetime": { "$ref": "#/$defs/seconds" },
+            "invitations_per_home": { "$ref": "#/$defs/count" },
+            "id_token_lifetime": { "$ref": "#/$defs/seconds" },
+            "nonce_rate": { "$ref": "#/$defs/rate" },
+            "invitation_rate": { "$ref": "#/$defs/rate" }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "seconds": { "type": "integer", "minimum": 1 },
+    "count": { "type": "integer", "minimum": 1 },
+    "rate": {
+      "description": "At most limit in each period of seconds",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["limit", "period"],
+      "properties": {
+        "limit": { "$ref": "#/$defs/count" },
+        "period": { "$ref": "#/$defs/seconds" }
       }
     }
   }

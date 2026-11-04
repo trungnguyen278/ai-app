@@ -1,6 +1,6 @@
 # Architecture
 
-> **Status:** accepted in [ADR-0002](decisions/0002-architecture.md) (the shape), on [ADR-0001](decisions/0001-platforms-and-framework.md) (the framework). Its skeleton is built: the routes, the catalogs and the foundation of the design system in `shared`, the first screen of `homes`, and the `studio`.
+> **Status:** accepted in [ADR-0002](decisions/0002-architecture.md) (the shape), on [ADR-0001](decisions/0001-platforms-and-framework.md) (the framework). Its skeleton is built: the routes, the catalogs and the foundation of the design system in `shared`, the first screen of `homes`, and the `studio`. So is the client of the app API, with its simulated cloud, in `shared/cloud`.
 
 The app is how an owner reaches their devices and their home. It sets a device up, signs in to ai-cloud, manages homes and their people, changes settings and controls devices. One person builds it, for Android first and iOS from the same code (ADR-0001), and it serves every kind of device the project makes.
 
@@ -93,14 +93,14 @@ Steps 5 and 6 need the owner's sign-in and the app ⇄ cloud protocol, which ai-
 - **Unit and component tests:** Jest, with Expo's `jest-expo` preset, and React Native Testing Library.
 - **Protocols:** set-up's exchange is replayed from ai-platform's examples, byte for byte.
 - **A simulated device:** the device's side of set-up 2.0, in TypeScript, behind the Bluetooth LE port. Set-up then runs end to end in tests, and on a phone with no robot nearby.
-- **A simulated cloud:** the app ⇄ cloud protocol behind its port.
+- **A simulated cloud:** the app API in memory, behind the transport of `shared/cloud`. ai-platform's examples are replayed against it, as against ai-cloud.
 - **End to end:** Maestro, on an Android emulator and the iOS simulator, once the first flows exist.
 - **Boundaries:** dependency-cruiser in CI, as import-linter does in ai-cloud.
 
 ## Configuration
 
 - **What someone may tune** (a timeout, a retry, a limit, a colour) is in the app's configuration, required and commented. It comes as one file for every build, then a file for each environment: development, with the simulated device and cloud, and production.
-- **What belongs to one machine,** such as the address of a developer's own cloud, goes in `config/local.toml`, which git ignores.
+- **What belongs to one machine,** such as the address of a developer's own cloud, goes in `config/local.toml`, which git ignores; a cloud's address may come from the environment instead (`AI_APP_CLOUD_ADDRESS`). Without one, the app runs on the simulated cloud.
 - **The app holds no secret of the project's:** the cloud keeps the providers' keys.
 - **The name people see** comes from one setting.
 
@@ -135,5 +135,6 @@ ai-app/
 | [0002](decisions/0002-architecture.md) | This architecture |
 | [0003](decisions/0003-interface-and-motion.md) | The interface: the robot's visual language, in motion |
 | [0004](decisions/0004-talking-to-the-cloud.md) | Talking to ai-cloud: types and checks made from the protocol, one client, a session in secure storage |
+| [0005](decisions/0005-checks-for-every-definition.md) | The app API's checks: one for every definition |
 | [ai-platform 0007](https://github.com/trungnguyen278/ai-platform/blob/main/docs/decisions/0007-catalogs.md) | The catalogs: Unicode MessageFormat 2, one JSON file per language |
 | [ai-platform 0008](https://github.com/trungnguyen278/ai-platform/blob/main/docs/decisions/0008-sign-in.md), [0009](https://github.com/trungnguyen278/ai-platform/blob/main/docs/decisions/0009-people-in-a-home.md) | The owners' sign-in, and the people in a home, which the app API carries ([`platform/protocols/app/`](https://github.com/trungnguyen278/ai-platform/blob/main/protocols/app/README.md)) |

@@ -3,10 +3,11 @@ import { cpSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import type { ConfigContext } from 'expo/config';
+import { getConfig, type ConfigContext } from 'expo/config';
 
 import appConfig, {
   catalogLanguages,
+  CLOUD_ADDRESS_VARIABLE,
   ENVIRONMENT_VARIABLE,
   loadSettings,
   merge,
@@ -91,23 +92,72 @@ test('the languages offered to the system are the catalogs in locales/', () => {
 });
 
 test('only the development app has the studio', () => {
-  expect(runtimeSettings(loadSettings('development'))).toEqual({ studio: true });
-  expect(runtimeSettings(loadSettings('production'))).toEqual({ studio: false });
+  expect(runtimeSettings(loadSettings('development')).studio).toBe(true);
+  expect(runtimeSettings(loadSettings('production')).studio).toBe(false);
 });
 
+test('every build talks to the simulated cloud, unless its machine names a cloud', () => {
+  for (const environment of ['development', 'production']) {
+    expect(runtimeSettings(loadSettings(environment)).cloud.address).toBe('simulated');
+  }
+  writeFileSync(join(directory, 'local.toml'), '[cloud]\naddress = "https://mine.example"\n');
+  expect(loadSettings('production', directory).cloud.address).toBe('https://mine.example');
+  const variables = { [CLOUD_ADDRESS_VARIABLE]: 'https://release.example/' };
+  expect(loadSettings('production', directory, variables).cloud.address).toBe(
+    'https://release.example/',
+  );
+  const unset = { [CLOUD_ADDRESS_VARIABLE]: '' };
+  expect(loadSettings('production', directory, unset).cloud.address).toBe('https://mine.example');
+});
+
+test("http:// only where the environment allows it, to a developer's own machine (SEC-1)", () => {
+  const plain = { [CLOUD_ADDRESS_VARIABLE]: 'http://192.168.1.20:8000' };
+  expect(loadSettings('development', directory, plain).cloud.address).toBe(
+    'http://192.168.1.20:8000',
+  );
+  expect(() => loadSettings('production', directory, plain)).toThrow('SEC-1');
+  expect(() => loadSettings('production', directory, plain)).toThrow(/^(?!.*192\.168).*$/s);
+});
+
+test.each([
+  'cloud.example',
+  'ftp://cloud.example',
+  'https://cloud.example/?debug=1',
+  'https://cloud.example/#join',
+  'https://user:secret@cloud.example',
+  'simulated ',
+])('a cloud address such as %j stops the build', (address) => {
+  const variables = { [CLOUD_ADDRESS_VARIABLE]: address };
+  expect(() => loadSettings('development', directory, variables)).toThrow(
+    '/cloud/address must match',
+  );
+});
+
+test.each(['https://cloud.example', 'https://cloud.example:8443/base/', 'http://[::1]:8000'])(
+  'a cloud address such as %j is one',
+  (address) => {
+    const variables = { [CLOUD_ADDRESS_VARIABLE]: address };
+    expect(loadSettings('development', directory, variables).cloud.address).toBe(address);
+  },
+);
+
 describe("Expo's configuration", () => {
-  const environment = process.env[ENVIRONMENT_VARIABLE];
+  const variables = [ENVIRONMENT_VARIABLE, CLOUD_ADDRESS_VARIABLE];
+  const saved = variables.map((name) => process.env[name]);
 
   beforeEach(() => {
     process.env[ENVIRONMENT_VARIABLE] = 'production';
+    delete process.env[CLOUD_ADDRESS_VARIABLE];
   });
 
   afterEach(() => {
-    if (environment === undefined) {
-      delete process.env[ENVIRONMENT_VARIABLE];
-    } else {
-      process.env[ENVIRONMENT_VARIABLE] = environment;
-    }
+    variables.forEach((name, index) => {
+      if (saved[index] === undefined) {
+        delete process.env[name];
+      } else {
+        process.env[name] = saved[index];
+      }
+    });
   });
 
   const expo = () => appConfig({ config: {} } as ConfigContext);
@@ -124,6 +174,19 @@ describe("Expo's configuration", () => {
   });
 
   test('carries the settings the app reads while it runs', () => {
-    expect(expo().extra?.settings).toEqual({ studio: false });
+    expect(expo().extra?.settings).toEqual(runtimeSettings(loadSettings('production')));
+  });
+
+  test("names the cloud that the building machine's environment names", () => {
+    process.env[CLOUD_ADDRESS_VARIABLE] = 'https://release.example';
+    expect(expo().extra?.settings.cloud.address).toBe('https://release.example');
+  });
+
+  test("is read by Expo's tools, as a build reads it, in every environment", () => {
+    for (const environment of ['development', 'production']) {
+      process.env[ENVIRONMENT_VARIABLE] = environment;
+      const { exp } = getConfig(join(__dirname, '..'), { skipSDKVersionRequirement: true });
+      expect(exp.extra?.settings).toEqual(runtimeSettings(loadSettings(environment)));
+    }
   });
 });

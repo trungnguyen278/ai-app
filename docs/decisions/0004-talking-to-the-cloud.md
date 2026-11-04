@@ -1,6 +1,6 @@
 # 0004 — Talking to ai-cloud: types and checks made from the protocol, one client, a session in secure storage
 
-- **Status:** Accepted
+- **Status:** Accepted. Decision 1's checks are widened by [ADR-0005](0005-checks-for-every-definition.md): one for every definition.
 - **Date:** 2026-11-04
 
 ## Context

@@ -1,12 +1,12 @@
 # ai-app
 
-> **Status:** new. The skeleton runs: one screen, in English and Vietnamese, on the [design system](docs/design.md): colour, type and motion, which the development app shows in a studio. CI checks it, and builds it for Android and the iOS simulator. Decided: React Native with Expo, Android first ([ADR-0001](docs/decisions/0001-platforms-and-framework.md)), the [architecture](docs/architecture.md) ([ADR-0002](docs/decisions/0002-architecture.md)), and the interface, in the robot's visual language ([ADR-0003](docs/decisions/0003-interface-and-motion.md)). Its first screen welcomes a new owner with the robot's light. How owners sign in comes next ([dev log](docs/devlog/2026-10.md)).
+> **Status:** new. The skeleton runs: one screen, in English and Vietnamese, on the [design system](docs/design.md): colour, type and motion, which the development app shows in a studio. CI checks it, and builds it for Android and the iOS simulator. Decided: React Native with Expo, Android first ([ADR-0001](docs/decisions/0001-platforms-and-framework.md)), the [architecture](docs/architecture.md) ([ADR-0002](docs/decisions/0002-architecture.md)), and the interface, in the robot's visual language ([ADR-0003](docs/decisions/0003-interface-and-motion.md)). Its first screen welcomes a new owner with the robot's light. The client of the app API is built, with a simulated cloud to run on ([ADR-0004](docs/decisions/0004-talking-to-the-cloud.md)); signing in comes next ([dev log](docs/devlog/2026-11.md)).
 
 The owner's app for the project's AI devices, the first of which is [ai-robot](https://github.com/trungnguyen278/ai-robot), a mobile robot with an expressive face that people talk to. With it, an owner sets a device up, brings the people of their home in, changes a device's settings and controls it. The app signs in to [ai-cloud](https://github.com/trungnguyen278/ai-cloud), which registers the devices it sets up.
 
 ## What it does
 
-The protocols it speaks, and their requirements, are defined in [ai-platform](https://github.com/trungnguyen278/ai-platform), with the decisions behind them: set-up with a device (`platform/protocols/setup/`) now, and the app's link to the cloud later.
+The protocols it speaks, and their requirements, are defined in [ai-platform](https://github.com/trungnguyen278/ai-platform), with the decisions behind them: set-up with a device (`platform/protocols/setup/`), and the app API, its link to the cloud (`platform/protocols/app/`).
 
 - **Set-up.** It finds a device waiting to be set up, over Bluetooth LE, and opens a session secured by the code the device shows. It gives the device its Wi-Fi network, its first languages and its time zone, then relays the device's registration to ai-cloud, which binds the device into the home the owner chose (SEC-3, [ai-platform ADR-0005](https://github.com/trungnguyen278/ai-platform/blob/main/docs/decisions/0005-homes.md)).
 - **Homes and their people.** The owner signs in to ai-cloud. A home has an owner, admins and members, and profiles for people who never sign in (ai-platform ADR-0005).
@@ -57,6 +57,8 @@ npm test              # Jest, with the catalogs' checks and MF2's test suite
 After moving the pin of `platform/`, `npm run protocols` makes the protocols' types and checks again, in `src/shared/protocols/generated/` ([ADR-0004](docs/decisions/0004-talking-to-the-cloud.md)).
 
 The configuration is `config/base.toml`, then the environment's file in `config/environments/`, then an optional `config/local.toml` for one machine, which git ignores. Every value is required, and is checked when the app starts or is built.
+
+The app talks to a simulated cloud, the app API in memory, unless the machine that builds it names a cloud: `address` in the `[cloud]` table of `config/local.toml`, or `AI_APP_CLOUD_ADDRESS` (`.env.example`). In the development environment, a developer's own cloud may be reached over `http://`.
 
 ## Documentation
 

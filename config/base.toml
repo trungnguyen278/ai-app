@@ -21,3 +21,67 @@ ios_bundle_identifier = "io.github.trungnguyen278.aiapp"
 # (ADR-0003). Only the development app has it, in a debug build or in a release build, where
 # motion is judged.
 enabled = false
+
+[cloud]
+# The cloud that the app talks to (ADR-0004, decision 6): "simulated", the app API run inside
+# the app, in memory, which forgets everything when the app stops; or a cloud's address, such
+# as https://cloud.example. A real cloud is named only on the machine that builds the app, in
+# config/local.toml or in AI_APP_CLOUD_ADDRESS (.env.example), never in a committed file.
+address = "simulated"
+# Whether that address may be http://, without TLS: only to a developer's own machine (SEC-1).
+plain_http = false
+# The app's identifier at the cloud's OAuth endpoints, one that the cloud's configuration lists
+# (the app API, The exchange).
+client_id = "ai-app"
+# Seconds a request may take, from sending it to reading its answer, before the cloud counts
+# as unreachable.
+timeout = 15
+# How many times a request with an Idempotency-Key, which the protocol makes safe to repeat,
+# is sent again when no answer came, or when the cloud answered that its first copy still runs
+# (the app API, Requests).
+retries = 3
+# Seconds before the first of those retries; each one after waits twice as long.
+retry_delay = 0.5
+# How many items a page of a list asks for: from 1 to 50 (the app API, Sessions).
+page_size = 20
+# The most bytes an answer may have: a larger one is refused, unread if it says its length
+# (SEC-15).
+answer_limit = 1_048_576
+
+[cloud.simulated]
+# The simulated cloud: the settings of ai-cloud's configuration (the app API, Settings), with
+# its values, and the simulation's pace.
+#
+# Seconds it takes to answer, so that screens wait as they do for a real cloud.
+latency = 0.3
+# Seconds a nonce stays valid.
+nonce_lifetime = 300
+# Seconds an access token is valid.
+access_lifetime = 600
+# Seconds a session lasts unused: 90 days.
+refresh_idle = 7_776_000
+# Seconds since it was issued within which an ID token may delete its account or a home, or
+# hand a home over.
+recent_sign_in = 300
+# Seconds a retry with an Idempotency-Key gets the first answer: 24 hours.
+idempotency_retention = 86_400
+# How many homes an account may be in: as in Google Home.
+homes_per_account = 5
+# How many people a home may have, profiles included.
+members_per_home = 30
+# Seconds an invitation's code is valid: 3 days.
+invitation_lifetime = 259_200
+# How many open invitations a home may have.
+invitations_per_home = 10
+# Seconds the simulated providers' ID tokens are valid, as the development cloud's are.
+id_token_lifetime = 600
+
+[cloud.simulated.nonce_rate]
+# How many nonces the phone gets: 10 a minute.
+limit = 10
+period = 60
+
+[cloud.simulated.invitation_rate]
+# How many invitation codes one account may try: 10 a minute.
+limit = 10
+period = 60

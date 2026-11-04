@@ -29,6 +29,8 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 - Every message received is validated: its schema, its size, its numbers (finite), its strings (length); what fails is refused (SEC-14). Rates and sizes are limited (SEC-15).
 - A replayed message has no effect beyond its first one, and credentials expire (SEC-12).
 - A device or a cloud that does not answer, answers late or answers twice leaves the app usable, and the owner is told what happened.
+- Only what the protocol makes safe to repeat is sent again: a request with an Idempotency-Key, with the same key each time. A refresh token works once, so a refresh is never retried.
+- A simulated device or cloud keeps to the real one: the protocol's examples replay against it, and it refuses what the real one refuses, in the same order.
 
 ### Security and privacy
 
@@ -45,6 +47,8 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 ### Tests
 
 - Each behaviour change has a test that would fail on the old code; check it is not vacuous (an exact float compare that never matches, a loop that never runs).
+- A test of one rule isolates it. When two rules could refuse the same request, set them apart, or the test passes for the wrong reason: a fresh sign-in too old to be recent was also past its nonce's lifetime. A mutant of the rule shows it.
+- What the build reads, `app.config.ts`, is tested through Expo's own reader (`getConfig`), as the build reads it: calling the function alone missed tables without a prototype, which broke the builds.
 - Protocol exchanges are tested against ai-platform's examples, and against a simulated device.
 - No fixed sleeps to wait for readiness: wait for the condition, with a timeout.
 

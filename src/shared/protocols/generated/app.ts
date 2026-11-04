@@ -28,29 +28,7 @@ export type Language = string;
  * This interface was referenced by `TheAppAPIAiAppAndAiCloudVersion12`'s JSON-Schema
  * via the `definition` "languages".
  */
-export type Languages =
-  | []
-  | [Language]
-  | [Language, Language]
-  | [Language, Language, Language]
-  | [Language, Language, Language, Language]
-  | [Language, Language, Language, Language, Language]
-  | [Language, Language, Language, Language, Language, Language]
-  | [Language, Language, Language, Language, Language, Language, Language]
-  | [Language, Language, Language, Language, Language, Language, Language, Language]
-  | [Language, Language, Language, Language, Language, Language, Language, Language, Language]
-  | [
-      Language,
-      Language,
-      Language,
-      Language,
-      Language,
-      Language,
-      Language,
-      Language,
-      Language,
-      Language,
-    ];
+export type Languages = Language[];
 /**
  * This interface was referenced by `TheAppAPIAiAppAndAiCloudVersion12`'s JSON-Schema
  * via the `definition` "display_name".
@@ -124,28 +102,7 @@ export type TimeZone = string;
  * This interface was referenced by `TheAppAPIAiAppAndAiCloudVersion12`'s JSON-Schema
  * via the `definition` "home_languages".
  */
-export type HomeLanguages =
-  | [Language]
-  | [Language, Language]
-  | [Language, Language, Language]
-  | [Language, Language, Language, Language]
-  | [Language, Language, Language, Language, Language]
-  | [Language, Language, Language, Language, Language, Language]
-  | [Language, Language, Language, Language, Language, Language, Language]
-  | [Language, Language, Language, Language, Language, Language, Language, Language]
-  | [Language, Language, Language, Language, Language, Language, Language, Language, Language]
-  | [
-      Language,
-      Language,
-      Language,
-      Language,
-      Language,
-      Language,
-      Language,
-      Language,
-      Language,
-      Language,
-    ];
+export type HomeLanguages = Language[];
 /**
  * This interface was referenced by `TheAppAPIAiAppAndAiCloudVersion12`'s JSON-Schema
  * via the `definition` "etag".
@@ -415,121 +372,7 @@ export interface Account {
    * @minItems 1
    * @maxItems 16
    */
-  identities:
-    | [Identity]
-    | [Identity, Identity]
-    | [Identity, Identity, Identity]
-    | [Identity, Identity, Identity, Identity]
-    | [Identity, Identity, Identity, Identity, Identity]
-    | [Identity, Identity, Identity, Identity, Identity, Identity]
-    | [Identity, Identity, Identity, Identity, Identity, Identity, Identity]
-    | [Identity, Identity, Identity, Identity, Identity, Identity, Identity, Identity]
-    | [Identity, Identity, Identity, Identity, Identity, Identity, Identity, Identity, Identity]
-    | [
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-      ]
-    | [
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-      ]
-    | [
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-      ]
-    | [
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-      ]
-    | [
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-      ]
-    | [
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-      ]
-    | [
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-        Identity,
-      ];
+  identities: Identity[];
   create_time: Instant;
   etag: string;
   [k: string]: unknown;
