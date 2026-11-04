@@ -79,11 +79,17 @@ describe('a button', () => {
   test.each([
     ['primary', 'accent'],
     ['secondary', 'accentSoft'],
+    ['danger', 'dangerSoft'],
   ] as const)('%s is filled with the %s', async (variant, fill) => {
     await renderScreen(<Button variant={variant} label="Go" onPress={() => {}} />);
     expect(screen.getByRole('button', { name: 'Go' })).toHaveStyle({
       backgroundColor: design().theme.color[fill],
     });
+  });
+
+  test("danger writes in danger's red, whatever the tone", async () => {
+    await renderScreen(<Button variant="danger" label="Remove" onPress={() => {}} />);
+    expect(screen.getByText('Remove')).toHaveStyle({ color: design().theme.color.danger });
   });
 
   test('primary glows in the tone; the others do not', async () => {

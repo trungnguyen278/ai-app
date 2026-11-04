@@ -180,6 +180,18 @@ test("a refused request carries its problem's type, and what the app compares it
   expect(refused.message).toBe('removeIdentity: 409 /app/v1/problems/last_identity');
   const missing = (await refusal(client.home('01a1a06c-1400-7ffd-b448-26955bb4d510'))) as Refused;
   expect([missing.status, missing.type]).toEqual([404, 'about:blank']);
+  expect([refused.stale, missing.stale]).toEqual([false, false]);
+});
+
+test('a change sent with an ETag that is no longer the latest is refused as stale', async () => {
+  const { person } = setUp();
+  const { client } = await person('Linh');
+  const home = await client.createHome(HOME);
+  await client.updateHome(home.id, { name: 'Nhà mới' }, home.etag);
+  const stale = (await refusal(
+    client.updateHome(home.id, { name: 'Nhà cũ' }, home.etag),
+  )) as Refused;
+  expect([stale.status, stale.stale]).toEqual([412, true]);
 });
 
 test("the OAuth endpoints' refusals are OAuth's errors", async () => {

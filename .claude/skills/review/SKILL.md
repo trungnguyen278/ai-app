@@ -51,6 +51,8 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 - Every route guard names where it leads (`redirectTo`): without one, Expo Router leads to the first open route in its own order, by name.
 - A screen a link opens signs the person in on that screen (`SignInScreen`'s `reason`), so that the link keeps its place: a guard would replace it.
 - What people use has a label for screen readers, and enough contrast in the light and dark themes.
+- What cannot be undone is a `danger` button, confirmed in the phone's own dialog (`Alert`) that says what goes.
+- A change sent with `If-Match` that the cloud refuses as stale (`Refused.stale`) keeps what the person typed, and says that someone changed it meanwhile. A component keyed by the ETag would forget both.
 
 ### Tests
 
