@@ -47,11 +47,14 @@ Expo Go runs the app while it has no native code of its own. Once it has, such a
 The checks, as CI runs them, which also builds the app for Android and for the iOS simulator:
 
 ```sh
+npm run protocols -- --check   # the protocols' types and checks, as platform/'s schemas make them
 npm run typecheck
 npm run lint          # ESLint, and Prettier's formatting
 npm run boundaries    # the modules' boundaries (dependency-cruiser)
 npm test              # Jest, with the catalogs' checks and MF2's test suite
 ```
+
+After moving the pin of `platform/`, `npm run protocols` makes the protocols' types and checks again, in `src/shared/protocols/generated/` ([ADR-0004](docs/decisions/0004-talking-to-the-cloud.md)).
 
 The configuration is `config/base.toml`, then the environment's file in `config/environments/`, then an optional `config/local.toml` for one machine, which git ignores. Every value is required, and is checked when the app starts or is built.
 
