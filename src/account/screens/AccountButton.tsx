@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
-import { useQuery } from '@tanstack/react-query';
 import { Link } from 'expo-router';
 import { Pressable, StyleSheet } from 'react-native';
 
 import { useText } from '@/src/shared/catalog';
 import { AVATAR, RADIUS, Text, TARGET, useTheme } from '@/src/shared/design';
 
-import { useCloud } from '../AccountProvider';
-import { ACCOUNT } from '../domain/keys';
+import { usePerson } from '../AccountProvider';
 
 /**
  * The way to the account, for a header: a disc with the first letter of the person's name, as
@@ -15,9 +13,8 @@ import { ACCOUNT } from '../domain/keys';
  */
 export function AccountButton() {
   const text = useText();
-  const cloud = useCloud();
   const { color } = useTheme();
-  const account = useQuery({ queryKey: ACCOUNT, queryFn: () => cloud.account() });
+  const account = usePerson();
   const initial = [...(account.data?.display_name.trim() ?? '')][0]?.toLocaleUpperCase() ?? '';
   return (
     <Link href="/account" asChild>

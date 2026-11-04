@@ -44,6 +44,11 @@ export function checked<K extends AppDefinition>(definition: K, body: unknown): 
   throw new ProtocolError(definition, error?.instancePath || '/', rule(error));
 }
 
+/** Whether `value` is what the app API's `definition` describes: for what people type. */
+export function accepts(definition: AppDefinition, value: unknown): boolean {
+  return APP_CHECKS[definition](value);
+}
+
 /** The rule that `error` says is broken, in the schema's own terms: Ajv's messages may quote a
  *  pattern, which can hold control characters. */
 function rule(error: ErrorObject | undefined): string {

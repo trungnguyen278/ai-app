@@ -3,24 +3,24 @@ import { useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { useText } from '@/src/shared/catalog';
+import { failureMessage } from '@/src/shared/cloud';
 import { runtimeSettings } from '@/src/shared/config';
 import {
   Appear,
   Button,
   Glow,
   haptic,
-  type FieldInput,
   HERO,
   Screen,
   SPACE,
   Text,
   TextField,
+  type FieldInput,
 } from '@/src/shared/design';
+import { accepts } from '@/src/shared/protocols';
 
 import { useSession } from '../AccountProvider';
 import { developmentProvider } from '../adapters/development';
-import { accepts } from '../domain/checks';
-import { failureMessage } from '../domain/failures';
 
 /**
  * Signing in: the robot's light, what signing in is for, and each provider the configuration

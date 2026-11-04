@@ -70,6 +70,9 @@ function Routes() {
     <Stack>
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="index" />
+        <Stack.Screen name="homes/index" />
+        <Stack.Screen name="homes/new" />
+        <Stack.Screen name="homes/[id]" />
         <Stack.Screen name="account" />
       </Stack.Protected>
       <Stack.Protected guard={!signedIn}>

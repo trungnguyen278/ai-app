@@ -12,6 +12,9 @@ export type Values = Readonly<Record<string, unknown>>;
 /** Told of a message that would not format: its ID and language, never its values. */
 export type OnFailure = (id: string, language: string) => void;
 
+/** Whether a message's values are isolated from the text around them (MF2's bidiIsolation). */
+type Isolation = 'default' | 'none';
+
 /** The source language: it has every message, and every look-up ends with it (ADR-0002). */
 export const SOURCE = 'en';
 
@@ -47,14 +50,30 @@ export class Catalog {
     private readonly onFailure: OnFailure,
   ) {}
 
-  /** Message `id` with `values`, in the first of the languages that formats it without error. */
+  /**
+   * Message `id` with `values`, in the first of the languages that formats it without error.
+   * Each value is isolated, as MF2 does by default, so that one written right to left cannot
+   * reorder the text around it.
+   */
   text(id: string, values: Values = {}): string {
+    return this.formatted(id, values, 'default');
+  }
+
+  /**
+   * The same text without the isolating marks, for text that becomes data, such as a name
+   * the person may keep: the marks are invisible, and would be stored with it.
+   */
+  plainText(id: string, values: Values = {}): string {
+    return this.formatted(id, values, 'none');
+  }
+
+  private formatted(id: string, values: Values, isolation: Isolation): string {
     for (const language of this.languages) {
       const source = this.catalogs[language]?.[id];
       if (source === undefined) continue;
       let failed = false;
       try {
-        const text = this.format(language, id, source).format({ ...values }, () => {
+        const text = this.format(language, id, source, isolation).format({ ...values }, () => {
           failed = true;
         });
         if (!failed) return text;
@@ -66,11 +85,16 @@ export class Catalog {
     return id; // English lacks it too, which the catalogs' checks forbid
   }
 
-  private format(language: string, id: string, source: string): MessageFormat {
-    const key = `${language}\n${id}`;
+  private format(
+    language: string,
+    id: string,
+    source: string,
+    isolation: Isolation,
+  ): MessageFormat {
+    const key = `${language}\n${id}\n${isolation}`;
     let format = this.formats.get(key);
     if (format === undefined) {
-      format = new MessageFormat(language, source);
+      format = new MessageFormat(language, source, { bidiIsolation: isolation });
       this.formats.set(key, format);
     }
     return format;

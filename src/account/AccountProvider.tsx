@@ -2,7 +2,7 @@
 // The account's place in the app: one session, and the clients that speak for it, for every
 // screen beneath (Expo Router's guide to authentication keeps the session in a context too).
 // It restores the session kept from before as the app starts.
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Device from 'expo-device';
 import { createContext, useContext, useEffect, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
@@ -18,6 +18,7 @@ import { runtimeSettings } from '@/src/shared/config';
 
 import { MemorySecrets } from './adapters/memory';
 import { secureStore } from './adapters/secure-store';
+import { ACCOUNT } from './domain/keys';
 import { sessionLabel } from './domain/label';
 import type { Secrets } from './ports/secrets';
 import { refreshTokenName, Session, type SessionState } from './services/session';
@@ -85,4 +86,10 @@ export function useSession(): { state: SessionState; session: Session; signIn: S
 /** The app API, as the person signed in. */
 export function useCloud(): CloudClient {
   return useAccount().cloud;
+}
+
+/** The person signed in: their account, from the cloud's cache. */
+export function usePerson() {
+  const cloud = useCloud();
+  return useQuery({ queryKey: ACCOUNT, queryFn: () => cloud.account() });
 }

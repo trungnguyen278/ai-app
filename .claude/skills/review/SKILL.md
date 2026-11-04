@@ -42,6 +42,7 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 
 - Nothing blocks the interface: network, Bluetooth and storage work asynchronously.
 - Every text comes from the catalogs, and layouts hold longer translations and larger text sizes.
+- A catalog's text that becomes data, such as a default name the person may keep, comes from `usePlainText`: MF2 isolates every value with invisible marks, which would be stored with it.
 - What people use has a label for screen readers, and enough contrast in the light and dark themes.
 
 ### Tests

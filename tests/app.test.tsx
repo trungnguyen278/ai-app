@@ -41,6 +41,18 @@ test('signed in, the homes; signed out from the account, signing in again', asyn
   expect(screen).toHavePathname('/sign-in');
 });
 
+test('a new owner creates a home, named as their own, and the main screen is that home', async () => {
+  const app = await renderRouter('app', { initialUrl: '/' });
+  await signIn('Linh');
+  await fireEvent.press(screen.getByRole('button', { name: 'Create a home' }));
+  expect(await screen.findByDisplayValue("Linh's home")).toBeOnTheScreen();
+  expect(screen).toHavePathname('/homes/new');
+  await fireEvent.press(screen.getByRole('button', { name: 'Create the home' }));
+  // The name as the person kept it: no invisible mark came with the default.
+  expect(await screen.findByRole('header', { name: "Linh's home" })).toBeOnTheScreen();
+  expect(app.getPathname()).toMatch(/^\/homes\/[0-9a-f-]{36}$/);
+});
+
 test('the studio has its pages', () => {
   expect(STUDIO.sort()).toEqual([
     '/studio',
