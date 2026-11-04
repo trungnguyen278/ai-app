@@ -8,3 +8,7 @@ ios_bundle_identifier = "io.github.trungnguyen278.aiapp.dev"
 
 [studio]
 enabled = true
+
+[cloud]
+# A developer's own cloud, on their machine, may be reached without TLS (SEC-1).
+plain_http = true

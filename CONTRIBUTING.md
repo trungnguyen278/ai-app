@@ -40,7 +40,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/): `<type>(<sc
 | `test` | Adding or changing tests |
 | `chore` | Tooling, configuration, CI, housekeeping |
 
-The scope is the affected area: `setup`, `auth`, `homes`, `settings`, `control`, `ui`, `i18n`, `platform` (moving the pin), `docs`, `ci`. Add a scope when a new area appears.
+The scope is the affected area: `setup`, `auth`, `homes`, `settings`, `control`, `ui`, `i18n`, `cloud` (the link to ai-cloud, in `shared/cloud`), `platform` (moving the pin), `docs`, `ci`. Add a scope when a new area appears.
 
 Example: `feat(setup): find the devices waiting to be set up`
 

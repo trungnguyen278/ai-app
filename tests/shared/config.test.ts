@@ -5,7 +5,12 @@ import { runtimeSettings } from '@/src/shared/config';
 
 test('the app reads the settings built into it', () => {
   // tests/setup.ts builds them as the development app has them.
-  expect(runtimeSettings()).toEqual({ studio: true });
+  const settings = runtimeSettings();
+  expect([settings.studio, settings.cloud.address, settings.cloud.plain_http]).toEqual([
+    true,
+    'simulated',
+    true,
+  ]);
 });
 
 test('an app built without its settings stops at once', () => {

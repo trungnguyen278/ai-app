@@ -11,6 +11,8 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
 import { parse } from 'smol-toml';
 
 export const ENVIRONMENT_VARIABLE = 'AI_APP_ENVIRONMENT';
+// The cloud a build talks to, set on the machine that builds it (ADR-0004, decision 6).
+export const CLOUD_ADDRESS_VARIABLE = 'AI_APP_CLOUD_ADDRESS';
 
 const CONFIG_DIR = join(__dirname, 'config');
 const LOCALES_DIR = join(__dirname, 'locales');
@@ -28,15 +30,47 @@ export interface Settings {
     ios_bundle_identifier: string;
   };
   studio: { enabled: boolean };
+  cloud: {
+    address: string;
+    plain_http: boolean;
+    client_id: string;
+    timeout: number;
+    retries: number;
+    retry_delay: number;
+    page_size: number;
+    answer_limit: number;
+    simulated: {
+      latency: number;
+      nonce_lifetime: number;
+      access_lifetime: number;
+      refresh_idle: number;
+      recent_sign_in: number;
+      idempotency_retention: number;
+      homes_per_account: number;
+      members_per_home: number;
+      invitation_lifetime: number;
+      invitations_per_home: number;
+      id_token_lifetime: number;
+      nonce_rate: { limit: number; period: number };
+      invitation_rate: { limit: number; period: number };
+    };
+  };
 }
 
 /** What the app reads of its settings while it runs, in Expo's `extra` (src/shared/config). */
 export function runtimeSettings(settings: Settings) {
-  return { studio: settings.studio.enabled };
+  return { studio: settings.studio.enabled, cloud: settings.cloud };
 }
 
-/** The settings of `environment`, from the files of `directory`, checked. */
-export function loadSettings(environment: string | undefined, directory = CONFIG_DIR): Settings {
+/**
+ * The settings of `environment`, from the files of `directory`, then the cloud's address from
+ * `variables` if they name one, checked.
+ */
+export function loadSettings(
+  environment: string | undefined,
+  directory = CONFIG_DIR,
+  variables: Readonly<Record<string, string | undefined>> = {},
+): Settings {
   if (!environment) {
     throw new Error(`${ENVIRONMENT_VARIABLE} is not set: name an environment (see .env.example)`);
   }
@@ -54,6 +88,10 @@ export function loadSettings(environment: string | undefined, directory = CONFIG
   if (existsSync(local)) {
     settings = merge(settings, read(local));
   }
+  const address = variables[CLOUD_ADDRESS_VARIABLE];
+  if (address) {
+    settings = merge(settings, { cloud: { address } });
+  }
   const schema = JSON.parse(readFileSync(join(directory, 'schema.json'), 'utf8'));
   const validate = new Ajv2020({ allErrors: true }).compile<Settings>(schema);
   if (!validate(settings)) {
@@ -64,6 +102,12 @@ export function loadSettings(environment: string | undefined, directory = CONFIG
       return `${where} ${error.message}${extra ? ` (${extra})` : ''}`;
     });
     throw new Error(`configuration: ${problems.join('; ')}`);
+  }
+  if (settings.cloud.address.startsWith('http://') && !settings.cloud.plain_http) {
+    throw new Error(
+      'configuration: /cloud/address is http://, which only cloud.plain_http allows, to a ' +
+        "developer's own machine (SEC-1)",
+    );
   }
   return settings;
 }
@@ -83,11 +127,27 @@ function isTable(value: unknown): value is Table {
 }
 
 function read(path: string): Table {
+  let table: Table;
   try {
-    return parse(readFileSync(path, 'utf8')) as Table;
+    table = parse(readFileSync(path, 'utf8')) as Table;
   } catch (error) {
     throw new Error(`${path}: ${error instanceof Error ? error.message : String(error)}`);
   }
+  return ordinary(table) as Table;
+}
+
+/**
+ * `value`, with each of its tables an ordinary object. smol-toml makes them without a
+ * prototype, and Expo's reading of the configuration calls their `hasOwnProperty`.
+ */
+function ordinary(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(ordinary);
+  }
+  if (isTable(value) && Object.getPrototypeOf(value) === null) {
+    return Object.fromEntries(Object.entries(value).map(([key, each]) => [key, ordinary(each)]));
+  }
+  return value;
 }
 
 /** The languages the app has catalogs for, from locales/: the system offers them to people. */
@@ -99,7 +159,7 @@ export function catalogLanguages(directory = LOCALES_DIR): string[] {
 }
 
 export default ({ config }: ConfigContext): ExpoConfig => {
-  const settings = loadSettings(process.env[ENVIRONMENT_VARIABLE]);
+  const settings = loadSettings(process.env[ENVIRONMENT_VARIABLE], CONFIG_DIR, process.env);
   const { app } = settings;
   const { version } = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf8'));
   const { light, dark } = JSON.parse(readFileSync(PALETTE, 'utf8'));

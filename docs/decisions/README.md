@@ -11,4 +11,5 @@ Each significant decision is a short file: context, decision, alternatives consi
 | [0001](0001-platforms-and-framework.md) | Platforms and framework: React Native with Expo, Android first | Accepted | 2026-10-29 |
 | [0002](0002-architecture.md) | The architecture: modules with ports and adapters, as on the robot and in the cloud | Accepted | 2026-10-29 |
 | [0003](0003-interface-and-motion.md) | The interface: the robot's visual language, in motion | Accepted | 2026-10-30 |
-| [0004](0004-talking-to-the-cloud.md) | Talking to ai-cloud: types and checks made from the protocol, one client, a session in secure storage | Accepted | 2026-11-04 |
+| [0004](0004-talking-to-the-cloud.md) | Talking to ai-cloud: types and checks made from the protocol, one client, a session in secure storage | Accepted; decision 1 widened by 0005 | 2026-11-04 |
+| [0005](0005-checks-for-every-definition.md) | The app API's checks: one for every definition | Accepted | 2026-11-04 |

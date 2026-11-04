@@ -5,24 +5,56 @@ import type { ErrorObject } from 'ajv';
 
 import type * as Types from './app';
 
-/** A check of one body that the app receives: whether `data` is one, and why not. */
+/** A check of one definition: whether `data` is one, and why not. */
 export interface Check<T> {
   (data: unknown): data is T;
   errors?: ErrorObject[] | null;
 }
 
-export declare const token_response: Check<Types.TokenResponse>;
+export declare const uuid: Check<Types.Uuid>;
+export declare const instant: Check<Types.Instant>;
+export declare const language: Check<Types.Language>;
+export declare const languages: Check<Types.Languages>;
+export declare const display_name: Check<Types.DisplayName>;
+export declare const email: Check<Types.Email>;
+export declare const token: Check<Types.Token>;
+export declare const nonce: Check<Types.Nonce>;
+export declare const client_id: Check<Types.ClientId>;
+export declare const provider: Check<Types.Provider>;
+export declare const code: Check<Types.Code>;
+export declare const authorization_code: Check<Types.AuthorizationCode>;
+export declare const name: Check<Types.Name>;
+export declare const time_zone: Check<Types.TimeZone>;
+export declare const home_languages: Check<Types.HomeLanguages>;
+export declare const etag: Check<Types.Etag>;
+export declare const role: Check<Types.Role>;
+export declare const member_kind: Check<Types.MemberKind>;
+export declare const invitation_code: Check<Types.InvitationCode>;
+export declare const token_exchange_request: Check<Types.TokenExchangeRequest>;
+export declare const refresh_request: Check<Types.RefreshRequest>;
+export declare const revoke_request: Check<Types.RevokeRequest>;
+export declare const account_update: Check<Types.AccountUpdate>;
+export declare const id_token_request: Check<Types.IdTokenRequest>;
+export declare const home_create: Check<Types.HomeCreate>;
+export declare const home_update: Check<Types.HomeUpdate>;
+export declare const profile_create: Check<Types.ProfileCreate>;
+export declare const member_update: Check<Types.MemberUpdate>;
+export declare const invitation_code_request: Check<Types.InvitationCodeRequest>;
+export declare const home_transfer: Check<Types.HomeTransfer>;
+export declare const development_id_token_request: Check<Types.DevelopmentIdTokenRequest>;
 export declare const nonce_response: Check<Types.NonceResponse>;
+export declare const token_response: Check<Types.TokenResponse>;
 export declare const oauth_error: Check<Types.OauthError>;
-export declare const problem: Check<Types.Problem>;
-export declare const session_list: Check<Types.SessionList>;
-export declare const account: Check<Types.Account>;
 export declare const identity: Check<Types.Identity>;
-export declare const development_id_token_response: Check<Types.DevelopmentIdTokenResponse>;
-export declare const home_list: Check<Types.HomeList>;
+export declare const account: Check<Types.Account>;
+export declare const session: Check<Types.Session>;
+export declare const session_list: Check<Types.SessionList>;
 export declare const home: Check<Types.Home>;
-export declare const member_list: Check<Types.MemberList>;
+export declare const home_list: Check<Types.HomeList>;
 export declare const member: Check<Types.Member>;
-export declare const invitation_list: Check<Types.InvitationList>;
+export declare const member_list: Check<Types.MemberList>;
 export declare const invitation: Check<Types.Invitation>;
+export declare const invitation_list: Check<Types.InvitationList>;
 export declare const invitation_preview: Check<Types.InvitationPreview>;
+export declare const problem: Check<Types.Problem>;
+export declare const development_id_token_response: Check<Types.DevelopmentIdTokenResponse>;
