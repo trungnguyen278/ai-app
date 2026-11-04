@@ -1,15 +1,19 @@
 // SPDX-License-Identifier: MIT
 // The people of a home, on the simulated cloud: what its owner and a member are offered, the
 // invitations not yet used, inviting someone with a link, adding a profile, and joining.
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { Share } from 'react-native';
 
 import { AddProfileScreen, HomeScreen, InviteScreen, JoinScreen } from '@/src/homes';
 import { runtimeSettings } from '@/src/shared/config';
+import { qrShape } from '@/src/shared/design/qr';
 import { newQueryClient } from '@/src/shared/queries';
 
 import { Account, signedIn, simulatedCloud } from '../account/render';
+import { camera, resetCamera } from '../mocks/camera';
 import { renderScreen } from '../render';
+
+jest.mock('expo-camera', () => jest.requireActual('../mocks/camera'));
 
 const HOME = { name: 'Nhà Linh', time_zone: 'Asia/Ho_Chi_Minh', languages: ['vi'] };
 // The cloud's time stands still, so that an invitation's expiry reads the same every run: three
@@ -129,6 +133,9 @@ describe('inviting someone', () => {
     await fireEvent.press(await screen.findByRole('button', { name: 'Make a link' }));
     const { link, code } = await shownLink();
     expect(link).toMatch(/\/join#[A-Za-z0-9_-]{43}$/);
+    // The QR code carries the link (tests/shared/design/qr.test.ts reads its shape back).
+    expect(screen.getByRole('image', { name: 'A QR code of the link' })).toBeOnTheScreen();
+    expect(screen.getByTestId('skia-path').props.path).toBe(qrShape(link).path);
     expect(
       screen.getByText(new RegExp(`^It works once, and expires ${EXPIRY}\\.$`), unmarked),
     ).toBeOnTheScreen();
@@ -264,6 +271,42 @@ describe('joining a home', () => {
     );
     await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
     expect(await screen.findByRole('header', { name: 'Nhà Linh' })).toBeOnTheScreen();
+  });
+
+  test('reads the QR code on the phone of the person who invites', async () => {
+    resetCamera({ granted: true, canAskAgain: true });
+    const { owner, code, minh } = await invited();
+    await renderScreen(
+      <Account transport={owner.cloud} secrets={minh.secrets}>
+        <JoinScreen />
+      </Account>,
+    );
+    await fireEvent.press(await screen.findByRole('button', { name: 'Scan a QR code' }));
+    await act(async () => camera.report?.({ type: 'qr', data: 'https://example.com/menu' }));
+    expect(screen.getByText('This QR code is not an invitation.')).toBeOnTheScreen();
+    await act(async () =>
+      camera.report?.({ type: 'qr', data: `https://cloud.example/join#${code}` }),
+    );
+    expect(await screen.findByRole('header', { name: 'Nhà Linh' })).toBeOnTheScreen();
+  });
+
+  test('a person who would rather paste the link goes back to the field', async () => {
+    resetCamera({ granted: false, canAskAgain: true });
+    const { owner, minh } = await invited();
+    await renderScreen(
+      <Account transport={owner.cloud} secrets={minh.secrets}>
+        <JoinScreen />
+      </Account>,
+    );
+    await fireEvent.press(await screen.findByRole('button', { name: 'Scan a QR code' }));
+    expect(
+      screen.getByText(
+        'The app uses the camera to read the QR code on the phone of the person who invites you.',
+      ),
+    ).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Paste a link instead' }));
+    expect(screen.getByTestId('invitation-link')).toBeOnTheScreen();
+    expect(camera.asked).toBe(0);
   });
 
   test('says what is not an invitation link', async () => {

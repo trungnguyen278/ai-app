@@ -12,7 +12,9 @@ import appConfig, {
   loadSettings,
   merge,
   runtimeSettings,
+  SOURCE_LANGUAGE,
 } from '@/app.config';
+import { CATALOGS, SOURCE } from '@/src/shared/catalog';
 import { PALETTE } from '@/src/shared/design';
 
 const CONFIG = join(__dirname, '..', 'config');
@@ -171,6 +173,31 @@ describe("Expo's configuration", () => {
       'expo-splash-screen',
       { backgroundColor: PALETTE.light.canvas, dark: { backgroundColor: PALETTE.dark.canvas } },
     ]);
+  });
+
+  test("asks for the camera in each catalog's language, and never for the microphone", () => {
+    const camera = expo().plugins?.find(
+      (plugin) => Array.isArray(plugin) && plugin[0] === 'expo-camera',
+    );
+    expect(camera).toEqual([
+      'expo-camera',
+      {
+        cameraPermission: CATALOGS.en['native.camera'],
+        microphonePermission: false,
+        recordAudioAndroid: false,
+      },
+    ]);
+    expect(expo().locales).toEqual(
+      Object.fromEntries(
+        Object.entries(CATALOGS).map(([language, messages]) => [
+          language,
+          { ios: { NSCameraUsageDescription: messages['native.camera'] } },
+        ]),
+      ),
+    );
+    expect(expo().locales?.vi).not.toEqual(expo().locales?.en);
+    expect(expo().ios?.infoPlist?.CFBundleAllowMixedLocalizations).toBe(true);
+    expect(SOURCE_LANGUAGE).toBe(SOURCE);
   });
 
   test('carries the settings the app reads while it runs', () => {

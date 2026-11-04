@@ -3,11 +3,23 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { useText } from '@/src/shared/catalog';
-import { Button, Press, Screen, SPACE, Text, TextField } from '@/src/shared/design';
+import {
+  Button,
+  CODE_SIZE,
+  Press,
+  QrCode,
+  Screen,
+  SPACE,
+  Text,
+  TextField,
+} from '@/src/shared/design';
 
 import { Row, Section } from './parts';
 
-/** The components, to press and feel: buttons of every weight and state, rows and fields. */
+/**
+ * The components, to press and feel: buttons of every weight and state, rows, fields, and a QR
+ * code, for another phone to read.
+ */
 export function ComponentsScreen() {
   const text = useText();
   const [busy, setBusy] = useState(false);
@@ -67,11 +79,24 @@ export function ComponentsScreen() {
           />
         </View>
       </Section>
+      <Section title={text('studio.components.code')}>
+        <View style={styles.code}>
+          <QrCode
+            value={SAMPLE_LINK}
+            size={CODE_SIZE}
+            accessibilityLabel={text('studio.components.code.label')}
+          />
+        </View>
+      </Section>
     </Screen>
   );
 }
 
+// An invitation's link, as long as a real one, to a cloud and with a code that do not exist.
+const SAMPLE_LINK = 'https://cloud.example/join#AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+
 const styles = StyleSheet.create({
   buttons: { gap: SPACE.md, padding: SPACE.lg },
   fields: { gap: SPACE.lg, padding: SPACE.lg },
+  code: { alignItems: 'center', padding: SPACE.lg },
 });

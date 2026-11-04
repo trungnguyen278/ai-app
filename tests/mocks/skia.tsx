@@ -16,6 +16,11 @@ export const Group = Drawn;
 export const Circle = Drawn;
 export const BlurMask = Drawn;
 
+/** A path, kept on a view for a test to read: what a QR code draws. */
+export function Path({ path }: { path: string }) {
+  return <View testID="skia-path" {...({ path } as object)} />;
+}
+
 /** The colour at the end of the range: tests do not look at the colours in between. */
 export function interpolateColors(_value: number, _input: number[], output: unknown[]) {
   return output[output.length - 1];

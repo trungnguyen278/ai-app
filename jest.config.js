@@ -11,9 +11,9 @@ module.exports = {
   moduleNameMapper: { '^@/(.*)$': '<rootDir>/$1' },
   resolver: '<rootDir>/tests/resolver.js',
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
-  // messageformat and culori are published as ES modules only, so Jest transforms them like
+  // messageformat, culori and qr are published as ES modules only, so Jest transforms them like
   // Expo's own.
   transformIgnorePatterns: preset.transformIgnorePatterns.map((pattern) =>
-    pattern.replace('node_modules/(?!(', 'node_modules/(?!(messageformat|culori|'),
+    pattern.replace('node_modules/(?!(', 'node_modules/(?!(messageformat|culori|qr/|'),
   ),
 };

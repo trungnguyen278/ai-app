@@ -1,6 +1,7 @@
 {
   "tone": "#5be9ff",
   "danger": "#ff453a",
+  "code": { "ink": "#171b20", "paper": "#ffffff" },
   "dark": {
     "canvas": "#06090d",
     "surface": "#101419",

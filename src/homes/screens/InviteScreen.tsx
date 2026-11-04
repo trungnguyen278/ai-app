@@ -1,11 +1,20 @@
 // SPDX-License-Identifier: MIT
 import { router } from 'expo-router';
-import { Share, StyleSheet } from 'react-native';
+import { Share, StyleSheet, View } from 'react-native';
 
 import { usePlainText, useText } from '@/src/shared/catalog';
 import { failureMessage, Refused, type NewInvitation } from '@/src/shared/cloud';
 import { runtimeSettings } from '@/src/shared/config';
-import { Appear, Button, haptic, Screen, SPACE, Text } from '@/src/shared/design';
+import {
+  Appear,
+  Button,
+  CODE_SIZE,
+  haptic,
+  QrCode,
+  Screen,
+  SPACE,
+  Text,
+} from '@/src/shared/design';
 import type { App } from '@/src/shared/protocols';
 
 import { invitationLink } from '../domain/links';
@@ -56,7 +65,10 @@ function Invite({ home }: { home: App.Home }) {
   );
 }
 
-/** The link just made: to share through the phone's own sheet, or to copy from the screen. */
+/**
+ * The link just made: as a QR code, for the person to scan with the app, as SmartThings and
+ * Telegram offer; or to share through the phone's own sheet, or copy from the screen.
+ */
 function Made({ home, invitation }: { home: App.Home; invitation: NewInvitation }) {
   const text = useText();
   // The message leaves the app, so it carries no invisible marks.
@@ -77,9 +89,17 @@ function Made({ home, invitation }: { home: App.Home; invitation: NewInvitation 
         <Text variant="heading">{text('homes.invite.ready')}</Text>
       </Appear>
       <Appear index={1}>
-        <Text selectable testID="invitation-link">
-          {link}
-        </Text>
+        <View style={styles.code}>
+          <QrCode
+            testID="invitation-code"
+            value={link}
+            size={CODE_SIZE}
+            accessibilityLabel={text('homes.invite.code')}
+          />
+          <Text ink="textMuted" style={styles.centred}>
+            {text('homes.invite.scan')}
+          </Text>
+        </View>
       </Appear>
       <Appear index={2}>
         <Text ink="textMuted">
@@ -89,6 +109,9 @@ function Made({ home, invitation }: { home: App.Home; invitation: NewInvitation 
       <Appear index={3}>
         <Button label={text('homes.invite.share')} onPress={() => void share()} />
       </Appear>
+      <Text variant="caption" ink="textMuted" selectable testID="invitation-link">
+        {link}
+      </Text>
       <Text variant="caption" ink="textMuted">
         {text('homes.invite.once')}
       </Text>
@@ -99,4 +122,6 @@ function Made({ home, invitation }: { home: App.Home; invitation: NewInvitation 
 
 const styles = StyleSheet.create({
   page: { gap: SPACE.lg },
+  code: { alignItems: 'center', gap: SPACE.md },
+  centred: { textAlign: 'center' },
 });

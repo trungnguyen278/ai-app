@@ -18,6 +18,7 @@ import {
   TextField,
   TYPE,
 } from '@/src/shared/design';
+import { QrScanner } from '@/src/shared/scanner';
 
 import { codeIn } from '../domain/links';
 import { useAccept, useInvitationPreview } from '../services/homes';
@@ -48,17 +49,51 @@ function leave() {
   else router.replace('/');
 }
 
-/** The code the link gave, or a field for one; then what it invites to. */
+/** The code the link gave, or a QR code or a link for one; then what it invites to. */
 function Join({ given, broken }: { given: string | null; broken: boolean }) {
   const [code, setCode] = useState(given);
-  if (code === null) {
-    return <Paste broken={broken} onCode={setCode} />;
+  const [scanning, setScanning] = useState(false);
+  if (code !== null) {
+    return <Preview code={code} onAnother={() => setCode(null)} />;
   }
-  return <Preview code={code} onAnother={() => setCode(null)} />;
+  if (scanning) {
+    return <Scan onCode={setCode} onPaste={() => setScanning(false)} />;
+  }
+  return <Paste broken={broken} onCode={setCode} onScan={() => setScanning(true)} />;
 }
 
-/** A field for the link someone sent, or its code alone. */
-function Paste({ broken, onCode }: { broken: boolean; onCode: (code: string) => void }) {
+/**
+ * The QR code on the phone of the person who invites, read with the camera: the way to join in
+ * person, and, until the project has a domain, the way a link reaches the app (ADR-0009).
+ */
+function Scan({ onCode, onPaste }: { onCode: (code: string) => void; onPaste: () => void }) {
+  const text = useText();
+  return (
+    <Screen scroll style={styles.page}>
+      <QrScanner
+        reason={text('join.scan.reason')}
+        refused={text('join.scan.refused')}
+        onRead={(data) => {
+          const code = codeIn(data);
+          if (code !== null) onCode(code);
+          return code !== null;
+        }}
+      />
+      <Button variant="plain" label={text('join.scan.paste')} onPress={onPaste} />
+    </Screen>
+  );
+}
+
+/** A QR code to scan, or a field for the link someone sent, or its code alone. */
+function Paste({
+  broken,
+  onCode,
+  onScan,
+}: {
+  broken: boolean;
+  onCode: (code: string) => void;
+  onScan: () => void;
+}) {
   const text = useText();
   const [typed, setTyped] = useState('');
   const [fault, setFault] = useState(broken ? text('join.link.error') : undefined);
@@ -76,6 +111,7 @@ function Paste({ broken, onCode }: { broken: boolean; onCode: (code: string) => 
   return (
     <Screen scroll style={styles.page}>
       <Text ink="textMuted">{text('join.lead')}</Text>
+      <Button label={text('join.scan')} onPress={onScan} />
       <TextField
         testID="invitation-link"
         label={text('join.link')}
@@ -87,7 +123,7 @@ function Paste({ broken, onCode }: { broken: boolean; onCode: (code: string) => 
         returnKeyType="go"
         onSubmitEditing={submit}
       />
-      <Button label={text('join.continue')} onPress={submit} />
+      <Button variant="secondary" label={text('join.continue')} onPress={submit} />
     </Screen>
   );
 }

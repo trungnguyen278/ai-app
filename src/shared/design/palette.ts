@@ -48,6 +48,12 @@ export interface PaletteData {
    * as the tone is (`dangerColors`).
    */
   danger: string;
+  /**
+   * A QR code: dark on light in both themes, the light theme's text on its surface, since some
+   * scanners read only that way round (ZXing tries the inverted image only when asked, with
+   * `DecodeHintType.ALSO_INVERTED`).
+   */
+  code: { ink: string; paper: string };
   light: ThemeData;
   dark: ThemeData;
 }

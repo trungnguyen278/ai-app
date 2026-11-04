@@ -9,7 +9,7 @@ import {
   type Neutrals,
 } from '@/src/shared/design';
 
-import { COMPONENT, ENHANCED, ratio, TEXT } from './wcag';
+import { COMPONENT, ENHANCED, luminance, ratio, TEXT } from './wcag';
 
 const NEUTRALS: (keyof Neutrals)[] = [
   'canvas',
@@ -23,7 +23,7 @@ const NEUTRALS: (keyof Neutrals)[] = [
 ];
 
 test('both themes have the same colours, and nothing else', () => {
-  expect(Object.keys(PALETTE).sort()).toEqual(['danger', 'dark', 'light', 'tone']);
+  expect(Object.keys(PALETTE).sort()).toEqual(['code', 'danger', 'dark', 'light', 'tone']);
   for (const scheme of SCHEMES) {
     expect(Object.keys(PALETTE[scheme]).sort()).toEqual(
       [...NEUTRALS, 'tint', 'glowOpacity'].sort(),
@@ -34,6 +34,7 @@ test('both themes have the same colours, and nothing else', () => {
 test('every colour is written #rrggbb', () => {
   expect(isHex(PALETTE.tone)).toBe(true);
   expect(isHex(PALETTE.danger)).toBe(true);
+  expect(isHex(PALETTE.code.ink) && isHex(PALETTE.code.paper)).toBe(true);
   for (const scheme of SCHEMES) {
     for (const name of NEUTRALS) {
       expect(isHex(PALETTE[scheme][name])).toBe(true);
@@ -45,6 +46,11 @@ test("the dark canvas is the robot's own, and the tone its calm cyan", () => {
   // ai-robot's ui/src/tones.js: BACKGROUND, and TONES.cyan.
   expect(PALETTE.dark.canvas).toBe('#06090d');
   expect(PALETTE.tone).toBe('#5be9ff');
+});
+
+test('a QR code is dark on light in both themes, and as clear as the main text', () => {
+  expect(luminance(PALETTE.code.ink)).toBeLessThan(luminance(PALETTE.code.paper));
+  expect(ratio(PALETTE.code.ink, PALETTE.code.paper)).toBeGreaterThanOrEqual(ENHANCED);
 });
 
 describe.each(SCHEMES)('in the %s theme', (scheme) => {

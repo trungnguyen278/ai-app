@@ -57,6 +57,10 @@ What went wrong, or cannot be undone, is red, whatever the robot's tone. Each th
 
 Colour is never the only sign: a fault is said in words too.
 
+### QR codes
+
+A QR code is dark on light in both themes: the light theme's text on white, in `palette.json` (`code`). Some scanners read only that way round: ZXing tries the inverted image only when asked. The tests check it is darker than its paper, and as clear as the main text.
+
 ## Type
 
 - **The font:** Be Vietnam Pro, drawn for Vietnamese, in the weights 400, 500, 600 and 700. Only those four files ship.
@@ -82,6 +86,7 @@ Colour is never the only sign: a fault is said in words too.
 - **`SPACE`,** on a grid of 4: `xs` 4, `sm` 8, `md` 12, `lg` 16, `xl` 24, `xxl` 32, `xxxl` 48. A screen's edge is `GUTTER` (16).
 - **`TARGET`:** what a finger presses is at least 48 across. That is Android's 48 dp, which covers Apple's 44 pt too.
 - **`AVATAR`:** a person's disc, 32 across, in a header or a row. Its `hitSlop` makes it up to `TARGET`.
+- **`CODE_SIZE`:** a QR code's side, 240 at most: an invitation's link takes 45 modules, so each is 5 across.
 - **`RADIUS`:** `sm` 8, `md` 14, `lg` 22, `full`. Each corner is drawn with a continuous curve.
 - **`RING_WIDTH`** is the ring around what is chosen. **`GLOW_RADIUS`** is how far light glows.
 
@@ -124,6 +129,7 @@ Motion has a budget, set by how often it is seen (ADR-0003, from Expo's animatio
 | `Skeleton` | The shape of content still loading | A light crosses it |
 | `Pulse` | Waiting, in the tone, with a name for screen readers | Three dots pulse one after another |
 | `Glow` | Light in the tone, drawn with Skia, for rare moments | Blends with the tone; can breathe |
+| `QrCode` | A QR code for another phone to read, drawn with Skia: the margin of four modules that DENSO WAVE asks for, and each module a whole number of pixels, so that no edge blurs | |
 
 ## Building a screen
 

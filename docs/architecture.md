@@ -1,6 +1,6 @@
 # Architecture
 
-> **Status:** accepted in [ADR-0002](decisions/0002-architecture.md) (the shape), on [ADR-0001](decisions/0001-platforms-and-framework.md) (the framework). Its skeleton is built: the routes, the catalogs and the foundation of the design system in `shared`, and the `studio`. So are the client of the app API, with its simulated cloud, in `shared/cloud`; the cloud's cache, in `shared/queries`; `account`: signing in with the development provider, the session, and the person's account; and the first of `homes`: the main screen, which is one home and its people; creating a home; inviting people with a link, and the invitations not yet used; adding profiles; and joining a home from a link or a pasted one.
+> **Status:** accepted in [ADR-0002](decisions/0002-architecture.md) (the shape), on [ADR-0001](decisions/0001-platforms-and-framework.md) (the framework). Its skeleton is built: the routes, the catalogs and the foundation of the design system in `shared`, and the `studio`. So are the client of the app API, with its simulated cloud, in `shared/cloud`; the cloud's cache, in `shared/queries`; `account`: signing in with the development provider, the session, and the person's account; and the first of `homes`: the main screen, which is one home and its people; creating a home; inviting people with a link or its QR code, and the invitations not yet used; adding profiles; and joining a home from a link, a pasted one, or a QR code read with `shared/scanner`.
 
 The app is how an owner reaches their devices and their home. It sets a device up, signs in to ai-cloud, manages homes and their people, changes settings and controls devices. One person builds it, for Android first and iOS from the same code (ADR-0001), and it serves every kind of device the project makes.
 
@@ -45,7 +45,7 @@ The app is how an owner reaches their devices and their home. It sets a device u
 | `control` | Driving a device's capabilities, within their safety classes |
 | `notifications` | Registering the phone for push, and showing what the cloud sends |
 | `studio` | The design system, a page for each of its parts, in both themes: in the development app only ([ADR-0003](decisions/0003-interface-and-motion.md)) |
-| `shared` | Configuration, catalogs, the protocols' schemas read from `platform/`, errors, logs, the [design system](design.md) |
+| `shared` | Configuration, catalogs, the protocols' schemas read from `platform/`, errors, logs, the [design system](design.md), and reading QR codes with the camera (`scanner`), for `homes` and `setup` |
 
 Each module has the same shape:
 
