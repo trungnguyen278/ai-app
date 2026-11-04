@@ -21,6 +21,9 @@ export const GUTTER = SPACE.lg;
  */
 export const TARGET = 48;
 
+/** A person's disc, in a header or a row: smaller than a finger, which its hitSlop makes up. */
+export const AVATAR = 32;
+
 /** The width of the ring around what is chosen or has focus. */
 export const RING_WIDTH = 2;
 

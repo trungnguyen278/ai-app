@@ -45,6 +45,18 @@ The tone is the robot's colour of the moment: its calm cyan while it is not know
 - **When the tone changes,** the colours blend in 280 ms, as the robot's face does from one expression to the next. The blend runs on the UI thread: `Text` does it for its accent inks, and a view does it with `VIEW_BLEND`.
 - **The tests** check every pair against WCAG 2.2, with arithmetic of their own. They check the robot's nine tones, and colours all round the hue circle, from grey to the most vivid.
 
+### Danger
+
+What went wrong, or cannot be undone, is red, whatever the robot's tone. Each theme works danger's colours out of the red in `palette.json` (`danger`), as it does the tone's, so they keep the same contrasts.
+
+| Role | For | How |
+|---|---|---|
+| `danger` | Text, lines and fills of what went wrong or cannot be undone | The red, made readable with every background and `dangerSoft`, as `accent` is |
+| `onDanger` | What is written on a danger fill | As `onAccent` |
+| `dangerSoft` | A surface tinted with danger, behind danger's text | As `accentSoft` |
+
+Colour is never the only sign: a fault is said in words too.
+
 ## Type
 
 - **The font:** Be Vietnam Pro, drawn for Vietnamese, in the weights 400, 500, 600 and 700. Only those four files ship.
@@ -69,6 +81,7 @@ The tone is the robot's colour of the moment: its calm cyan while it is not know
 
 - **`SPACE`,** on a grid of 4: `xs` 4, `sm` 8, `md` 12, `lg` 16, `xl` 24, `xxl` 32, `xxxl` 48. A screen's edge is `GUTTER` (16).
 - **`TARGET`:** what a finger presses is at least 48 across. That is Android's 48 dp, which covers Apple's 44 pt too.
+- **`AVATAR`:** a person's disc, 32 across, in a header or a row. Its `hitSlop` makes it up to `TARGET`.
 - **`RADIUS`:** `sm` 8, `md` 14, `lg` 22, `full`. Each corner is drawn with a continuous curve.
 - **`RING_WIDTH`** is the ring around what is chosen. **`GLOW_RADIUS`** is how far light glows.
 
@@ -103,7 +116,8 @@ Motion has a budget, set by how often it is seen (ADR-0003, from Expo's animatio
 | Component | What it is | How it moves |
 |---|---|---|
 | `Screen` | A page: the canvas, the gutter, room for the system's bars; a long page scrolls | |
-| `Text` | Text on the scale, in an ink: `text`, `textMuted`, `accent` or `onAccent` | Accent inks blend with the tone |
+| `Text` | Text on the scale, in an ink: `text`, `textMuted`, `accent`, `onAccent`, `danger` or `onDanger` | Accent inks blend with the tone |
+| `TextField` | A field to type in. Its label is always above it, never a placeholder, which goes as one types and which screen readers may not read. Help, or what is wrong, is below it; what it holds (`name`, `email`) chooses the keyboard and what the phone may fill in. | The outline turns to the tone's ring with focus, and to danger's with a fault, without moving the text. A fault is announced. |
 | `Press` | Anything a finger presses | Shrinks a little, or dims with reduce motion. A row as wide as the screen lights up instead. It can play a haptic as the press commits. |
 | `Button` | `primary`, filled with the tone and glowing; `secondary`, on a tint of it; `plain`, its text alone | Presses as `Press` does. Disabled, it is faint; busy, the tone pulses where its label was, and screen readers still hear the label. |
 | `Appear` | Something that arrives once, such as what a person waited for | Rises and grows into place, staggered; leaves the way it came; its neighbours make room |

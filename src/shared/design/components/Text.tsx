@@ -7,7 +7,7 @@ import { TEXT_BLEND } from '../motion';
 import { TYPE, type TypeVariant } from '../typography';
 
 /** The colours text may take. */
-export type Ink = 'text' | 'textMuted' | 'accent' | 'onAccent';
+export type Ink = 'text' | 'textMuted' | 'accent' | 'onAccent' | 'danger' | 'onDanger';
 
 export interface TextProps extends NativeTextProps {
   variant?: TypeVariant;

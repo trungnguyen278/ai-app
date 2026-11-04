@@ -17,6 +17,7 @@ export interface SimulatedSettings {
   nonce_lifetime: number;
   access_lifetime: number;
   refresh_idle: number;
+  refresh_reuse: number;
   recent_sign_in: number;
   idempotency_retention: number;
   homes_per_account: number;

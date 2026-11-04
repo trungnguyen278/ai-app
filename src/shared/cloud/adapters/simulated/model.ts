@@ -53,10 +53,16 @@ export interface Session {
   lastUseTime: number;
 }
 
-/** A refresh token: one session's, which works once. */
+/**
+ * A refresh token: one session's, which works once, but for a retry after a lost answer
+ * (the app API 1.3, ai-platform ADR-0011).
+ */
 export interface RefreshToken {
   sessionId: string;
-  used: boolean;
+  /** When it was exchanged for the next one; none while it is the session's current one. */
+  useTime?: number;
+  /** The token it replaced, which may refresh again for a while; none for a session's first. */
+  replaces?: string;
 }
 
 export interface AccessToken {

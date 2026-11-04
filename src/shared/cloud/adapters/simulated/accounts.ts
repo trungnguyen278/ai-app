@@ -148,7 +148,14 @@ function refresh(context: Context, refreshToken: string, clientId: string): Clou
   if (session.clientId !== clientId) {
     throw oauthError('invalid_grant', 'the refresh token was issued to another client');
   }
-  if (presented.used) {
+  // A used token refreshes again, as a retry after a lost answer, while the session's current
+  // token replaced it and its first use is within refresh_reuse; that token then stops working.
+  const current = currentRefreshToken(context, session.id);
+  const retry =
+    presented.useTime !== undefined &&
+    now - presented.useTime < context.settings.refresh_reuse * 1000 &&
+    current?.replaces === refreshToken;
+  if (presented.useTime !== undefined && !retry) {
     state.endSession(session.id);
     throw oauthError('invalid_grant', 'refresh token used twice: the session has ended');
   }
@@ -156,9 +163,21 @@ function refresh(context: Context, refreshToken: string, clientId: string): Clou
     state.endSession(session.id);
     throw oauthError('invalid_grant', 'the session was left unused too long');
   }
-  presented.used = true;
+  if (retry) {
+    current!.useTime = now;
+  } else {
+    presented.useTime = now;
+  }
   session.lastUseTime = now;
-  return tokens(context, session, false);
+  return tokens(context, session, false, refreshToken);
+}
+
+/** The session's current refresh token: the one not used yet. */
+function currentRefreshToken(context: Context, sessionId: string) {
+  for (const token of context.state.refreshTokens.values()) {
+    if (token.sessionId === sessionId && token.useTime === undefined) return token;
+  }
+  return undefined;
 }
 
 /** POST /app/revoke: the session of a refresh or access token ends; any other ends nothing. */
@@ -182,9 +201,14 @@ function checkClient(context: Context, clientId: string): void {
   }
 }
 
-function tokens(context: Context, session: Session, exchanged: boolean): CloudResponse {
+function tokens(
+  context: Context,
+  session: Session,
+  exchanged: boolean,
+  replaces?: string,
+): CloudResponse {
   const refreshToken = newToken(context.random);
-  context.state.refreshTokens.set(refreshToken, { sessionId: session.id, used: false });
+  context.state.refreshTokens.set(refreshToken, { sessionId: session.id, replaces });
   const accessToken = newToken(context.random);
   const lifetime = context.settings.access_lifetime;
   context.state.accessTokens.set(accessToken, {

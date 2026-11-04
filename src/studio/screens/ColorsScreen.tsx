@@ -86,6 +86,31 @@ export function ColorsScreen() {
           <View style={[styles.light, { backgroundColor: color.glow }, glow]} />
         </Row>
       </Section>
+      <Section title={text('studio.colors.danger')}>
+        <ColorRow
+          name="danger"
+          value={color.danger}
+          detail={least(color.danger, [...backgrounds, color.dangerSoft])}
+        />
+        <ColorRow
+          name="onDanger"
+          value={color.onDanger}
+          detail={least(color.onDanger, [color.danger])}
+        />
+        <ColorRow name="dangerSoft" value={color.dangerSoft} />
+        <Row>
+          <View style={[styles.sample, { backgroundColor: color.danger }]}>
+            <Text variant="label" ink="onDanger">
+              {text('studio.colors.danger.sample')}
+            </Text>
+          </View>
+          <View style={[styles.sample, { backgroundColor: color.dangerSoft }]}>
+            <Text variant="label" ink="danger">
+              {text('studio.colors.danger.sample')}
+            </Text>
+          </View>
+        </Row>
+      </Section>
       <Section title={text('studio.colors.tones')}>
         {tones.map(({ name, accent, accentSoft }) => (
           <ColorRow

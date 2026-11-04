@@ -24,11 +24,13 @@ export { Skeleton } from './components/Skeleton';
 export type { SkeletonProps } from './components/Skeleton';
 export { Text } from './components/Text';
 export type { Ink, TextProps } from './components/Text';
+export { TextField } from './components/TextField';
+export type { FieldInput, FieldKind, TextFieldProps } from './components/TextField';
 export { DesignProvider, useDesign, useMotion, useTheme } from './DesignProvider';
 export type { Appearance, Design, MotionPreference } from './DesignProvider';
 export { haptic, HAPTICS } from './haptics';
 export type { HapticRole } from './haptics';
-export { GLOW_RADIUS, GUTTER, HERO, RADIUS, RING_WIDTH, SPACE, TARGET } from './layout';
+export { AVATAR, GLOW_RADIUS, GUTTER, HERO, RADIUS, RING_WIDTH, SPACE, TARGET } from './layout';
 export {
   BREATH,
   CSS_CURVE,
@@ -47,8 +49,8 @@ export {
 } from './motion';
 export { DISABLED_OPACITY, PALETTE, SCHEMES } from './palette';
 export type { Neutrals, Scheme } from './palette';
-export { buildTheme, navigationTheme } from './theme';
-export type { Colors, Theme } from './theme';
+export { buildTheme, dangerColors, navigationTheme } from './theme';
+export type { Colors, DangerColors, Theme } from './theme';
 export { deriveTone } from './tone';
 export type { ToneColors } from './tone';
 export { FONT_FILES, FONTS, MARK_EXTENT, TYPE } from './typography';
