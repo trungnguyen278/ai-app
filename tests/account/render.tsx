@@ -11,13 +11,19 @@ import { runtimeSettings } from '@/src/shared/config';
 import { Text } from '@/src/shared/design';
 import { newQueryClient } from '@/src/shared/queries';
 
-/**
- * A simulated cloud, and the secrets of a session signed in on it, as `name`. `api` speaks for
- * the person with the session's first access token, for a test to set the cloud up.
- */
-export async function signedIn(name = 'Linh') {
+/** A simulated cloud, as the configuration has it, on the clock given or the machine's. */
+export function simulatedCloud(clock?: () => number): SimulatedCloud {
   const { cloud: settings } = runtimeSettings();
-  const cloud = new SimulatedCloud(settings.simulated, [settings.client_id]);
+  return new SimulatedCloud(settings.simulated, [settings.client_id], { clock });
+}
+
+/**
+ * A simulated cloud, or the one given, and the secrets of a session signed in on it, as `name`.
+ * `api` speaks for the person with the session's first access token, for a test to set the
+ * cloud up.
+ */
+export async function signedIn(name = 'Linh', cloud = simulatedCloud()) {
+  const { cloud: settings } = runtimeSettings();
   const client = new SignInClient(cloud, settings);
   const { nonce } = await client.nonce();
   const email = `${name.toLowerCase()}@example.com`;

@@ -51,8 +51,13 @@ export default function RootLayout() {
 
 /**
  * The routes the session allows: the homes and the account once signed in, signing in until
- * then (Expo Router's protected routes). The studio's pages open in the development app only
- * (ADR-0003), signed in or not.
+ * then (Expo Router's protected routes). An invitation's link opens either way, and signs the
+ * person in on its own screen, which keeps its place. The studio's pages open in the development
+ * app only (ADR-0003), signed in or not.
+ *
+ * Each guard names where it leads. Without one, Expo Router leads to the first route open,
+ * in its own order of the routes, by name, which would make the invitation's screen the start
+ * of every person signed out.
  */
 function Routes() {
   const { state } = useSession();
@@ -68,17 +73,20 @@ function Routes() {
   }
   return (
     <Stack>
-      <Stack.Protected guard={signedIn}>
+      <Stack.Protected guard={signedIn} redirectTo="/sign-in">
         <Stack.Screen name="index" />
         <Stack.Screen name="homes/index" />
         <Stack.Screen name="homes/new" />
-        <Stack.Screen name="homes/[id]" />
+        <Stack.Screen name="homes/[id]/index" />
+        <Stack.Screen name="homes/[id]/invite" />
+        <Stack.Screen name="homes/[id]/profiles/new" />
         <Stack.Screen name="account" />
       </Stack.Protected>
-      <Stack.Protected guard={!signedIn}>
+      <Stack.Protected guard={!signedIn} redirectTo="/">
         <Stack.Screen name="sign-in" />
       </Stack.Protected>
-      <Stack.Protected guard={runtimeSettings().studio}>
+      <Stack.Screen name="join" />
+      <Stack.Protected guard={runtimeSettings().studio} redirectTo="/">
         <Stack.Screen name="studio/index" />
         <Stack.Screen name="studio/colors" />
         <Stack.Screen name="studio/type" />

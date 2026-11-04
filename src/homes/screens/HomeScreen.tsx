@@ -9,6 +9,7 @@ import {
   Appear,
   Button,
   Glow,
+  haptic,
   HERO,
   RADIUS,
   Screen,
@@ -22,7 +23,8 @@ import {
 import type { App } from '@/src/shared/protocols';
 
 import { hasAccount, roleOf } from '../domain/people';
-import { useHomes, useMembers } from '../services/homes';
+import { mayManage } from '../domain/permissions';
+import { useHomes, useInvitations, useMembers, useRevokeInvitation } from '../services/homes';
 
 /**
  * The home the person is in: `homeId`, or their first. As in Google's Home, the main screen is
@@ -64,7 +66,7 @@ export function HomeScreen({ homeId }: { homeId?: string }) {
 
 /**
  * No home yet: a rare moment, met by a new owner. The robot's light breathes, a welcome arrives
- * under it, and the one thing to do is to create a home.
+ * under it, and the thing to do is to create a home, or to join one with an invitation.
  */
 function Welcome() {
   const text = useText();
@@ -92,16 +94,27 @@ function Welcome() {
         </Text>
       </Appear>
       <Appear index={3}>
-        <Button label={text('homes.create')} onPress={() => router.push('/homes/new')} />
+        <View style={styles.actions}>
+          <Button label={text('homes.create')} onPress={() => router.push('/homes/new')} />
+          <Button
+            variant="secondary"
+            label={text('homes.join')}
+            onPress={() => router.push('/join')}
+          />
+        </View>
       </Appear>
     </Screen>
   );
 }
 
-/** One home: its name, the person's role in it, and the people in it. */
+/**
+ * One home: its name, the person's role in it, and the people in it. Its owner and admins also
+ * see the invitations not yet used, and invite people or add profiles.
+ */
 function HomeView({ home, others }: { home: App.Home; others: boolean }) {
   const text = useText();
   const members = useMembers(home.id);
+  const manages = mayManage(home.role);
   return (
     <Screen scroll style={styles.view}>
       <View style={styles.heading}>
@@ -119,13 +132,82 @@ function HomeView({ home, others }: { home: App.Home; others: boolean }) {
         ) : (
           members.data.map((member) => <Person key={member.id} member={member} />)
         )}
+        {manages && (
+          <View style={styles.actions}>
+            <Button
+              variant="secondary"
+              label={text('homes.invite')}
+              onPress={() => router.push(`/homes/${home.id}/invite`)}
+            />
+            <Button
+              variant="secondary"
+              label={text('homes.add_profile')}
+              onPress={() => router.push(`/homes/${home.id}/profiles/new`)}
+            />
+          </View>
+        )}
       </View>
+      {manages && <Invitations homeId={home.id} />}
       <Button
         variant="secondary"
-        label={text(others ? 'homes.switch' : 'homes.create')}
-        onPress={() => router.push(others ? '/homes' : '/homes/new')}
+        label={text(others ? 'homes.switch' : 'homes.more')}
+        onPress={() => router.push('/homes')}
       />
     </Screen>
+  );
+}
+
+/**
+ * The invitations not yet used, each with who made it and when it expires, to revoke. Revoking
+ * takes no confirmation: a new link is a tap away.
+ */
+function Invitations({ homeId }: { homeId: string }) {
+  const text = useText();
+  const invitations = useInvitations(homeId);
+  const revoke = useRevokeInvitation(homeId);
+  if (invitations.isPending || (invitations.isSuccess && invitations.data.length === 0)) {
+    return null;
+  }
+  return (
+    <View style={styles.section}>
+      <Text variant="heading">{text('homes.invitations')}</Text>
+      {invitations.isError ? (
+        <Text ink="danger" accessibilityRole="alert">
+          {text(failureMessage(invitations.error))}
+        </Text>
+      ) : (
+        invitations.data.map((invitation) => {
+          const which = { name: invitation.invited_by, time: new Date(invitation.expire_time) };
+          return (
+            <View key={invitation.id} style={styles.row}>
+              <View style={styles.grow}>
+                <Text>{text('homes.invitation.from', which)}</Text>
+                <Text variant="caption" ink="textMuted">
+                  {text('homes.invitation.expires', which)}
+                </Text>
+              </View>
+              <Button
+                variant="plain"
+                label={text('homes.invitation.revoke')}
+                accessibilityLabel={text('homes.invitation.revoke.which', which)}
+                busy={revoke.isPending && revoke.variables === invitation.id}
+                onPress={() =>
+                  revoke.mutate(invitation.id, {
+                    onSuccess: () => haptic('success'),
+                    onError: () => haptic('error'),
+                  })
+                }
+              />
+            </View>
+          );
+        })
+      )}
+      {revoke.isError && (
+        <Text ink="danger" accessibilityRole="alert">
+          {text(failureMessage(revoke.error))}
+        </Text>
+      )}
+    </View>
   );
 }
 
@@ -156,4 +238,7 @@ const styles = StyleSheet.create({
   view: { gap: SPACE.xxl },
   heading: { gap: SPACE.xs },
   section: { gap: SPACE.md },
+  actions: { gap: SPACE.md },
+  row: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
+  grow: { flex: 1 },
 });

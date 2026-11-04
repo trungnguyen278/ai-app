@@ -35,6 +35,7 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 ### Security and privacy
 
 - Secrets — the owner's session, a device's set-up code, the keys of a set-up session — stay in memory or in the phone's secure storage: never in plain files, logs, error reports or analytics.
+- A secret that a screen shows or sends, such as an invitation's code, stays in the cache only while that screen is open (`gcTime: 0`), and in no route but the link that brought it.
 - Every request is confined to the owner's homes and their devices (SEC-6).
 - The app asks for a permission, such as Bluetooth or notifications, when it first needs it, and says why, in the owner's language.
 
@@ -42,7 +43,10 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 
 - Nothing blocks the interface: network, Bluetooth and storage work asynchronously.
 - Every text comes from the catalogs, and layouts hold longer translations and larger text sizes.
-- A catalog's text that becomes data, such as a default name the person may keep, comes from `usePlainText`: MF2 isolates every value with invisible marks, which would be stored with it.
+- A catalog's text that becomes data, such as a default name the person may keep or a message they send, comes from `usePlainText`: MF2 isolates every value with invisible marks, which would be stored with it.
+- Dates and numbers are formatted by the catalogs' messages (`:datetime`, `:number`), never by hand. Hermes has no `Intl.PluralRules` (its IntlAPIs.md, read 2026-11-04): a message that selects a plural waits for a polyfill.
+- Every route guard names where it leads (`redirectTo`): without one, Expo Router leads to the first open route in its own order, by name.
+- A screen a link opens signs the person in on that screen (`SignInScreen`'s `reason`), so that the link keeps its place: a guard would replace it.
 - What people use has a label for screen readers, and enough contrast in the light and dark themes.
 
 ### Tests
@@ -52,6 +56,8 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 - What the build reads, `app.config.ts`, is tested through Expo's own reader (`getConfig`), as the build reads it: calling the function alone missed tables without a prototype, which broke the builds.
 - Protocol exchanges are tested against ai-platform's examples, and against a simulated device.
 - No fixed sleeps to wait for readiness: wait for the condition, with a timeout.
+- A time reads the same on every machine: the tests run in UTC (`jest.config.js`), and the simulated cloud takes a clock.
+- Invisible characters in source, such as MF2's isolating marks (U+2066 to U+2069), are written as escapes, which a reviewer can see. Some editing tools write the character itself: check the file's bytes.
 
 ### Repository rules (CONTRIBUTING.md, AGENTS.md)
 

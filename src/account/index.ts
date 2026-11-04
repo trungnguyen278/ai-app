@@ -8,4 +8,5 @@ export type { Secrets } from './ports/secrets';
 export { AccountButton } from './screens/AccountButton';
 export { AccountScreen } from './screens/AccountScreen';
 export { SignInScreen } from './screens/SignInScreen';
+export type { SignInScreenProps } from './screens/SignInScreen';
 export type { SessionState, SessionStatus } from './services/session';

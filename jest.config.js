@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: MIT
 const preset = require('jest-expo/jest-preset');
 
+// The tests run in one time zone, whatever the machine's, so that a time reads the same on every
+// machine. The workers Jest starts inherit it.
+process.env.TZ = 'UTC';
+
 module.exports = {
   preset: 'jest-expo',
   roots: ['<rootDir>/tests'],

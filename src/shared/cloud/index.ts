@@ -11,6 +11,7 @@ export type {
   Credentials,
   ExchangeOptions,
   FreshSignIn,
+  NewInvitation,
   PageRequest,
 } from './client';
 export { cloudTransport } from './connect';

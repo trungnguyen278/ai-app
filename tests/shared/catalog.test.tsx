@@ -19,7 +19,7 @@ const EXAMPLES = join(__dirname, '..', '..', 'platform', 'catalogs', 'examples')
 const example = (tag: string) => JSON.parse(readFileSync(join(EXAMPLES, `${tag}.json`), 'utf8'));
 
 // What the default bidi isolation puts around placeholders.
-const plain = (text: string) => text.replace(/[⁦-⁩]/g, '');
+const plain = (text: string) => text.replace(/[\u2066-\u2069]/g, '');
 
 describe('languageChain', () => {
   test.each([
@@ -88,6 +88,29 @@ describe('Catalog', () => {
     const vi = new Catalog(catalogs, ['vi', 'en'], onFailure);
     expect(plain(vi.text('devices.count', { count: 1000 }))).toBe('1.000 thiết bị');
     expect(failures).toEqual([]);
+  });
+
+  describe("formats dates by the phone's own conventions for the language", () => {
+    const until: Catalogs = {
+      en: {
+        until:
+          'Until {$time :datetime dateFields=month-day dateLength=long timePrecision=minute timeZone=UTC}',
+      },
+    };
+    const time = new Date('2026-11-06T08:10:00Z');
+
+    test.each([
+      [['en-GB'], /^Until 6 November at 08:10$/],
+      [['en-US'], /^Until November 6 at 8:10\sAM$/],
+      [['vi-VN', 'en-GB'], /^Until 6 November at 08:10$/],
+      // A tag that Intl refuses would fail every format: the language's own conventions stand in.
+      [['en-GB-x'], /^Until November 6 at 8:10\sAM$/],
+    ])('%j', (preferred, expected) => {
+      expect(new Catalog(until, preferred, onFailure).plainText('until', { time })).toMatch(
+        expected,
+      );
+      expect(failures).toEqual([]);
+    });
   });
 
   test('falls back along the languages to English when a message is missing', () => {
