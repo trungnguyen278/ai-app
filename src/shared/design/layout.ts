@@ -27,6 +27,24 @@ export const AVATAR = 32;
 /** The width of the ring around what is chosen or has focus. */
 export const RING_WIDTH = 2;
 
+/**
+ * The mark beside each option of a choice (`ChoiceList`), in a square `size` across, as each
+ * platform marks the option chosen:
+ * - on Android, a radio button: a ring RING_WIDTH wide and, when chosen, a dot `dot` across, as
+ *   Compose's Material 3 RadioButton draws one (20 dp, a 2 dp ring, a 12 dp dot);
+ * - on iOS, a checkmark RING_WIDTH thick, through `check`'s points, as parts of the square: the
+ *   end of its short arm, its corner, then the end of its long arm.
+ */
+export const MARK = {
+  size: 20,
+  dot: 12,
+  check: [
+    [0.18, 0.5],
+    [0.4, 0.73],
+    [0.82, 0.22],
+  ],
+} as const;
+
 /** How far light glows around what gives it off, as a blur radius. */
 export const GLOW_RADIUS = {
   sm: 8,

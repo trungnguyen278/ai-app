@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { useText } from '@/src/shared/catalog';
 import {
   Button,
+  ChoiceList,
   CODE_SIZE,
   Press,
   QrCode,
@@ -16,16 +17,26 @@ import {
 
 import { Row, Section } from './parts';
 
+const SPEAKING = ['asked', 'news', 'never'] as const;
+type Speaking = (typeof SPEAKING)[number];
+
 /**
- * The components, to press and feel: buttons of every weight and state, rows, fields, and a QR
- * code, for another phone to read.
+ * The components, to press and feel: buttons of every weight and state, rows, fields, choices,
+ * which the button that starts and stops waiting makes busy too, and a QR code, for another
+ * phone to read.
  */
 export function ComponentsScreen() {
   const text = useText();
   const [busy, setBusy] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('linh@');
+  const [speaks, setSpeaks] = useState<Speaking>('asked');
   const nothing = () => {};
+  const speaking = SPEAKING.map((value) => ({
+    value,
+    label: text(`studio.components.choice.${value}`),
+    detail: text(`studio.components.choice.${value}.detail`),
+  }));
   return (
     <Screen scroll>
       <Section title={text('studio.components.buttons')}>
@@ -80,6 +91,23 @@ export function ComponentsScreen() {
           />
         </View>
       </Section>
+      {/* Choices sit on the canvas, as on a page: their options are a surface of their own. */}
+      <View style={styles.choices}>
+        <ChoiceList
+          label={text('studio.components.choice')}
+          options={speaking}
+          value={speaks}
+          onChange={setSpeaks}
+          busy={busy}
+        />
+        <ChoiceList
+          label={text('studio.components.disabled')}
+          options={speaking}
+          value={speaks}
+          onChange={nothing}
+          disabled
+        />
+      </View>
       <Section title={text('studio.components.code')}>
         <View style={styles.code}>
           <QrCode
@@ -99,5 +127,6 @@ const SAMPLE_LINK = 'https://cloud.example/join#AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 const styles = StyleSheet.create({
   buttons: { gap: SPACE.md, padding: SPACE.lg },
   fields: { gap: SPACE.lg, padding: SPACE.lg },
+  choices: { gap: SPACE.lg },
   code: { alignItems: 'center', padding: SPACE.lg },
 });

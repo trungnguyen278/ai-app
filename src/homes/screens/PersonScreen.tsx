@@ -7,6 +7,7 @@ import { useText } from '@/src/shared/catalog';
 import { failureMessage, Refused } from '@/src/shared/cloud';
 import {
   Button,
+  ChoiceList,
   haptic,
   RADIUS,
   Screen,
@@ -18,15 +19,16 @@ import {
 } from '@/src/shared/design';
 import { accepts, type App } from '@/src/shared/protocols';
 
-import { hasAccount, roleOf } from '../domain/people';
-import { mayLeave, mayRemove, mayRename } from '../domain/permissions';
+import { demotes, GIVEN_ROLES, hasAccount, roleOf, type GivenRole } from '../domain/people';
+import { mayLeave, mayRemove, mayRename, maySetRole } from '../domain/permissions';
 import { useMembers, useRemoveMember, useUpdateMember } from '../services/homes';
 import { OneHome } from './OneHome';
 
 /**
  * One person in a home, as Google Home's household shows one: their name there and what they
- * are, and what the role of the person who looks lets them do: rename them, remove them, or,
- * for themself, leave. What cannot be undone is confirmed first, in the phone's own dialog.
+ * are, and what the role of the person who looks lets them do: rename them, make them an admin
+ * or a member, remove them, or, for themself, leave. What cannot be undone is confirmed first,
+ * in the phone's own dialog.
  */
 export function PersonScreen({ homeId, memberId }: { homeId: string; memberId: string }) {
   return <OneHome homeId={homeId}>{(home) => <Person home={home} memberId={memberId} />}</OneHome>;
@@ -82,6 +84,19 @@ function PersonView({ home, member }: { home: App.Home; member: App.Member }) {
   const what = hasAccount(member.kind)
     ? text(`homes.role.${roleOf(member.role)}`)
     : text('homes.kind.profile');
+  // The change under way, or the last one: a name or a role. Both are sent with the ETag the
+  // page read, so they go one at a time: a second sent meanwhile would be refused as stale, as
+  // if someone else had changed the person.
+  const change = update.variables?.changes;
+  const renaming = update.isPending && change?.display_name !== undefined;
+  const choosing = update.isPending ? change?.role : undefined;
+  // maySetRole leaves the owner out: anyone else with an account is an admin, or a member.
+  const role: GivenRole = roleOf(member.role) === 'admin' ? 'admin' : 'member';
+  const roles = GIVEN_ROLES.map((each) => ({
+    value: each,
+    label: text(`homes.role.${each}`),
+    detail: text(`homes.person.role.${each}`),
+  }));
 
   function save() {
     const chosen = name.trim();
@@ -103,6 +118,14 @@ function PersonView({ home, member }: { home: App.Home; member: App.Member }) {
         onError: () => haptic('error'),
       },
     );
+  }
+
+  /**
+   * Give the person `chosen`, at once, as the platforms' lists of options do: the choice shows
+   * it while the cloud is asked, and goes back to the role the cloud has if it refuses.
+   */
+  function choose(chosen: GivenRole) {
+    update.mutate({ member, changes: { role: chosen } }, { onError: () => haptic('error') });
   }
 
   /** Ask before `then`, which cannot be undone: the phone's own dialog, with its cancel. */
@@ -145,15 +168,30 @@ function PersonView({ home, member }: { home: App.Home; member: App.Member }) {
     );
   }
 
-  const error = update.error ?? remove.error;
-  const failure =
-    error === null
-      ? undefined
-      : error instanceof Refused && error.stale
-        ? text('homes.person.changed')
-        : error instanceof Refused && error.is('role_required')
-          ? text('homes.person.not_allowed')
-          : text(failureMessage(error));
+  /**
+   * What the page says of `error`, which refused a change: `stale`, when the change went with an
+   * ETag and someone changed the person meanwhile.
+   */
+  function refusal(error: Error, stale?: string): string {
+    if (stale !== undefined && error instanceof Refused && error.stale) return text(stale);
+    if (error instanceof Refused && error.is('role_required')) {
+      return text('homes.person.not_allowed');
+    }
+    return text(failureMessage(error));
+  }
+
+  // Each failure shows by what failed: the name, the role, or removing.
+  const nameFailure =
+    update.isError && change?.display_name !== undefined
+      ? refusal(update.error, 'homes.person.changed')
+      : undefined;
+  const roleFailure =
+    update.isError && change?.role !== undefined
+      ? refusal(update.error, 'homes.person.role.changed')
+      : undefined;
+  const removeFailure = remove.isError ? refusal(remove.error) : undefined;
+  // An admin made a member: the invitations they made are revoked, which the page says.
+  const demoted = update.isSuccess && demotes(update.variables.member, update.variables.changes);
 
   return (
     <Screen scroll style={styles.page}>
@@ -177,11 +215,44 @@ function PersonView({ home, member }: { home: App.Home; member: App.Member }) {
         <Text ink="textMuted">{what}</Text>
       </View>
       {changed && (
-        <Button label={text('homes.person.save')} onPress={save} busy={update.isPending} />
+        <Button
+          label={text('homes.person.save')}
+          onPress={save}
+          busy={renaming}
+          disabled={choosing !== undefined}
+        />
       )}
-      {failure !== undefined && (
+      {nameFailure !== undefined && (
         <Text ink="danger" accessibilityRole="alert">
-          {failure}
+          {nameFailure}
+        </Text>
+      )}
+      {maySetRole(home.role, member) && (
+        <View style={styles.role}>
+          <ChoiceList
+            testID="person-role"
+            label={text('homes.person.role')}
+            options={roles}
+            value={choosing ?? role}
+            onChange={choose}
+            busy={choosing !== undefined}
+            disabled={renaming || remove.isPending}
+          />
+          {roleFailure !== undefined && (
+            <Text ink="danger" accessibilityRole="alert">
+              {roleFailure}
+            </Text>
+          )}
+          {demoted && (
+            <Text ink="textMuted" aria-live="polite">
+              {text('homes.person.role.revoked', { name: member.display_name })}
+            </Text>
+          )}
+        </View>
+      )}
+      {removeFailure !== undefined && (
+        <Text ink="danger" accessibilityRole="alert">
+          {removeFailure}
         </Text>
       )}
       {mayRemove(home.role, member) && (
@@ -207,4 +278,5 @@ function PersonView({ home, member }: { home: App.Home; member: App.Member }) {
 const styles = StyleSheet.create({
   page: { gap: SPACE.xl },
   heading: { gap: SPACE.sm },
+  role: { gap: SPACE.sm },
 });

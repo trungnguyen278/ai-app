@@ -37,6 +37,18 @@ export function mayRemove(role: string | undefined, target: Target): boolean {
   return known === 'owner' || (known === 'admin' && inAdminsCare(target));
 }
 
+/** Whether a person of `role` may make `target` an admin or a member: the owner, for another
+ *  person with an account. A profile has no role, and only handing the home over makes an
+ *  owner, or changes the owner's. */
+export function maySetRole(role: string | undefined, target: Target): boolean {
+  return (
+    roleOf(role) === 'owner' &&
+    !target.current &&
+    hasAccount(target.kind) &&
+    roleOf(target.role) !== 'owner'
+  );
+}
+
 /** Whether a person of `role` may leave: anyone but the owner, who hands the home over or
  *  deletes it. */
 export function mayLeave(role: string | undefined): boolean {

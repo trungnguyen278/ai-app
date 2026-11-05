@@ -7,6 +7,7 @@ import { everyPage, Refused } from '@/src/shared/cloud';
 import type { App } from '@/src/shared/protocols';
 
 import { HOMES, invitationsOf, membersOf, previewOf } from '../domain/keys';
+import { demotes } from '../domain/people';
 
 /** The homes the person is in, oldest first, every page of them. */
 export function useHomes() {
@@ -126,7 +127,8 @@ export interface PersonChange {
 /**
  * Change a person, as the screen last read them: a change made meanwhile, by someone else, is
  * refused (412). The person as changed goes into the cache at once, and the people are read
- * again either way.
+ * again either way. Making an admin a member revokes the invitations they made, so the open ones
+ * are read again too: either way as well, since an answer lost may hide a change made.
  */
 export function useUpdateMember(homeId: string) {
   const cloud = useCloud();
@@ -138,7 +140,13 @@ export function useUpdateMember(homeId: string) {
       queries.setQueryData<App.Member[]>(membersOf(homeId), (members) =>
         members?.map((each) => (each.id === changed.id ? changed : each)),
       ),
-    onSettled: () => queries.invalidateQueries({ queryKey: membersOf(homeId) }),
+    onSettled: (_changed, _error, { member, changes }) => {
+      const reads = [queries.invalidateQueries({ queryKey: membersOf(homeId) })];
+      if (demotes(member, changes)) {
+        reads.push(queries.invalidateQueries({ queryKey: invitationsOf(homeId) }));
+      }
+      return Promise.all(reads);
+    },
   });
 }
 
