@@ -12,6 +12,8 @@ export { Appear, enterFrames, exitFrames } from './components/Appear';
 export type { AppearProps, Frames } from './components/Appear';
 export { Button } from './components/Button';
 export type { ButtonProps, ButtonVariant } from './components/Button';
+export { ChoiceList } from './components/ChoiceList';
+export type { ChoiceListProps, ChoiceOption } from './components/ChoiceList';
 export { Glow } from './components/Glow';
 export type { GlowProps } from './components/Glow';
 export { Press } from './components/Press';
@@ -38,6 +40,7 @@ export {
   GLOW_RADIUS,
   GUTTER,
   HERO,
+  MARK,
   RADIUS,
   RING_WIDTH,
   SPACE,

@@ -118,6 +118,19 @@ test('the components page shows a button of every weight and state', async () =>
   expect(screen.getByRole('button', { name: 'Connecting' })).toBeBusy();
 });
 
+test('the components page shows a choice to make, busy with the buttons, and one not available', async () => {
+  await renderScreen(<ComponentsScreen />);
+  const never = () => screen.getAllByRole('radio', { name: 'Never' });
+  expect(never()).toHaveLength(2);
+  expect(screen.getAllByRole('radio', { name: 'When spoken to' })[0]).toBeChecked();
+  expect(never()[0].props.accessibilityHint).toBe('It shows on its screen what it would say.');
+  await fireEvent.press(never()[0]);
+  expect(never()[0]).toBeChecked();
+  expect(never()[1]).toBeDisabled();
+  await fireEvent.press(screen.getByRole('button', { name: 'Start or stop it' }));
+  expect(never()[0]).toBeBusy();
+});
+
 test('the motion page adds and removes items', async () => {
   await renderScreen(<MotionScreen />);
   expect(screen.getByText('Item 3')).toBeOnTheScreen();

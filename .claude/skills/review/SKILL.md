@@ -31,6 +31,7 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 - A device or a cloud that does not answer, answers late or answers twice leaves the app usable, and the owner is told what happened.
 - Only what the protocol makes safe to repeat is sent again: a request with an Idempotency-Key, with the same key each time. A refresh token works once, so a refresh is never retried.
 - A simulated device or cloud keeps to the real one: the protocol's examples replay against it, and it refuses what the real one refuses, in the same order.
+- A change makes the cache read again everything it touches at the cloud, the effects the protocol names included: removing or demoting a person revokes their invitations. It does so whatever the answer, since a lost answer may hide a change made.
 
 ### Security and privacy
 
@@ -53,6 +54,9 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 - What people use has a label for screen readers, and enough contrast in the light and dark themes.
 - What cannot be undone is a `danger` button, confirmed in the phone's own dialog (`Alert`) that says what goes.
 - A change sent with `If-Match` that the cloud refuses as stale (`Refused.stale`) keeps what the person typed, and says that someone changed it meanwhile. A component keyed by the ETag would forget both.
+- Changes to one thing sent with `If-Match`, such as a person's name and role, go one at a time: a second sent while the first is under way carries the same ETag, and is refused as stale, as if someone else had changed it.
+- A choice the cloud makes, such as a role, shows the option chosen while the cloud is asked, then what the cloud has: after a refusal, never the option refused.
+- A group of radio buttons is a `radiogroup` that is not an element of its own: an `accessible` container would hide its options from screen readers.
 
 ### Tests
 
@@ -63,6 +67,9 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 - No fixed sleeps to wait for readiness: wait for the condition, with a timeout.
 - A time reads the same on every machine: the tests run in UTC (`jest.config.js`), and the simulated cloud takes a clock.
 - Invisible characters in source, such as MF2's isolating marks (U+2066 to U+2069), are written as escapes, which a reviewer can see. Some editing tools write the character itself: check the file's bytes.
+- TanStack Query shows a mutation's pending state a tick after `mutate`: a test waits for it (`waitFor`). To see a screen while the cloud is asked, a transport holds the request until the test lets it go.
+- `jest.restoreAllMocks` restores spies only (jest-mock 30): the `jest.fn()`s of a `jest.mock` factory keep their calls from test to test, so a file that asserts a call did not happen clears them first (`jest.clearAllMocks`).
+- A test file run alone, as a mutant's run does, runs in band, and Jest waits for any handle left open; pass `--forceExit`.
 
 ### Repository rules (CONTRIBUTING.md, AGENTS.md)
 

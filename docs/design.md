@@ -1,6 +1,6 @@
 # The design system
 
-> **Status:** built: the colours of both themes and the tone, type, space and corners, motion and its components, and the studio. The first screen built on them is the homes', empty for now. Decided in [ADR-0003](decisions/0003-interface-and-motion.md).
+> **Status:** built: the colours of both themes and the tone, type, space and corners, motion and its components, and the studio. The app's screens are built on them. Decided in [ADR-0003](decisions/0003-interface-and-motion.md).
 
 The app speaks the robot's visual language: one tone, glowing, on a quiet canvas. This page is for whoever builds a screen. It says where each value lives and what rule it keeps.
 
@@ -89,6 +89,7 @@ A QR code is dark on light in both themes: the light theme's text on white, in `
 - **`CODE_SIZE`:** a QR code's side, 240 at most: an invitation's link takes 45 modules, so each is 5 across.
 - **`RADIUS`:** `sm` 8, `md` 14, `lg` 22, `full`. Each corner is drawn with a continuous curve.
 - **`RING_WIDTH`** is the ring around what is chosen. **`GLOW_RADIUS`** is how far light glows.
+- **`MARK`:** the mark beside each option of a choice, in a square 20 across. On Android it is a radio button: a ring `RING_WIDTH` wide and, when chosen, a dot 12 across, as Compose's Material 3 `RadioButton` draws one. On iOS it is a checkmark as thick as the ring, through the points that `check` gives as parts of the square.
 
 ## Motion
 
@@ -124,6 +125,7 @@ Motion has a budget, set by how often it is seen (ADR-0003, from Expo's animatio
 | `Text` | Text on the scale, in an ink: `text`, `textMuted`, `accent`, `onAccent`, `danger` or `onDanger` | Accent inks blend with the tone |
 | `TextField` | A field to type in. Its label is always above it, never a placeholder, which goes as one types and which screen readers may not read. Help, or what is wrong, is below it; what it holds (`name`, `email`, `link`) chooses the keyboard and what the phone may fill in. | The outline turns to the tone's ring with focus, and to danger's with a fault, without moving the text. A fault is announced. |
 | `Press` | Anything a finger presses | Shrinks a little, or dims with reduce motion. A row as wide as the screen lights up instead. It can play a haptic as the press commits. |
+| `ChoiceList` | One of a few options, all in sight, for a choice people should see whole before they make it, such as a person's role. Its label is above it. Each option has its label and, below it, a line on what it means, on a surface parted by hairlines. Each platform marks the option chosen its own way: on Android, a radio button leads each option, as in Material's lists; on iOS, a checkmark in the tone ends the one chosen, as in Apple's lists of options. Screen readers hear each option as a radio button, checked or not, by its label, with its line after it. | An option lights up as it is pressed, and choosing another ticks (`select`); the one chosen does nothing. The radio's dot grows in with the spring, or fades in with reduce motion; the checkmark fades in and out. Busy, the tone pulses beside the label, and nothing else can be chosen until the choice is made. Disabled, it is faint. |
 | `Button` | `primary`, filled with the tone and glowing; `secondary`, on a tint of it; `plain`, its text alone; `danger`, in danger's red on its tint, for what cannot be undone, which the phone's own dialog confirms first. Where buttons with the same label sit side by side, each tells screen readers which it is, starting with its label. | Presses as `Press` does. Disabled, it is faint; busy, the tone pulses where its label was, and screen readers still hear the label. |
 | `Appear` | Something that arrives once, such as what a person waited for | Rises and grows into place, staggered; leaves the way it came; its neighbours make room |
 | `Skeleton` | The shape of content still loading | A light crosses it |
