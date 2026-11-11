@@ -26,6 +26,26 @@ module.exports = defineConfig([
     },
   },
   {
+    // A message that appears or changes is the design system's Notice, which each platform's
+    // screen reader says: a role or a live region alone is silent on iOS, and on Android's Text.
+    files: ['app/**', 'src/**'],
+    ignores: ['src/shared/design/**'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'JSXAttribute[name.name=/^(aria-live|accessibilityLiveRegion)$/]',
+          message: 'Use Notice, which screen readers say on every platform.',
+        },
+        {
+          selector:
+            "JSXOpeningElement[name.name!='Notice'] > JSXAttribute[name.name=/^(role|accessibilityRole)$/][value.value=/^(alert|status)$/]",
+          message: 'Use Notice, which screen readers say on every platform.',
+        },
+      ],
+    },
+  },
+  {
     // Expo writes process.env's values into the app when it bundles it, and only those it can
     // see by name. Tests and configuration run in Node, which reads process.env as it is.
     files: ['tests/**', '*.config.{js,ts}'],

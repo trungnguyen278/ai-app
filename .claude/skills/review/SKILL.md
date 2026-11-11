@@ -52,6 +52,7 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 - Every route guard names where it leads (`redirectTo`): without one, Expo Router leads to the first open route in its own order, by name.
 - A screen a link opens signs the person in on that screen (`SignInScreen`'s `reason`), so that the link keeps its place: a guard would replace it.
 - What people use has a label for screen readers, and enough contrast in the light and dark themes.
+- A message that appears or changes, such as a failure or what a change did, is a `Notice`, which each platform's screen reader says. A role alone says nothing on iOS, and React Native's `Text` drops `aria-live` (only its `View` maps it). An Android live region speaks a change to a view already on the screen, not a view that arrives with its text; and a `View` with nothing but a live region is flattened away.
 - What cannot be undone is a `danger` button, confirmed in the phone's own dialog (`Alert`) that says what goes.
 - A change sent with `If-Match` that the cloud refuses as stale (`Refused.stale`) keeps what the person typed, and says that someone changed it meanwhile. A component keyed by the ETag would forget both.
 - Changes to one thing sent with `If-Match`, such as a person's name and role, go one at a time: a second sent while the first is under way carries the same ETag, and is refused as stale, as if someone else had changed it.
@@ -70,6 +71,7 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 - TanStack Query shows a mutation's pending state a tick after `mutate`: a test waits for it (`waitFor`). To see a screen while the cloud is asked, a transport holds the request until the test lets it go.
 - `jest.restoreAllMocks` restores spies only (jest-mock 30): the `jest.fn()`s of a `jest.mock` factory keep their calls from test to test, so a file that asserts a call did not happen clears them first (`jest.clearAllMocks`).
 - A test file run alone, as a mutant's run does, runs in band, and Jest waits for any handle left open; pass `--forceExit`.
+- What a screen reader hears is tested on each platform, with `jest.replaceProperty(Platform, 'OS', …)`, restored after each test (`jest.restoreAllMocks`). A test that renders again uses `rerender`, which keeps `renderScreen`'s providers.
 
 ### Repository rules (CONTRIBUTING.md, AGENTS.md)
 

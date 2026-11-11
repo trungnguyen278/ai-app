@@ -299,7 +299,8 @@ describe('roles', () => {
     // Nothing is said of An's invitations before the cloud has made An a member.
     expect(screen.queryByText(REVOKED)).toBeNull();
     relay.release();
-    expect(await screen.findByText(REVOKED)).toBeOnTheScreen();
+    // News, not a failure: a status, which a screen reader says when it is free.
+    expect(await screen.findByRole('status', { name: REVOKED })).toBeOnTheScreen();
     expect(role('Member')).not.toBeBusy();
     expect(screen.getByTestId('person-name').props.editable).toBe(true);
     expect(screen.getByRole('button', { name: 'Save the name' })).toBeEnabled();

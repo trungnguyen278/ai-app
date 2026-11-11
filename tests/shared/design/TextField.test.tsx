@@ -2,13 +2,15 @@
 // A field to type in: its label read once, its help or fault below, what it holds telling the
 // keyboard, and a fault said in words as well as colour.
 import { fireEvent, screen } from '@testing-library/react-native';
-import { AccessibilityInfo, StyleSheet } from 'react-native';
+import { AccessibilityInfo, Platform, StyleSheet } from 'react-native';
 
 import { buildTheme, TextField } from '@/src/shared/design';
 
 import { renderScreen } from '../../render';
 
 const LIGHT = buildTheme('light', '#5be9ff').color;
+
+afterEach(() => jest.restoreAllMocks());
 
 test('the label names the field, and the hint is read with it', async () => {
   const changes = jest.fn();
@@ -22,8 +24,9 @@ test('the label names the field, and the hint is read with it', async () => {
   expect(changes).toHaveBeenCalledWith('Linh');
 });
 
-test('a fault takes the hint’s place, in danger’s colour, and is announced', async () => {
-  const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+test('a fault takes the hint’s place, in danger’s colour, and is an alert', async () => {
+  jest.replaceProperty(Platform, 'OS', 'ios');
+  const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibilityWithOptions');
   await renderScreen(
     <TextField
       label="Email"
@@ -37,7 +40,19 @@ test('a fault takes the hint’s place, in danger’s colour, and is announced',
   const fault = screen.getByText('Not an email');
   expect(fault).toHaveStyle({ color: LIGHT.danger });
   expect(screen.getByLabelText('Email')).toHaveStyle({ borderColor: LIGHT.danger });
-  expect(announce).toHaveBeenCalledWith('Not an email');
+  expect(screen.getByRole('alert')).toHaveTextContent('Not an email');
+  expect(announce).toHaveBeenCalledWith('Not an email', { priority: 'high' });
+});
+
+test('on Android, a fault is a live region, and the hint is not', async () => {
+  jest.replaceProperty(Platform, 'OS', 'android');
+  const field = (error?: string) => (
+    <TextField label="Email" hint="Optional" error={error} value="x" onChangeText={() => {}} />
+  );
+  const view = await renderScreen(field());
+  expect(screen.getByText('Optional').props.accessibilityLiveRegion).toBeUndefined();
+  await view.rerender(field('Not an email'));
+  expect(screen.getByText('Not an email').props.accessibilityLiveRegion).toBe('assertive');
 });
 
 test('an email field asks for the email keyboard, and the phone may fill it', async () => {

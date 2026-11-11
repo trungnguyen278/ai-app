@@ -9,6 +9,7 @@ import {
   Button,
   ChoiceList,
   haptic,
+  Notice,
   RADIUS,
   Screen,
   Skeleton,
@@ -50,9 +51,9 @@ function Person({ home, memberId }: { home: App.Home; memberId: string }) {
   if (members.isError) {
     return (
       <Screen style={styles.page}>
-        <Text ink="danger" accessibilityRole="alert">
+        <Notice role="alert" ink="danger">
           {text(failureMessage(members.error))}
-        </Text>
+        </Notice>
         <Button
           variant="secondary"
           label={text('homes.retry')}
@@ -223,9 +224,9 @@ function PersonView({ home, member }: { home: App.Home; member: App.Member }) {
         />
       )}
       {nameFailure !== undefined && (
-        <Text ink="danger" accessibilityRole="alert">
+        <Notice role="alert" ink="danger">
           {nameFailure}
-        </Text>
+        </Notice>
       )}
       {maySetRole(home.role, member) && (
         <View style={styles.role}>
@@ -239,21 +240,21 @@ function PersonView({ home, member }: { home: App.Home; member: App.Member }) {
             disabled={renaming || remove.isPending}
           />
           {roleFailure !== undefined && (
-            <Text ink="danger" accessibilityRole="alert">
+            <Notice role="alert" ink="danger">
               {roleFailure}
-            </Text>
+            </Notice>
           )}
           {demoted && (
-            <Text ink="textMuted" aria-live="polite">
+            <Notice role="status" ink="textMuted">
               {text('homes.person.role.revoked', { name: member.display_name })}
-            </Text>
+            </Notice>
           )}
         </View>
       )}
       {removeFailure !== undefined && (
-        <Text ink="danger" accessibilityRole="alert">
+        <Notice role="alert" ink="danger">
           {removeFailure}
-        </Text>
+        </Notice>
       )}
       {mayRemove(home.role, member) && (
         <Button

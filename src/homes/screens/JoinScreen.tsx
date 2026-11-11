@@ -10,6 +10,7 @@ import {
   Appear,
   Button,
   haptic,
+  Notice,
   RADIUS,
   Screen,
   Skeleton,
@@ -150,9 +151,9 @@ function Preview({ code, onAnother }: { code: string; onAnother: () => void }) {
   if (preview.isError) {
     return (
       <Screen style={styles.page}>
-        <Text ink="danger" accessibilityRole="alert">
+        <Notice role="alert" ink="danger">
           {text(failureMessage(preview.error))}
-        </Text>
+        </Notice>
         <Button
           variant="secondary"
           label={text('join.retry')}
@@ -200,9 +201,9 @@ function Preview({ code, onAnother }: { code: string; onAnother: () => void }) {
       </Appear>
       <Button variant="plain" label={text('join.not_now')} onPress={leave} />
       {failure !== undefined && (
-        <Text ink="danger" accessibilityRole="alert">
+        <Notice role="alert" ink="danger">
           {failure}
-        </Text>
+        </Notice>
       )}
     </Screen>
   );

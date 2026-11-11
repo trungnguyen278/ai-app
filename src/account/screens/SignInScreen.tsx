@@ -11,6 +11,7 @@ import {
   Glow,
   haptic,
   HERO,
+  Notice,
   Screen,
   SPACE,
   Text,
@@ -136,9 +137,9 @@ function DevelopmentSignIn() {
       />
       <Button label={text('sign_in.submit')} onPress={submit} busy={busy} />
       {failure !== undefined && (
-        <Text ink="danger" accessibilityRole="alert" style={styles.centred}>
+        <Notice role="alert" ink="danger" style={styles.centred}>
           {failure}
-        </Text>
+        </Notice>
       )}
     </View>
   );

@@ -11,6 +11,7 @@ import {
   Glow,
   haptic,
   HERO,
+  Notice,
   Press,
   RADIUS,
   Screen,
@@ -47,9 +48,9 @@ export function HomeScreen({ homeId }: { homeId?: string }) {
   if (homes.isError) {
     return (
       <Screen style={styles.view}>
-        <Text ink="danger" accessibilityRole="alert">
+        <Notice role="alert" ink="danger">
           {text(failureMessage(homes.error))}
-        </Text>
+        </Notice>
         <Button
           variant="secondary"
           label={text('homes.retry')}
@@ -127,9 +128,9 @@ function HomeView({ home, others }: { home: App.Home; others: boolean }) {
         {members.isPending ? (
           <Skeleton width="50%" height={TYPE.body.lineHeight} radius={RADIUS.sm} />
         ) : members.isError ? (
-          <Text ink="danger" accessibilityRole="alert">
+          <Notice role="alert" ink="danger">
             {text(failureMessage(members.error))}
-          </Text>
+          </Notice>
         ) : (
           <View>
             {members.data.map((member) => (
@@ -177,9 +178,9 @@ function Invitations({ homeId }: { homeId: string }) {
     <View style={styles.section}>
       <Text variant="heading">{text('homes.invitations')}</Text>
       {invitations.isError ? (
-        <Text ink="danger" accessibilityRole="alert">
+        <Notice role="alert" ink="danger">
           {text(failureMessage(invitations.error))}
-        </Text>
+        </Notice>
       ) : (
         invitations.data.map((invitation) => {
           const which = { name: invitation.invited_by, time: new Date(invitation.expire_time) };
@@ -208,9 +209,9 @@ function Invitations({ homeId }: { homeId: string }) {
         })
       )}
       {revoke.isError && (
-        <Text ink="danger" accessibilityRole="alert">
+        <Notice role="alert" ink="danger">
           {text(failureMessage(revoke.error))}
-        </Text>
+        </Notice>
       )}
     </View>
   );

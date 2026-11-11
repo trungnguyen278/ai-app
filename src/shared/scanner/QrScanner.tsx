@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AppState, Linking, StyleSheet, View } from 'react-native';
 
 import { useText } from '@/src/shared/catalog';
-import { Button, haptic, RADIUS, SPACE, Text } from '@/src/shared/design';
+import { Button, haptic, Notice, RADIUS, SPACE, Text } from '@/src/shared/design';
 
 export interface QrScannerProps {
   /** Why the app needs the camera, said before the phone asks: what it is about to read. */
@@ -81,9 +81,14 @@ export function QrScanner({ reason, onRead, refused }: QrScannerProps) {
           onBarcodeScanned={read}
         />
       </View>
-      <Text ink={refusal === undefined ? 'textMuted' : 'danger'} aria-live="polite">
-        {refusal === undefined ? text('scanner.aim') : refused}
-      </Text>
+      {refusal === undefined ? (
+        <Text ink="textMuted">{text('scanner.aim')}</Text>
+      ) : (
+        // Each code refused is said, though the words are the same.
+        <Notice key={refusal} role="alert" ink="danger">
+          {refused}
+        </Notice>
+      )}
     </View>
   );
 }

@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { useText } from '@/src/shared/catalog';
 import { failureMessage } from '@/src/shared/cloud';
-import { Button, Press, Screen, SPACE, Text } from '@/src/shared/design';
+import { Button, Notice, Press, Screen, SPACE, Text } from '@/src/shared/design';
 
 import { roleOf } from '../domain/people';
 import { useHomes } from '../services/homes';
@@ -16,9 +16,9 @@ export function HomesScreen() {
   return (
     <Screen scroll style={styles.page}>
       {homes.isError && (
-        <Text ink="danger" accessibilityRole="alert">
+        <Notice role="alert" ink="danger">
           {text(failureMessage(homes.error))}
-        </Text>
+        </Notice>
       )}
       <View>
         {(homes.data ?? []).map((home) => (

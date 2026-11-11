@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { useText } from '@/src/shared/catalog';
 import { failureMessage } from '@/src/shared/cloud';
-import { Button, RADIUS, Screen, Skeleton, SPACE, Text, TYPE } from '@/src/shared/design';
+import { Button, Notice, RADIUS, Screen, Skeleton, SPACE, Text, TYPE } from '@/src/shared/design';
 
 import { usePerson, useSession } from '../AccountProvider';
 
@@ -23,9 +23,9 @@ export function AccountScreen() {
         </View>
       ) : account.isError ? (
         <View style={styles.person}>
-          <Text ink="danger" accessibilityRole="alert">
+          <Notice role="alert" ink="danger">
             {text(failureMessage(account.error))}
-          </Text>
+          </Notice>
           <Button
             variant="secondary"
             label={text('account.retry')}

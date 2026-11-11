@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Renders a screen as the app does: with a catalog, the design system and the phone's safe area.
 import { render } from '@testing-library/react-native';
-import { useEffect, type ReactElement } from 'react';
+import { useEffect, type ReactElement, type ReactNode } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { Catalog, CatalogProvider, CATALOGS } from '@/src/shared/catalog';
@@ -24,18 +24,23 @@ function DesignProbe() {
   return null;
 }
 
+// The providers wrap the screen, so that a test's `rerender` keeps them.
 export function renderScreen(screen: ReactElement, languages: string[] = ['en']) {
   seen.design = undefined;
-  return render(
-    <SafeAreaProvider initialMetrics={METRICS}>
-      <CatalogProvider catalog={new Catalog(CATALOGS, languages, () => {})}>
-        <DesignProvider>
-          {screen}
-          <DesignProbe />
-        </DesignProvider>
-      </CatalogProvider>
-    </SafeAreaProvider>,
-  );
+  const catalog = new Catalog(CATALOGS, languages, () => {});
+  function App({ children }: { children: ReactNode }) {
+    return (
+      <SafeAreaProvider initialMetrics={METRICS}>
+        <CatalogProvider catalog={catalog}>
+          <DesignProvider>
+            {children}
+            <DesignProbe />
+          </DesignProvider>
+        </CatalogProvider>
+      </SafeAreaProvider>
+    );
+  }
+  return render(screen, { wrapper: App });
 }
 
 /** The design's state, with what changes it, as the screen rendered last saw it. */

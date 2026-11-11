@@ -2,7 +2,7 @@
 // Reading a QR code: the reason before the phone asks, the way to the settings once it may not
 // ask again, and codes taken or refused, each once.
 import { act, fireEvent, screen } from '@testing-library/react-native';
-import { AppState, Linking, type AppStateStatus } from 'react-native';
+import { AccessibilityInfo, AppState, Linking, Platform, type AppStateStatus } from 'react-native';
 
 import { QrScanner } from '@/src/shared/scanner';
 
@@ -66,6 +66,21 @@ test('a code refused is said so, once, while the camera reads on', async () => {
   expect(onRead).toHaveBeenCalledTimes(1);
   await show('yes');
   expect(onRead).toHaveBeenLastCalledWith('yes');
+});
+
+test('each code refused is said, though the words are the same', async () => {
+  jest.replaceProperty(Platform, 'OS', 'ios');
+  const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibilityWithOptions');
+  announce.mockClear();
+  resetCamera({ granted: true, canAskAgain: true });
+  await render(() => false);
+  await show('no');
+  await show('no');
+  await show('nor this');
+  expect(announce.mock.calls).toEqual([
+    [REFUSED, { priority: 'high' }],
+    [REFUSED, { priority: 'high' }],
+  ]);
 });
 
 test('the first code taken is the last read', async () => {
