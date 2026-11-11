@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { useText } from '@/src/shared/catalog';
 import { failureMessage } from '@/src/shared/cloud';
-import { Button, RADIUS, Screen, Skeleton, SPACE, Text, TYPE } from '@/src/shared/design';
+import { Button, Notice, RADIUS, Screen, Skeleton, SPACE, Text, TYPE } from '@/src/shared/design';
 import type { App } from '@/src/shared/protocols';
 
 import { useHomes } from '../services/homes';
@@ -35,9 +35,9 @@ export function OneHome({
   if (homes.isError) {
     return (
       <Screen style={styles.page}>
-        <Text ink="danger" accessibilityRole="alert">
+        <Notice role="alert" ink="danger">
           {text(failureMessage(homes.error))}
-        </Text>
+        </Notice>
         <Button
           variant="secondary"
           label={text('homes.retry')}

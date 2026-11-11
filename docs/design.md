@@ -123,7 +123,8 @@ Motion has a budget, set by how often it is seen (ADR-0003, from Expo's animatio
 |---|---|---|
 | `Screen` | A page: the canvas, the gutter, room for the system's bars; a long page scrolls | |
 | `Text` | Text on the scale, in an ink: `text`, `textMuted`, `accent`, `onAccent`, `danger` or `onDanger` | Accent inks blend with the tone |
-| `TextField` | A field to type in. Its label is always above it, never a placeholder, which goes as one types and which screen readers may not read. Help, or what is wrong, is below it; what it holds (`name`, `email`, `link`) chooses the keyboard and what the phone may fill in. | The outline turns to the tone's ring with focus, and to danger's with a fault, without moving the text. A fault is announced. |
+| `Notice` | A message that appears or changes where people look for it, in an ink: an `alert` for what went wrong, a `status` for news. Each platform's screen reader says it as it comes and as its text changes, never again for a mere render; a new `key` says the same text again, for a new event. On iOS it is announced, an alert at once and a status after what is being said, and two that come together one after the other. On Android, and the web, it is a live region, assertive for an alert and polite for a status, on the screen before its text. | |
+| `TextField` | A field to type in. Its label is always above it, never a placeholder, which goes as one types and which screen readers may not read. Help, or what is wrong, is below it; what it holds (`name`, `email`, `link`) chooses the keyboard and what the phone may fill in. | The outline turns to the tone's ring with focus, and to danger's with a fault, without moving the text. A fault is a `Notice`, an alert. |
 | `Press` | Anything a finger presses | Shrinks a little, or dims with reduce motion. A row as wide as the screen lights up instead. It can play a haptic as the press commits. |
 | `ChoiceList` | One of a few options, all in sight, for a choice people should see whole before they make it, such as a person's role. Its label is above it. Each option has its label and, below it, a line on what it means, on a surface parted by hairlines. Each platform marks the option chosen its own way: on Android, a radio button leads each option, as in Material's lists; on iOS, a checkmark in the tone ends the one chosen, as in Apple's lists of options. Screen readers hear each option as a radio button, checked or not, by its label, with its line after it. | An option lights up as it is pressed, and choosing another ticks (`select`); the one chosen does nothing. The radio's dot grows in with the spring, or fades in with reduce motion; the checkmark fades in and out. Busy, the tone pulses beside the label, and nothing else can be chosen until the choice is made. Disabled, it is faint. |
 | `Button` | `primary`, filled with the tone and glowing; `secondary`, on a tint of it; `plain`, its text alone; `danger`, in danger's red on its tint, for what cannot be undone, which the phone's own dialog confirms first. Where buttons with the same label sit side by side, each tells screen readers which it is, starting with its label. | Presses as `Press` does. Disabled, it is faint; busy, the tone pulses where its label was, and screen readers still hear the label. |
@@ -138,6 +139,7 @@ Motion has a budget, set by how often it is seen (ADR-0003, from Expo's animatio
 - **Build it from the components above.** `useTheme()` gives the theme's colours to anything else, and `useMotion()` says whether motion is reduced.
 - **A new value** goes into the tokens, named for what it does, and the studio shows it. A new colour role comes with its contrast rule, and a test of it.
 - **A new motion** names its purpose, keeps the budget, and ships with its reduce-motion form.
+- **A message that appears or changes**, such as a failure or what a change did, is a `Notice`. A role or a live region alone is silent on iOS, and React Native's `Text` drops `aria-live` on Android; the lint refuses both outside the design system.
 
 ## The studio
 
@@ -146,6 +148,6 @@ Motion has a budget, set by how often it is seen (ADR-0003, from Expo's animatio
   - the colours, with their contrasts;
   - the type, with Vietnamese's marks;
   - the spacing and corners;
-  - the components, to press;
+  - the components, to press, and notices for a screen reader to say;
   - motion, to watch.
 - **Judging motion:** on a release build of the development app, on the slowest phone the app supports (ADR-0003).

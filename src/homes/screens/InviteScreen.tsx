@@ -10,6 +10,7 @@ import {
   Button,
   CODE_SIZE,
   haptic,
+  Notice,
   QrCode,
   Screen,
   SPACE,
@@ -57,9 +58,9 @@ function Invite({ home }: { home: App.Home }) {
         }
       />
       {failure !== undefined && (
-        <Text ink="danger" accessibilityRole="alert">
+        <Notice role="alert" ink="danger">
           {failure}
-        </Text>
+        </Notice>
       )}
     </Screen>
   );

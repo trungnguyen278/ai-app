@@ -5,7 +5,7 @@ import { StyleSheet } from 'react-native';
 
 import { useText } from '@/src/shared/catalog';
 import { failureMessage, Refused } from '@/src/shared/cloud';
-import { Button, haptic, Screen, SPACE, Text, TextField } from '@/src/shared/design';
+import { Button, haptic, Notice, Screen, SPACE, Text, TextField } from '@/src/shared/design';
 import { accepts, type App } from '@/src/shared/protocols';
 
 import { useAddProfile } from '../services/homes';
@@ -65,9 +65,9 @@ function AddProfile({ home }: { home: App.Home }) {
       />
       <Button label={text('homes.profile.submit')} onPress={submit} busy={add.isPending} />
       {failure !== undefined && (
-        <Text ink="danger" accessibilityRole="alert">
+        <Notice role="alert" ink="danger">
           {failure}
-        </Text>
+        </Notice>
       )}
     </Screen>
   );

@@ -6,7 +6,7 @@ import { StyleSheet, View } from 'react-native';
 import { usePerson } from '@/src/account';
 import { usePlainText, useText } from '@/src/shared/catalog';
 import { failureMessage, Refused } from '@/src/shared/cloud';
-import { Button, haptic, Screen, SPACE, Text, TextField } from '@/src/shared/design';
+import { Button, haptic, Notice, Screen, SPACE, Text, TextField } from '@/src/shared/design';
 import { accepts } from '@/src/shared/protocols';
 
 import { phoneLanguages, phoneTimeZone } from '../domain/defaults';
@@ -83,9 +83,9 @@ export function CreateHomeScreen() {
       </View>
       <Button label={text('homes.new.submit')} onPress={submit} busy={create.isPending} />
       {failure !== undefined && (
-        <Text ink="danger" accessibilityRole="alert">
+        <Notice role="alert" ink="danger">
           {failure}
-        </Text>
+        </Notice>
       )}
     </Screen>
   );

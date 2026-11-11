@@ -108,8 +108,9 @@ test.each([
 
 test('the components page shows a button of every weight and state', async () => {
   await renderScreen(<ComponentsScreen />);
-  // Primary, secondary, plain, danger, disabled, busy, and the one that toggles busy.
-  expect(screen.getAllByRole('button')).toHaveLength(7);
+  // Primary, secondary, plain, danger, disabled, busy, the one that toggles busy, and the four
+  // that bring notices.
+  expect(screen.getAllByRole('button')).toHaveLength(11);
   expect(screen.getByRole('button', { name: 'Remove from the home' })).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Not available' })).toBeDisabled();
   expect(screen.queryByRole('progressbar')).toBeNull();
@@ -129,6 +130,33 @@ test('the components page shows a choice to make, busy with the buttons, and one
   expect(never()[1]).toBeDisabled();
   await fireEvent.press(screen.getByRole('button', { name: 'Start or stop it' }));
   expect(never()[0]).toBeBusy();
+});
+
+test('the components page brings notices for a screen reader to say', async () => {
+  await renderScreen(<ComponentsScreen />);
+  const press = (name: string) => fireEvent.press(screen.getByRole('button', { name }));
+  // The page's field shows its fault, an alert too: the notices are found by their text.
+  const FIRST = 'The robot did not answer.';
+  const SECOND = 'The robot still did not answer.';
+  const NEWS = 'The robot has a new reminder.';
+  const alert = (name: string) => screen.queryByRole('alert', { name });
+  const status = () => screen.queryByRole('status', { name: NEWS });
+  expect(alert(FIRST)).toBeNull();
+  await press('Fail');
+  expect(alert(FIRST)).toBeOnTheScreen();
+  await press('Fail');
+  expect(alert(SECOND)).toBeOnTheScreen();
+  expect(alert(FIRST)).toBeNull();
+  await press('Clear');
+  expect(alert(SECOND)).toBeNull();
+  await press('Tell');
+  expect(status()).toBeOnTheScreen();
+  expect(alert(FIRST)).toBeNull();
+  await press('Clear');
+  expect(status()).toBeNull();
+  await press('Both at once');
+  expect(alert(FIRST)).toBeOnTheScreen();
+  expect(status()).toBeOnTheScreen();
 });
 
 test('the motion page adds and removes items', async () => {

@@ -7,6 +7,7 @@ import {
   Button,
   ChoiceList,
   CODE_SIZE,
+  Notice,
   Press,
   QrCode,
   Screen,
@@ -22,8 +23,8 @@ type Speaking = (typeof SPEAKING)[number];
 
 /**
  * The components, to press and feel: buttons of every weight and state, rows, fields, choices,
- * which the button that starts and stops waiting makes busy too, and a QR code, for another
- * phone to read.
+ * which the button that starts and stops waiting makes busy too, notices for screen readers to
+ * say, and a QR code, for another phone to read.
  */
 export function ComponentsScreen() {
   const text = useText();
@@ -31,6 +32,9 @@ export function ComponentsScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('linh@');
   const [speaks, setSpeaks] = useState<Speaking>('asked');
+  // A failure that says one thing, then another; and news.
+  const [failure, setFailure] = useState<'first' | 'second'>();
+  const [news, setNews] = useState(false);
   const nothing = () => {};
   const speaking = SPEAKING.map((value) => ({
     value,
@@ -108,6 +112,46 @@ export function ComponentsScreen() {
           disabled
         />
       </View>
+      <Section title={text('studio.components.notices')}>
+        <View style={styles.buttons}>
+          <Button
+            variant="secondary"
+            label={text('studio.components.notice.fail')}
+            onPress={() => setFailure((now) => (now === 'first' ? 'second' : 'first'))}
+          />
+          <Button
+            variant="secondary"
+            label={text('studio.components.notice.tell')}
+            onPress={() => setNews(true)}
+          />
+          <Button
+            variant="secondary"
+            label={text('studio.components.notice.both')}
+            onPress={() => {
+              setFailure('first');
+              setNews(true);
+            }}
+          />
+          <Button
+            variant="plain"
+            label={text('studio.components.notice.clear')}
+            onPress={() => {
+              setFailure(undefined);
+              setNews(false);
+            }}
+          />
+          {failure !== undefined && (
+            <Notice role="alert" ink="danger">
+              {text(`studio.components.notice.alert.${failure}`)}
+            </Notice>
+          )}
+          {news && (
+            <Notice role="status" ink="textMuted">
+              {text('studio.components.notice.status')}
+            </Notice>
+          )}
+        </View>
+      </Section>
       <Section title={text('studio.components.code')}>
         <View style={styles.code}>
           <QrCode

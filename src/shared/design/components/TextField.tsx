@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
-import { useEffect, useState, type ComponentRef, type Ref } from 'react';
+import { useState, type ComponentRef, type Ref } from 'react';
 import {
-  AccessibilityInfo,
   StyleSheet,
   TextInput,
   View,
@@ -14,6 +13,7 @@ import { useTheme } from '../DesignProvider';
 import { RADIUS, RING_WIDTH, SPACE, TARGET } from '../layout';
 import { DISABLED_OPACITY } from '../palette';
 import { TYPE } from '../typography';
+import { Notice } from './Notice';
 import { Text } from './Text';
 
 /** What a field holds: the keyboard, and what the phone may fill it with, follow from it. */
@@ -103,12 +103,6 @@ export function TextField({
   const note = error ?? hint;
   const width = focused || faulty ? RING_WIDTH : LINE;
   const line = faulty ? color.danger : focused ? color.accent : color.outline;
-  // iOS has no live regions: the message is announced when it comes.
-  useEffect(() => {
-    if (error !== undefined) {
-      AccessibilityInfo.announceForAccessibility(error);
-    }
-  }, [error]);
   return (
     <View style={[styles.field, disabled && styles.disabled, style]}>
       <View aria-hidden>
@@ -142,10 +136,16 @@ export function TextField({
           },
         ]}
       />
-      {note !== undefined && (
-        <Text variant="caption" ink={faulty ? 'danger' : 'textMuted'} aria-live="polite">
-          {note}
-        </Text>
+      {error !== undefined ? (
+        <Notice role="alert" variant="caption" ink="danger">
+          {error}
+        </Notice>
+      ) : (
+        hint !== undefined && (
+          <Text variant="caption" ink="textMuted">
+            {hint}
+          </Text>
+        )
       )}
     </View>
   );
