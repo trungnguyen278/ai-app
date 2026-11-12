@@ -30,3 +30,8 @@ test('reads stay fresh for the configured time, and changes are never sent again
   expect(defaults.queries?.staleTime).toBe(queries.stale_time * 1000);
   expect(defaults.mutations?.retry).toBe(false);
 });
+
+// The cache's timers would keep Jest from exiting (tests/setup.ts): no client of the tests has one.
+test('the tests’ clients start no timer to forget an answer, so that Jest exits', () => {
+  expect(newQueryClient(queries).getDefaultOptions().queries?.gcTime).toBe(Infinity);
+});

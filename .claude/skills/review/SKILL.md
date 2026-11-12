@@ -70,7 +70,7 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 - Invisible characters in source, such as MF2's isolating marks (U+2066 to U+2069), are written as escapes, which a reviewer can see. Some editing tools write the character itself: check the file's bytes.
 - TanStack Query shows a mutation's pending state a tick after `mutate`: a test waits for it (`waitFor`). To see a screen while the cloud is asked, a transport holds the request until the test lets it go.
 - `jest.restoreAllMocks` restores spies only (jest-mock 30): the `jest.fn()`s of a `jest.mock` factory keep their calls from test to test, so a file that asserts a call did not happen clears them first (`jest.clearAllMocks`).
-- A test file run alone, as a mutant's run does, runs in band, and Jest waits for any handle left open; pass `--forceExit`.
+- A timer or handle left open keeps Jest from exiting ("did not exit one second after the test run"): never `--forceExit`. End it where it starts: the cache's `gcTime` is `Infinity` for every client of the tests (`tests/setup.ts`); a new timer is found by wrapping `setTimeout` in a probe and printing the stacks of those still live after the file.
 - What a screen reader hears is tested on each platform, with `jest.replaceProperty(Platform, 'OS', …)`, restored after each test (`jest.restoreAllMocks`). A test that renders again uses `rerender`, which keeps `renderScreen`'s providers.
 
 ### Repository rules (CONTRIBUTING.md, AGENTS.md)

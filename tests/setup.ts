@@ -33,6 +33,27 @@ jest.mock('expo-network', () => ({
   getNetworkStateAsync: async () => ({ isConnected: true, isInternetReachable: true }),
 }));
 
+// The cache forgets an answer nobody reads after `gcTime`, with a timer that keeps Node, and so
+// Jest, from exiting ("did not exit one second after the test run"). TanStack Query's guide to
+// testing: set `gcTime` to `Infinity` with Jest, which starts no timer. Every client the tests
+// make starts so, whichever code makes it.
+jest.mock('@tanstack/react-query', () => {
+  const actual =
+    jest.requireActual<typeof import('@tanstack/react-query')>('@tanstack/react-query');
+  class TestQueryClient extends actual.QueryClient {
+    constructor(config: ConstructorParameters<typeof actual.QueryClient>[0] = {}) {
+      super({
+        ...config,
+        defaultOptions: {
+          ...config.defaultOptions,
+          queries: { gcTime: Infinity, ...config.defaultOptions?.queries },
+        },
+      });
+    }
+  }
+  return { ...actual, QueryClient: TestQueryClient };
+});
+
 setUpTests();
 
 // The tests run as a build of the development app, not as Expo Go: its own links start with its
