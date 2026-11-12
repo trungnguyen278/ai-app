@@ -14,6 +14,9 @@
   },
   "dependencies": {
     "@expo-google-fonts/be-vietnam-pro": "^0.4.1",
+    "@noble/ciphers": "2.4.0",
+    "@noble/curves": "2.4.0",
+    "@noble/hashes": "2.4.0",
     "@shopify/react-native-skia": "2.14.0",
     "@tanstack/react-query": "^5.105.3",
     "ajv": "^8.20.0",

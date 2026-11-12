@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: MIT
 // The protocols that the app speaks, as ai-platform's schemas define them (ADR-0004): their
 // types, and the checks of their bodies. The app checks every body it receives (SEC-14), and
-// the simulated cloud every body it is sent, as the cloud does. `npm run protocols` makes both
-// from the schemas pinned at platform/.
+// the simulated cloud every body it is sent, as the cloud does; so do set-up's client and its
+// simulated device, for every message. `npm run protocols` makes both from the schemas pinned at
+// platform/.
 import type { ErrorObject } from 'ajv';
 
 import * as appChecks from './generated/app-checks';
 import type { Check } from './generated/app-checks';
+import * as setupChecks from './generated/setup-checks';
 
 export type * as App from './generated/app';
+export type * as Setup from './generated/setup';
 
 /** The checks of the app API's bodies, and of the objects within them, by their definition. */
 export type AppChecks = typeof appChecks;
@@ -18,6 +21,16 @@ const APP_CHECKS: AppChecks = appChecks;
 
 /** The body that the app API's definition `K` describes. */
 export type AppBody<K extends AppDefinition> = AppChecks[K] extends Check<infer T> ? T : never;
+
+/** The checks of set-up's messages, and of the objects within them, by their definition. */
+export type SetupChecks = typeof setupChecks;
+/** A definition of set-up that has a check. */
+export type SetupDefinition = keyof SetupChecks;
+const SETUP_CHECKS: SetupChecks = setupChecks;
+
+/** The value that set-up's definition `K` describes. */
+export type SetupBody<K extends SetupDefinition> =
+  SetupChecks[K] extends Check<infer T> ? T : never;
 
 /**
  * A body that its definition refuses. The message says where and which rule, never the value,
@@ -36,7 +49,18 @@ export class ProtocolError extends Error {
 
 /** `body`, as the app API's `definition` describes it; `ProtocolError` if it is not one. */
 export function checked<K extends AppDefinition>(definition: K, body: unknown): AppBody<K> {
-  const check = APP_CHECKS[definition] as Check<AppBody<K>>;
+  return checkedBy(definition, APP_CHECKS[definition] as Check<AppBody<K>>, body);
+}
+
+/** `message`, as set-up's `definition` describes it; `ProtocolError` if it is not one. */
+export function setupChecked<K extends SetupDefinition>(
+  definition: K,
+  message: unknown,
+): SetupBody<K> {
+  return checkedBy(definition, SETUP_CHECKS[definition] as Check<SetupBody<K>>, message);
+}
+
+function checkedBy<T>(definition: string, check: Check<T>, body: unknown): T {
   if (check(body)) {
     return body;
   }

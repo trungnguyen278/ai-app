@@ -79,6 +79,16 @@ src/<module>/
 
 Steps 5 and 6 need the owner's sign-in and the app ⇄ cloud protocol, which ai-platform decides.
 
+### The session, in `setup`
+
+- **`domain/`**: set-up 2.0 itself, without I/O: the fragments (`fragments.ts`), SPAKE2+ (`spake2plus.ts`), the context, the session keys and AES-GCM (`channel.ts`), the messages, checked against the schema (`messages.ts`), the set-up string and the typed code (`code.ts`), and what a session can end in (`errors.ts`). The cryptography is noble's ([ADR-0006](decisions/0006-set-up-cryptography.md)).
+- **`ports/link.ts`**: what set-up needs of the radio, a link to one device's set-up service, its indications enabled: write a fragment, hear the device's, close.
+- **`services/session.ts`**: the app's side. `greet` says hello and gives the device's discriminator; `exchange` runs SPAKE2+ with the code, then `info`; `Session` sends the requests, encrypted, one at a time.
+  - Every message the device sends is checked: its fragments, its JSON, its schema, its `seq` and `reply_to`, its encryption. Anything else ends the session (`SessionLost`, `broken`), as does a link that ends (`ended`) or no answer within `[setup].answer_timeout` (`timeout`).
+  - A device's error comes as `DeviceRefused`, with its code, and leaves the session open; a wrong confirmation of the device's, as `NotConfirmed`.
+  - The app ends a session by disconnecting: it sends no error of its own.
+- **`adapters/simulated/device.ts`**: a device in set-up, in memory, as the robot runs it: its code and discriminator, drawn again after a failed attempt; one session at a time; its networks, settings and key; and every error the protocol names.
+
 ## Security and privacy
 
 - **The owner's session** lives in secure storage: its refresh token, under a name of the cloud's own; its access token only in memory.
@@ -138,5 +148,6 @@ ai-app/
 | [0003](decisions/0003-interface-and-motion.md) | The interface: the robot's visual language, in motion |
 | [0004](decisions/0004-talking-to-the-cloud.md) | Talking to ai-cloud: types and checks made from the protocol, one client, a session in secure storage |
 | [0005](decisions/0005-checks-for-every-definition.md) | The app API's checks: one for every definition |
+| [0006](decisions/0006-set-up-cryptography.md) | Set-up's cryptography: noble's libraries, in JavaScript, and the phone's randomness |
 | [ai-platform 0007](https://github.com/trungnguyen278/ai-platform/blob/main/docs/decisions/0007-catalogs.md) | The catalogs: Unicode MessageFormat 2, one JSON file per language |
 | [ai-platform 0008](https://github.com/trungnguyen278/ai-platform/blob/main/docs/decisions/0008-sign-in.md), [0009](https://github.com/trungnguyen278/ai-platform/blob/main/docs/decisions/0009-people-in-a-home.md) | The owners' sign-in, and the people in a home, which the app API carries ([`platform/protocols/app/`](https://github.com/trungnguyen278/ai-platform/blob/main/protocols/app/README.md)) |
