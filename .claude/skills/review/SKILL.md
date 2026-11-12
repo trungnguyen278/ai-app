@@ -71,6 +71,7 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 - TanStack Query shows a mutation's pending state a tick after `mutate`: a test waits for it (`waitFor`). To see a screen while the cloud is asked, a transport holds the request until the test lets it go.
 - `jest.restoreAllMocks` restores spies only (jest-mock 30): the `jest.fn()`s of a `jest.mock` factory keep their calls from test to test, so a file that asserts a call did not happen clears them first (`jest.clearAllMocks`).
 - A test file run alone, as a mutant's run does, runs in band, and Jest waits for any handle left open; pass `--forceExit`.
+- A package can add Android permissions the app does not use (`expo-file-system` asked for storage): `tests/manifest.test.ts` holds the allowlist, read from Expo's introspection. A new package that changes it is a decision: keep the permission, with its reason, or add it to `BLOCKED_ANDROID_PERMISSIONS` in `app.config.ts`.
 - What a screen reader hears is tested on each platform, with `jest.replaceProperty(Platform, 'OS', …)`, restored after each test (`jest.restoreAllMocks`). A test that renders again uses `rerender`, which keeps `renderScreen`'s providers.
 
 ### Repository rules (CONTRIBUTING.md, AGENTS.md)

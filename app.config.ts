@@ -157,6 +157,12 @@ function ordinary(value: unknown): unknown {
   return value;
 }
 
+/** The Android permissions the app never uses, which the build removes from its manifest. */
+export const BLOCKED_ANDROID_PERMISSIONS = [
+  'android.permission.READ_EXTERNAL_STORAGE',
+  'android.permission.WRITE_EXTERNAL_STORAGE',
+];
+
 /** The languages the app has catalogs for, from locales/: the system offers them to people. */
 export function catalogLanguages(directory = LOCALES_DIR): string[] {
   return readdirSync(directory)
@@ -208,7 +214,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     version,
     // The app follows the phone's light or dark appearance (ADR-0003).
     userInterfaceStyle: 'automatic',
-    android: { package: app.android_package },
+    android: {
+      package: app.android_package,
+      // Storage is not read or written outside the app's own folders, which need no permission.
+      // Expo's template and expo-file-system (a dependency of `expo`) ask for both up to Android
+      // 12L; Expo's way to remove what packages add is to block it (`android.blockedPermissions`).
+      blockedPermissions: BLOCKED_ANDROID_PERMISSIONS,
+    },
     ios: {
       bundleIdentifier: app.ios_bundle_identifier,
       // What iOS shows of the app in the person's language, from `locales` (Expo's guide to
