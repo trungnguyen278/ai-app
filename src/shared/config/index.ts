@@ -24,6 +24,12 @@ export interface QueriesSettings {
   stale_time: number;
 }
 
+/** How the app runs a device's set-up (config/base.toml, [setup]). */
+export interface SetupSettings {
+  /** Seconds the app waits for each of a device's answers. */
+  answer_timeout: number;
+}
+
 /** The settings app.config.ts puts in Expo's `extra`, from config/. */
 export interface RuntimeSettings {
   /** Whether the studio can be opened (ADR-0003): in the development app only. */
@@ -31,6 +37,7 @@ export interface RuntimeSettings {
   sign_in: SignInSettings;
   session: SessionSettings;
   queries: QueriesSettings;
+  setup: SetupSettings;
   /** How the app reaches ai-cloud (ADR-0004). */
   cloud: CloudSettings;
 }

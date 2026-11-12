@@ -41,6 +41,12 @@ retries = 3
 # Seconds that what a read brought stays fresh, before a screen showing it asks the cloud again.
 stale_time = 30
 
+[setup]
+# Seconds the app waits for each of a device's answers in set-up, before it ends the session.
+# Longer than the longest answer a device takes: a robot answers `join` within its join_timeout,
+# 60 seconds (ai-robot, config/base.toml, [modules.setup]).
+answer_timeout = 90
+
 [cloud]
 # The cloud that the app talks to (ADR-0004, decision 6): "simulated", the app API run inside
 # the app, in memory, which forgets everything when the app stops; or a cloud's address, such

@@ -3,7 +3,7 @@
   "title": "The app's configuration, once merged (config/base.toml)",
   "type": "object",
   "additionalProperties": false,
-  "required": ["app", "studio", "sign_in", "session", "queries", "cloud"],
+  "required": ["app", "studio", "sign_in", "session", "queries", "setup", "cloud"],
   "properties": {
     "sign_in": {
       "type": "object",
@@ -34,6 +34,14 @@
       "properties": {
         "retries": { "type": "integer", "minimum": 0 },
         "stale_time": { "type": "number", "minimum": 0 }
+      }
+    },
+    "setup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["answer_timeout"],
+      "properties": {
+        "answer_timeout": { "type": "number", "exclusiveMinimum": 0 }
       }
     },
     "app": {

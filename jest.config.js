@@ -14,6 +14,6 @@ module.exports = {
   // messageformat, culori and qr are published as ES modules only, so Jest transforms them like
   // Expo's own.
   transformIgnorePatterns: preset.transformIgnorePatterns.map((pattern) =>
-    pattern.replace('node_modules/(?!(', 'node_modules/(?!(messageformat|culori|qr/|'),
+    pattern.replace('node_modules/(?!(', 'node_modules/(?!(messageformat|culori|qr/|@noble/|'),
   ),
 };

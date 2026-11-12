@@ -31,6 +31,9 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 - A device or a cloud that does not answer, answers late or answers twice leaves the app usable, and the owner is told what happened.
 - Only what the protocol makes safe to repeat is sent again: a request with an Idempotency-Key, with the same key each time. A refresh token works once, so a refresh is never retried.
 - A simulated device or cloud keeps to the real one: the protocol's examples replay against it, and it refuses what the real one refuses, in the same order.
+- A set-up session over a link: an answer can come before the app has written all it meant to, such as the device's error to the confirmation, in the clear. The app then stops writing, reads it, and takes in the clear only that error, before the device's first encrypted message. A link can also end before its listener is installed: the session ends at once.
+- What a device sends cannot grow the app's memory: a fragment while nothing is asked ends the session before it is kept, and a message being joined takes the length it announced, checked first, however many fragments come. Fragments without data once piled up without end.
+- What is hashed or sealed is the exact bytes sent: set-up's context hashes both hellos as written. An example made by another JSON encoder, such as Python's spaced one, replays at the level of its parts, not of a whole session.
 - A change makes the cache read again everything it touches at the cloud, the effects the protocol names included: removing or demoting a person revokes their invitations. It does so whatever the answer, since a lost answer may hide a change made.
 
 ### Security and privacy
@@ -38,6 +41,7 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 - Secrets — the owner's session, a device's set-up code, the keys of a set-up session — stay in memory or in the phone's secure storage: never in plain files, logs, error reports or analytics.
 - A secret that a screen shows or sends, such as an invitation's code, stays in the cache only while that screen is open (`gcTime: 0`), and in no route but the link that brought it.
 - Every request is confined to the owner's homes and their devices (SEC-6).
+- An error names what failed, never a value: no code, password, network or name, and no length or size taken from the data (SEC-5).
 - The app asks for a permission, such as Bluetooth or notifications, when it first needs it, and says why, in the owner's language.
   - The phone's own question, such as iOS's reason for the camera, comes from the catalogs too, through `NATIVE_MESSAGES` in `app.config.ts`, as plain text.
   - A plugin asks for nothing the app does not use: `npx expo config --type introspect` shows the permissions a build gets.
@@ -62,9 +66,10 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 ### Tests
 
 - Each behaviour change has a test that would fail on the old code; check it is not vacuous (an exact float compare that never matches, a loop that never runs).
-- A test of one rule isolates it. When two rules could refuse the same request, set them apart, or the test passes for the wrong reason: a fresh sign-in too old to be recent was also past its nonce's lifetime. A mutant of the rule shows it.
+- A test of one rule isolates it. When two rules could refuse the same request, set them apart, or the test passes for the wrong reason: a fresh sign-in too old to be recent was also past its nonce's lifetime; bytes that are no UTF-8 sat outside a JSON string, which JSON refused first. A mutant of the rule shows it.
 - What the build reads, `app.config.ts`, is tested through Expo's own reader (`getConfig`), as the build reads it: calling the function alone missed tables without a prototype, which broke the builds.
 - Protocol exchanges are tested against ai-platform's examples, and against a simulated device.
+- A fake keeps to its port's contract as the real adapter will: a fake link that skipped the listener of a link already ended hid a listener left installed. A rule that no session can reach today, such as a long message after the one that opens the channel, is tested on the unit that holds it, the `Conversation`.
 - No fixed sleeps to wait for readiness: wait for the condition, with a timeout.
 - A time reads the same on every machine: the tests run in UTC (`jest.config.js`), and the simulated cloud takes a clock.
 - Invisible characters in source, such as MF2's isolating marks (U+2066 to U+2069), are written as escapes, which a reviewer can see. Some editing tools write the character itself: check the file's bytes.

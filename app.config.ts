@@ -35,6 +35,7 @@ export interface Settings {
   sign_in: { providers: string[] };
   session: { refresh_margin: number };
   queries: { retries: number; stale_time: number };
+  setup: { answer_timeout: number };
   cloud: {
     address: string;
     plain_http: boolean;
@@ -65,8 +66,8 @@ export interface Settings {
 
 /** What the app reads of its settings while it runs, in Expo's `extra` (src/shared/config). */
 export function runtimeSettings(settings: Settings) {
-  const { sign_in, session, queries, cloud } = settings;
-  return { studio: settings.studio.enabled, sign_in, session, queries, cloud };
+  const { sign_in, session, queries, setup, cloud } = settings;
+  return { studio: settings.studio.enabled, sign_in, session, queries, setup, cloud };
 }
 
 /**
