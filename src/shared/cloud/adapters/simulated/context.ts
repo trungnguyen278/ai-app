@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 // What every endpoint of the simulated cloud shares: what it keeps and knows, who a request
-// speaks for, the ID tokens people sign in with, pages, and limits on rates.
+// speaks for, the ID tokens people sign in with, pages, limits on rates, and the first answers
+// that an Idempotency-Key brings back.
 import type { Rate, SimulatedSettings } from '../../settings';
+import type { CloudResponse } from '../../transport';
 import {
   pageAfter,
   pageToken,
@@ -31,9 +33,18 @@ export interface Principal {
   readonly sessionId: string;
 }
 
+/** A request's Idempotency-Key, and what makes its retries recognisable. */
+export interface Key {
+  key: string;
+  fingerprint: string;
+}
+
 // Fixed by the app API (README, Sessions): page sizes.
 const PAGE_SIZE_DEFAULT = 20;
 const PAGE_SIZE_MAX = 50;
+// Fixed by the app API (README, Requests): a UUID that the app makes, as a quoted string.
+const IDEMPOTENCY_KEY =
+  /^"([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})"$/;
 
 /** An ID token that does not verify, or not for this. */
 export class IdTokenRefused extends Error {
@@ -166,4 +177,52 @@ export function limitRate(context: Context, name: string, subject: string, rate:
   }
   times.push(context.now);
   context.state.asked.set(key, times);
+}
+
+/** The request's Idempotency-Key: 400 if it has none, or one that is not a quoted UUID. */
+export function idempotencyKey(request: Incoming): Key {
+  const match = IDEMPOTENCY_KEY.exec(request.header('idempotency-key') ?? '');
+  if (match === null) {
+    throw problem(400, 'Idempotency-Key must be one UUID, as a quoted string');
+  }
+  return {
+    key: match[1].toLowerCase(),
+    fingerprint: [request.method, request.path, request.raw].join('\n'),
+  };
+}
+
+/** The first answer to a retry, or undefined for a first request: 422 for a key that asked for
+ *  something else. */
+export function firstAnswer(
+  context: Context,
+  principal: Principal,
+  key: Key,
+): CloudResponse | undefined {
+  const first = context.state.firstAnswers.get(`${principal.accountId}\n${key.key}`);
+  const since = context.now - context.settings.idempotency_retention * 1000;
+  if (first === undefined || first.createTime < since) return undefined;
+  if (first.fingerprint !== key.fingerprint) {
+    throw problem(422, 'this key was used for another request');
+  }
+  return { ...first.response, headers: { ...first.response.headers } };
+}
+
+/** Keep `response` as the first answer to `key`, with the member it goes with and the device
+ *  it shows, if any; and give it. */
+export function keepFirstAnswer(
+  context: Context,
+  principal: Principal,
+  key: Key,
+  response: CloudResponse,
+  memberId: string,
+  deviceId?: string,
+): CloudResponse {
+  context.state.firstAnswers.set(`${principal.accountId}\n${key.key}`, {
+    fingerprint: key.fingerprint,
+    response: { ...response, headers: { ...response.headers } },
+    memberId,
+    deviceId,
+    createTime: context.now,
+  });
+  return response;
 }

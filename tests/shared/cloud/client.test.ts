@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // The app API's client (ADR-0004, decision 2), end to end on the simulated cloud: signing in,
-// renewing an access token, what each refusal becomes, and the retries that an Idempotency-Key
-// makes safe.
+// renewing an access token, what each refusal becomes, the retries that an Idempotency-Key
+// makes safe, and a device's way from its challenge to its removal.
 import { loadSettings } from '@/app.config';
 import {
   CloudClient,
@@ -19,6 +19,8 @@ import {
   type Transport,
 } from '@/src/shared/cloud';
 import { ProtocolError } from '@/src/shared/protocols';
+
+import { HELLO, Robot } from './robot';
 
 const SETTINGS: CloudSettings = (() => {
   const { cloud } = loadSettings('development');
@@ -362,4 +364,110 @@ test('a status of 500 or more is Unavailable, with how long to wait', async () =
   const error = (await refusal(client.account())) as Unavailable;
   expect(error).toBeInstanceOf(Unavailable);
   expect([error.status, error.retryAfter]).toEqual([503, 7]);
+});
+
+// Devices.
+
+const ROBOT = '4a4ce4bd-2853-43d8-98dc-3dc06daec6e5';
+
+/** A challenge from `client` for `homeId`, and `robot`'s registration with it. */
+async function registration(client: CloudClient, homeId: string, robot: Robot): Promise<string> {
+  const { challenge, server } = await client.createDeviceChallenge(homeId);
+  return robot.register(challenge, server);
+}
+
+test('a device is added with a challenge, taken back, read, renamed with its ETag, and removed', async () => {
+  const { person, spy, cloud } = setUp();
+  const { client } = await person('Linh');
+  const home = await client.createHome(HOME);
+  const robot = new Robot(ROBOT);
+  const challenge = await client.createDeviceChallenge(home.id);
+  expect([challenge.server, challenge.expires_in]).toEqual([
+    SETTINGS.simulated.server,
+    SETTINGS.simulated.challenge_lifetime,
+  ]);
+  // A challenge is no change that a retry could repeat: it has no key.
+  expect(spy.requests.at(-1)!.headers['idempotency-key']).toBeUndefined();
+  const first = await client.registerDevice(home.id, {
+    registration: robot.register(challenge.challenge, challenge.server),
+    name: 'Robot',
+  });
+  expect([first.added, first.device.id, first.device.name]).toEqual([true, ROBOT, 'Robot']);
+  expect(spy.requests.at(-1)!.headers['idempotency-key']).toMatch(/^"[0-9a-f-]{36}"$/);
+  // Set up again, as a device that lost what it kept: the cloud holds it in the home already.
+  const back = await client.registerDevice(home.id, {
+    registration: await registration(client, home.id, robot),
+  });
+  expect([back.added, back.device.name, back.device.etag]).toEqual([false, 'Robot', 'W/"1"']);
+  // The ETag goes back exactly as it came (ADR-0013).
+  const renamed = await client.updateDevice(home.id, ROBOT, { name: 'Bi' }, first.device.etag!);
+  expect(spy.requests.at(-1)!.headers['if-match']).toBe('W/"1"');
+  expect([renamed.name, renamed.etag]).toEqual(['Bi', 'W/"2"']);
+  const stale = (await refusal(
+    client.updateDevice(home.id, ROBOT, { name: 'Bo' }, first.device.etag!),
+  )) as Refused;
+  expect([stale.status, stale.stale]).toEqual([412, true]);
+  expect(cloud.connectDevice(robot.key, HELLO)).toBe(true);
+  expect(await client.device(home.id, ROBOT)).toMatchObject({
+    name: 'Bi',
+    ...HELLO,
+    connected: true,
+    etag: 'W/"2"',
+  });
+  const listed = await client.devices(home.id);
+  expect(spy.requests.at(-1)!.target).toBe(
+    `/app/v1/homes/${home.id}/devices?page_size=${SETTINGS.page_size}`,
+  );
+  expect(listed.devices.map((device) => device.id)).toEqual([ROBOT]);
+  await client.removeDevice(home.id, ROBOT);
+  const gone = (await refusal(client.device(home.id, ROBOT))) as Refused;
+  expect(gone.status).toBe(404);
+  expect(cloud.connectDevice(robot.key, HELLO)).toBe(false);
+});
+
+test('a registration whose answer was lost is sent again with its key, and gets the first answer', async () => {
+  const { person, spy, cloud } = setUp();
+  const { client } = await person('Linh');
+  const home = await client.createHome(HOME);
+  const signed = await registration(client, home.id, new Robot(ROBOT));
+  // The cloud adds the device, but its answer never arrives.
+  spy.instead.push(async (request) => {
+    await cloud.send(request);
+    throw new Unreachable('timeout');
+  });
+  const registered = await client.registerDevice(home.id, { registration: signed, name: 'Robot' });
+  expect([registered.added, registered.device.name]).toEqual([true, 'Robot']);
+  const [lost, retry] = spy.requests.slice(-2);
+  expect(retry.headers['idempotency-key']).toBe(lost.headers['idempotency-key']);
+  expect(retry.body).toBe(lost.body);
+});
+
+test("a device's refusals: a registration that does not verify, a device taken, a full home, a role", async () => {
+  const limited = { ...SETTINGS, simulated: { ...SETTINGS.simulated, devices_per_home: 1 } };
+  const { person } = setUp({ settings: limited });
+  const { client: owner } = await person('Linh');
+  const { client: member } = await person('Minh');
+  const home = await owner.createHome(HOME);
+  await member.acceptInvitation((await owner.createInvitation(home.id)).code);
+  const robot = new Robot(ROBOT);
+  const { challenge } = await owner.createDeviceChallenge(home.id);
+  const elsewhere = robot.register(challenge, 'https://elsewhere.example');
+  const invalid = (await refusal(
+    owner.registerDevice(home.id, { registration: elsewhere }),
+  )) as Refused;
+  expect([invalid.status, invalid.is('registration_invalid')]).toEqual([400, true]);
+  await owner.registerDevice(home.id, { registration: await registration(owner, home.id, robot) });
+  const other = await owner.createHome({ ...HOME, name: 'Nhà Đà Lạt' });
+  const taken = (await refusal(
+    owner.registerDevice(other.id, { registration: await registration(owner, other.id, robot) }),
+  )) as Refused;
+  expect([taken.status, taken.is('device_taken')]).toEqual([409, true]);
+  const second = new Robot('4a4ce4bd-2853-43d8-98dc-000000000002');
+  const full = (await refusal(
+    owner.registerDevice(home.id, { registration: await registration(owner, home.id, second) }),
+  )) as Refused;
+  expect([full.status, full.is('device_limit_reached')]).toEqual([409, true]);
+  const role = (await refusal(member.createDeviceChallenge(home.id))) as Refused;
+  expect([role.status, role.is('role_required')]).toEqual([403, true]);
+  expect((await member.devices(home.id)).devices.map((device) => device.id)).toEqual([ROBOT]);
 });

@@ -58,8 +58,12 @@ export interface Settings {
       invitation_lifetime: number;
       invitations_per_home: number;
       id_token_lifetime: number;
+      server: string;
+      challenge_lifetime: number;
+      devices_per_home: number;
       nonce_rate: { limit: number; period: number };
       invitation_rate: { limit: number; period: number };
+      challenge_rate: { limit: number; period: number };
     };
   };
 }

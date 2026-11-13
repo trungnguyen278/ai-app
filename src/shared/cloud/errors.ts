@@ -15,6 +15,9 @@ export const PROBLEMS = [
   'home_limit_reached',
   'member_limit_reached',
   'invitation_limit_reached',
+  'registration_invalid',
+  'device_taken',
+  'device_limit_reached',
 ] as const;
 export type ProblemCode = (typeof PROBLEMS)[number];
 

@@ -30,6 +30,12 @@ export interface PageRequest {
 /** An invitation as the answer that makes it has it: with its code. */
 export type NewInvitation = App.Invitation & { code: App.InvitationCode };
 
+/** A device that a registration put in a home: `added` if it was not there already. */
+export interface Registered {
+  device: App.Device;
+  added: boolean;
+}
+
 /** An ID token just signed in, with Apple's authorization code if it is Apple's. */
 export interface FreshSignIn {
   idToken: string;
@@ -161,7 +167,7 @@ export interface Credentials {
   renew(refused: string): Promise<string | null>;
 }
 
-/** The app API's endpoints for a person signed in: their account, sessions and homes. */
+/** The app API's endpoints for a person signed in: their account, sessions, homes and devices. */
 export class CloudClient {
   private readonly newKey: () => string;
   private readonly sleep: (seconds: number) => Promise<void>;
@@ -393,6 +399,69 @@ export class CloudClient {
       answer: 'home',
     });
     return { home: body, joined: status === 201 };
+  }
+
+  // Devices.
+
+  async devices(homeId: string, page: PageRequest = {}): Promise<App.DeviceList> {
+    const path = `/homes/${segment(homeId)}/devices`;
+    return this.body({ ...this.list('devices', path, page), answer: 'device_list' });
+  }
+
+  async device(homeId: string, deviceId: string): Promise<App.Device> {
+    const path = `/homes/${segment(homeId)}/devices/${segment(deviceId)}`;
+    return this.body({ ...read('device', path), answer: 'device' });
+  }
+
+  /** A challenge for one device to sign at set-up, with the server it is to use. A retry makes
+   *  another, and the first expires unused. */
+  async createDeviceChallenge(homeId: string): Promise<App.DeviceChallenge> {
+    return this.body({
+      operation: 'createDeviceChallenge',
+      method: 'POST',
+      path: `${API}/homes/${segment(homeId)}/device-challenges`,
+      success: [201],
+      answer: 'device_challenge',
+    });
+  }
+
+  /** Relay the registration that a device signed at set-up; `added` is false when the device
+   *  was in the home already, as one that lost what it kept. */
+  async registerDevice(homeId: string, registration: App.DeviceRegistration): Promise<Registered> {
+    const { status, body } = await this.send({
+      operation: 'registerDevice',
+      method: 'POST',
+      path: `${API}/homes/${segment(homeId)}/devices`,
+      json: registration,
+      key: this.newKey(),
+      success: [200, 201],
+      answer: 'device',
+    });
+    return { device: body, added: status === 201 };
+  }
+
+  /** Change a device, if nobody changed it since `etag`: 412 otherwise. */
+  async updateDevice(
+    homeId: string,
+    deviceId: string,
+    changes: App.DeviceUpdate,
+    etag: string,
+  ): Promise<App.Device> {
+    return this.body({
+      operation: 'updateDevice',
+      method: 'PATCH',
+      path: `${API}/homes/${segment(homeId)}/devices/${segment(deviceId)}`,
+      json: changes,
+      ifMatch: etag,
+      success: [200],
+      answer: 'device',
+    });
+  }
+
+  /** Remove a device from the home, which unlinks it: the cloud forgets its key. */
+  async removeDevice(homeId: string, deviceId: string): Promise<void> {
+    const path = `/homes/${segment(homeId)}/devices/${segment(deviceId)}`;
+    await this.body(remove('removeDevice', path));
   }
 
   // How every request goes.

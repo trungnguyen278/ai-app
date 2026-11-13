@@ -1,15 +1,18 @@
 // SPDX-License-Identifier: MIT
 // What the simulated cloud keeps, in memory, and what it makes up: the app API's accounts,
-// sessions, homes and invitations (the app API, README), as ai-cloud keeps them.
+// sessions, homes, invitations and devices (the app API, README), as ai-cloud keeps them.
 import { base64url, cryptoRandom, fromBase64url, type Random } from '@/src/shared/bytes';
+
+import type { CloudResponse } from '../../transport';
 
 export { cryptoRandom, type Random };
 
 /** Milliseconds since 1970, as `Date.now` counts them. */
 export type Clock = () => number;
 
-// Random bytes in a nonce, a refresh token and an invitation's code (the app API's
-// $defs/nonce and $defs/invitation_code), and, as ai-cloud's, in an access token.
+// Random bytes in a nonce, a refresh token, an invitation's code and a device's challenge (the
+// app API's $defs/nonce, $defs/invitation_code and $defs/challenge), and, as ai-cloud's, in an
+// access token.
 export const TOKEN_BYTES = 32;
 // Fixed by the app API's schema: $defs/account, identities' maxItems.
 export const MAX_IDENTITIES = 16;
@@ -118,13 +121,48 @@ export interface Invitation {
   usedBy?: string;
 }
 
+/** What a device's latest hello said it is (the cloud link, Hello). */
+export interface Description {
+  kind: string;
+  model: string;
+  software: string;
+}
+
+/** A device in a home. */
+export interface Device {
+  /** The identifier the device made itself, in lower case. */
+  id: string;
+  homeId: string;
+  /** Its key's thumbprint (RFC 7638): the cloud knows the device by it. */
+  key: string;
+  /** Absent for one that an app of the app API 1.4 registered, until someone names it. */
+  name?: string;
+  /** Absent until its first hello. */
+  description?: Description;
+  /** Whether its control channel is open now. */
+  connected: boolean;
+  /** When it was registered into the home. */
+  createTime: number;
+  /** Its name alone changes it: its connections and its hello do not. */
+  version: number;
+}
+
+/** A challenge to register one device into a home, for the person who asked for it. */
+export interface Challenge {
+  homeId: string;
+  accountId: string;
+  expireTime: number;
+}
+
 /** The first answer to a request with an Idempotency-Key, for its retries. */
 export interface FirstAnswer {
   fingerprint: string;
-  status: number;
-  body: unknown;
-  /** The member it made: the answer goes with them. */
+  /** As it was answered, whatever changes after. */
+  response: CloudResponse;
+  /** The member it goes with: the one it made, or the one who registered a device. */
   memberId: string;
+  /** The device it shows, if any: it goes with it. */
+  deviceId?: string;
   createTime: number;
 }
 
@@ -140,6 +178,9 @@ export class State {
   readonly homes = new Map<string, Home>();
   readonly members = new Map<string, Member>();
   readonly invitations = new Map<string, Invitation>();
+  readonly devices = new Map<string, Device>();
+  /** By challenge. */
+  readonly challenges = new Map<string, Challenge>();
   /** By account, then key. */
   readonly firstAnswers = new Map<string, FirstAnswer>();
   /** The keys of the requests that still run, by account, then key. */
@@ -184,9 +225,16 @@ export class State {
   }
 
   /** Remove a person from their home, with the invitations they made or used, and what was
-   *  theirs there. */
+   *  theirs there: the first answers they were given, and their challenges. The devices they
+   *  added are the home's, and stay. */
   deleteMember(memberId: string): void {
+    const member = this.members.get(memberId);
     this.members.delete(memberId);
+    for (const [challenge, issued] of this.challenges) {
+      if (issued.homeId === member?.homeId && issued.accountId === member?.accountId) {
+        this.challenges.delete(challenge);
+      }
+    }
     for (const [id, invitation] of this.invitations) {
       if (invitation.invitedBy === memberId || invitation.usedBy === memberId) {
         this.invitations.delete(id);
@@ -197,12 +245,37 @@ export class State {
     }
   }
 
-  /** Delete a home, with its people and its invitations. */
+  /** Delete a home, with its people, its invitations and its devices, which are revoked. */
   deleteHome(homeId: string): void {
     for (const member of this.membersOf(homeId)) {
       this.deleteMember(member.id);
     }
+    for (const device of this.devicesOf(homeId)) {
+      this.deleteDevice(device.id);
+    }
     this.homes.delete(homeId);
+  }
+
+  /** The home's devices, in the order of their identifiers. */
+  devicesOf(homeId: string): Device[] {
+    return sorted([...this.devices.values()].filter((device) => device.homeId === homeId));
+  }
+
+  /** The device that holds the key with this thumbprint, if any. */
+  deviceWithKey(key: string): Device | undefined {
+    for (const device of this.devices.values()) {
+      if (device.key === key) return device;
+    }
+    return undefined;
+  }
+
+  /** Remove a device, which revokes it: the cloud forgets its key, and the first answers that
+   *  show it. Its control channel ends with it. */
+  deleteDevice(deviceId: string): void {
+    for (const [key, answer] of this.firstAnswers) {
+      if (answer.deviceId === deviceId) this.firstAnswers.delete(key);
+    }
+    this.devices.delete(deviceId);
   }
 }
 

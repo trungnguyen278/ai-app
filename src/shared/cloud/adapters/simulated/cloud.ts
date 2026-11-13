@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// The simulated cloud (ADR-0004, decision 3): the app API 1.2 in memory, behind the transport
+// The simulated cloud (ADR-0004, decision 3): the app API 1.6 in memory, behind the transport
 // port, as ai-cloud serves it. The development app runs on it with no cloud, and the tests run
 // on it end to end; ai-platform's examples are replayed against it, as against ai-cloud, so
 // that it keeps to the protocol. It is a development cloud: its provider signs anyone in, and it
@@ -9,8 +9,10 @@ import type { CloudRequest, CloudResponse, Method, Transport } from '../../trans
 import * as accounts from './accounts';
 import type { Person, ProviderSignIn } from './accounts';
 import type { Context } from './context';
+import * as devices from './devices';
 import * as homes from './homes';
-import { cryptoRandom, State, Uuids, type Clock, type Random } from './model';
+import { cryptoRandom, State, Uuids, type Clock, type Description, type Random } from './model';
+import type { PublicJwk } from './registration';
 import { Answered, Incoming, problem } from './wire';
 
 type Handler = (context: Context, request: Incoming, parameters: string[]) => CloudResponse;
@@ -44,6 +46,12 @@ const ROUTES: readonly (readonly [Method, RegExp, Handler])[] = [
   ['DELETE', new RegExp(`^/app/v1/homes/${ID}/invitations/${ID}$`), homes.revokeInvitation],
   ['POST', /^\/app\/v1\/invitations:lookup$/, homes.lookUpInvitation],
   ['POST', /^\/app\/v1\/invitations:accept$/, homes.acceptInvitation],
+  ['POST', new RegExp(`^/app/v1/homes/${ID}/device-challenges$`), devices.issueChallenge],
+  ['GET', new RegExp(`^/app/v1/homes/${ID}/devices$`), devices.listDevices],
+  ['POST', new RegExp(`^/app/v1/homes/${ID}/devices$`), devices.registerDevice],
+  ['GET', new RegExp(`^/app/v1/homes/${ID}/devices/${ID}$`), devices.readDevice],
+  ['PATCH', new RegExp(`^/app/v1/homes/${ID}/devices/${ID}$`), devices.renameDevice],
+  ['DELETE', new RegExp(`^/app/v1/homes/${ID}/devices/${ID}$`), devices.removeDevice],
 ];
 
 /** What the simulated cloud takes from its surroundings, which tests replace. */
@@ -98,6 +106,20 @@ export class SimulatedCloud implements Transport {
    */
   signInWith(provider: 'google' | 'apple', person: Person, nonce: string): ProviderSignIn {
     return accounts.issueIdToken(this.context(), provider, person, nonce);
+  }
+
+  /**
+   * A simulated device opens its control channel, with the key it registered, and says what it
+   * is (the cloud link, Hello): false if the cloud holds no device with that key, as when it
+   * was removed.
+   */
+  connectDevice(key: PublicJwk, hello: Description): boolean {
+    return devices.connect(this.context(), key, hello);
+  }
+
+  /** A simulated device's control channel closes, as when the device stops. */
+  disconnectDevice(key: PublicJwk): void {
+    devices.disconnect(this.context(), key);
   }
 
   private serve(request: Incoming): CloudResponse {
