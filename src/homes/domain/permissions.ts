@@ -11,7 +11,8 @@ export interface Target {
   current: boolean;
 }
 
-/** Whether a person of `role` may change the home, invite people and add profiles. */
+/** Whether a person of `role` may change the home, add, rename and remove its devices, invite
+ *  people and add profiles. */
 export function mayManage(role: string | undefined): boolean {
   const known = roleOf(role);
   return known === 'owner' || known === 'admin';

@@ -57,7 +57,9 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 - Every text comes from the catalogs, and layouts hold longer translations and larger text sizes.
 - A catalog's text that becomes data, such as a default name the person may keep or a message they send, comes from `usePlainText`: MF2 isolates every value with invisible marks, which would be stored with it.
 - Dates and numbers are formatted by the catalogs' messages (`:datetime`, `:number`), never by hand. Hermes has no `Intl.PluralRules` (its IntlAPIs.md, read 2026-11-04): a message that selects a plural waits for a polyfill.
+  - `:datetime` formats a time whatever `dateFields` says (messageformat 4.1.0): a day alone is `:date`, with `fields` and `length`.
 - Every route guard names where it leads (`redirectTo`): without one, Expo Router leads to the first open route in its own order, by name.
+- A page that a link can open, as any route can, may have nothing behind it: after an action that leaves it, it goes back only when `router.canGoBack()`, and to the page above it otherwise.
 - A screen a link opens signs the person in on that screen (`SignInScreen`'s `reason`), so that the link keeps its place: a guard would replace it.
 - What people use has a label for screen readers, and enough contrast in the light and dark themes.
 - A message that appears or changes, such as a failure or what a change did, is a `Notice`, which each platform's screen reader says. A role alone says nothing on iOS, and React Native's `Text` drops `aria-live` (only its `View` maps it). An Android live region speaks a change to a view already on the screen, not a view that arrives with its text; and a `View` with nothing but a live region is flattened away.
@@ -79,6 +81,7 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 - Invisible characters in source, such as MF2's isolating marks (U+2066 to U+2069), are written as escapes, which a reviewer can see. Some editing tools write the character itself: check the file's bytes.
 - TanStack Query shows a mutation's pending state a tick after `mutate`: a test waits for it (`waitFor`). To see a screen while the cloud is asked, a transport holds the request until the test lets it go.
 - `jest.restoreAllMocks` restores spies only (jest-mock 30): the `jest.fn()`s of a `jest.mock` factory keep their calls from test to test, so a file that asserts a call did not happen clears them first (`jest.clearAllMocks`).
+- React Native Testing Library 14 renders and unmounts asynchronously: a test awaits `unmount`, or its `act` overlaps the next render, and the tests after it fail.
 - A test file run alone, as a mutant's run does, runs in band, and Jest waits for any handle left open; pass `--forceExit`.
 - An error that the runtime throws, such as `TextDecoder`'s with `fatal`, can be of another realm's class under Jest: `instanceof TypeError` was false there, and a header that was no UTF-8 failed the simulated cloud instead of being refused. Catch such a call alone, without testing the class, as `readMessage` does.
 - What a screen reader hears is tested on each platform, with `jest.replaceProperty(Platform, 'OS', …)`, restored after each test (`jest.restoreAllMocks`). A test that renders again uses `rerender`, which keeps `renderScreen`'s providers.

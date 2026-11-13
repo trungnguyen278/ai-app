@@ -81,6 +81,7 @@ function Routes() {
         <Stack.Screen name="homes/[id]/invite" />
         <Stack.Screen name="homes/[id]/profiles/new" />
         <Stack.Screen name="homes/[id]/people/[memberId]" />
+        <Stack.Screen name="homes/[id]/devices/[deviceId]" />
         <Stack.Screen name="account" />
       </Stack.Protected>
       <Stack.Protected guard={!signedIn} redirectTo="/">

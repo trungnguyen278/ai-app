@@ -8,10 +8,19 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { renderRouter } from 'expo-router/testing-library';
+import { Alert, type AlertButton } from 'react-native';
+
+import * as connection from '@/src/shared/cloud/connect';
+
+import { signedIn, simulatedCloud } from './account/render';
+import { Robot } from './shared/cloud/robot';
 
 // The first render of the router loads every route, which can take a busy machine longer than
 // Jest's 5 seconds.
 jest.setTimeout(15_000);
+
+// The cloud a test holds goes back to the app's own.
+afterEach(() => jest.restoreAllMocks());
 
 // Every page in app/studio/, so that a new one cannot escape the guard.
 const STUDIO = readdirSync(join(__dirname, '..', 'app', 'studio'))
@@ -27,6 +36,15 @@ async function signIn(name = 'Linh') {
 
 test('signed out, the first screen is signing in', async () => {
   await renderRouter('app', { initialUrl: '/' });
+  expect(await screen.findByRole('header', { name: 'Sign in' })).toBeOnTheScreen();
+  expect(screen).toHavePathname('/sign-in');
+});
+
+test("signed out, a device's page leads to signing in", async () => {
+  await renderRouter('app', {
+    initialUrl:
+      '/homes/9b2f6d4e-3c1a-4e8b-9f7d-2a6c5e4b3d1f/devices/4a4ce4bd-2853-43d8-98dc-3dc06daec6e5',
+  });
   expect(await screen.findByRole('header', { name: 'Sign in' })).toBeOnTheScreen();
   expect(screen).toHavePathname('/sign-in');
 });
@@ -66,6 +84,53 @@ test('an owner adds a profile, finds it among the people, and opens its page', a
   await fireEvent.press(screen.getByRole('link', { name: /Bà/ }));
   expect(await screen.findByDisplayValue('Bà')).toBeOnTheScreen();
   expect(app.getPathname()).toMatch(new RegExp(`^${home}/people/[0-9a-f-]{36}$`));
+});
+
+/**
+ * Linh's home with the device Bi, on the app's simulated cloud, which the test holds to add the
+ * device as set-up does, and Linh signed in on the phone: the development provider knows the
+ * person by their email.
+ */
+async function signedInWithDevice() {
+  const cloud = simulatedCloud();
+  jest.spyOn(connection, 'cloudTransport').mockReturnValue(cloud);
+  const linh = await signedIn('Linh', cloud);
+  const home = await linh.api.createHome({
+    name: 'Nhà Linh',
+    time_zone: 'Asia/Ho_Chi_Minh',
+    languages: ['vi'],
+  });
+  const robot = new Robot('4a4ce4bd-2853-43d8-98dc-3dc06daec6e5');
+  const { challenge, server } = await linh.api.createDeviceChallenge(home.id);
+  const { device } = await linh.api.registerDevice(home.id, {
+    registration: robot.register(challenge, server),
+    name: 'Bi',
+  });
+  const app = await renderRouter('app', { initialUrl: '/' });
+  await fireEvent.changeText(await screen.findByTestId('sign-in-name'), 'Linh');
+  await fireEvent.changeText(screen.getByTestId('sign-in-email'), 'linh@example.com');
+  await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
+  return { app, home: `/homes/${home.id}`, page: `/homes/${home.id}/devices/${device.id}` };
+}
+
+test("the main screen shows the home's devices, each leading to its page", async () => {
+  const { app, page } = await signedInWithDevice();
+  await fireEvent.press(await screen.findByRole('link', { name: /Bi/ }));
+  expect(await screen.findByDisplayValue('Bi')).toBeOnTheScreen();
+  expect(app.getPathname()).toBe(page);
+});
+
+test("a device's page with no page behind it, as a link opens it, leads to the home once the device is removed", async () => {
+  const { app, home, page } = await signedInWithDevice();
+  await screen.findByRole('link', { name: /Bi/ });
+  await act(() => router.replace(page));
+  await screen.findByDisplayValue('Bi');
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  await fireEvent.press(screen.getByRole('button', { name: 'Remove from the home' }));
+  const buttons: AlertButton[] = alert.mock.calls[0][2]!;
+  await act(async () => buttons.find((button) => button.style === 'destructive')!.onPress!());
+  expect(await screen.findByText('No devices in this home yet.')).toBeOnTheScreen();
+  expect(app.getPathname()).toBe(home);
 });
 
 test("an invitation's link opens the app, signs the person in where it is, and joining opens the home", async () => {

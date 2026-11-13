@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 import { Stack, useLocalSearchParams } from 'expo-router';
 
+import { HomeDevices } from '@/src/devices';
 import { HomeScreen } from '@/src/homes';
 import { useText } from '@/src/shared/catalog';
 
@@ -11,7 +12,7 @@ export default function Home() {
   return (
     <>
       <Stack.Screen options={{ title: text('homes.title') }} />
-      <HomeScreen homeId={id} />
+      <HomeScreen homeId={id} devices={(home) => <HomeDevices home={home} />} />
     </>
   );
 }

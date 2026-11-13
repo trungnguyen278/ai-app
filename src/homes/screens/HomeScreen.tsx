@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 import { Link, router } from 'expo-router';
+import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
@@ -28,11 +29,15 @@ import { hasAccount, roleOf } from '../domain/people';
 import { mayManage } from '../domain/permissions';
 import { useHomes, useInvitations, useMembers, useRevokeInvitation } from '../services/homes';
 
+/** What other modules show of a home on its screen, above its people. */
+export type HomeSection = (home: App.Home) => ReactNode;
+
 /**
  * The home the person is in: `homeId`, or their first. As in Google's Home, the main screen is
- * one home, and the others are a step away. With none yet, a new owner is welcomed.
+ * one home, and the others are a step away. With none yet, a new owner is welcomed. `devices`
+ * shows the home's devices: the routes give it, since the devices module builds on this one.
  */
-export function HomeScreen({ homeId }: { homeId?: string }) {
+export function HomeScreen({ homeId, devices }: { homeId?: string; devices?: HomeSection }) {
   const text = useText();
   const homes = useHomes();
   if (homes.isPending) {
@@ -63,7 +68,7 @@ export function HomeScreen({ homeId }: { homeId?: string }) {
     return <Welcome />;
   }
   const home = homes.data.find((each) => each.id === homeId) ?? homes.data[0];
-  return <HomeView home={home} others={homes.data.length > 1} />;
+  return <HomeView home={home} others={homes.data.length > 1} devices={devices} />;
 }
 
 /**
@@ -110,10 +115,18 @@ function Welcome() {
 }
 
 /**
- * One home: its name, the person's role in it, and the people in it. Its owner and admins also
- * see the invitations not yet used, and invite people or add profiles.
+ * One home: its name, the person's role in it, its devices, and the people in it. Its owner and
+ * admins also see the invitations not yet used, and invite people or add profiles.
  */
-function HomeView({ home, others }: { home: App.Home; others: boolean }) {
+function HomeView({
+  home,
+  others,
+  devices,
+}: {
+  home: App.Home;
+  others: boolean;
+  devices?: HomeSection;
+}) {
   const text = useText();
   const members = useMembers(home.id);
   const manages = mayManage(home.role);
@@ -123,6 +136,7 @@ function HomeView({ home, others }: { home: App.Home; others: boolean }) {
         <Text variant="title">{home.name}</Text>
         <Text ink="textMuted">{text(`homes.role.${roleOf(home.role)}`)}</Text>
       </View>
+      {devices?.(home)}
       <View style={styles.section}>
         <Text variant="heading">{text('homes.people')}</Text>
         {members.isPending ? (

@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import { AccountButton } from '@/src/account';
+import { HomeDevices } from '@/src/devices';
 import { HomeScreen } from '@/src/homes';
 import { useText } from '@/src/shared/catalog';
 import { runtimeSettings } from '@/src/shared/config';
@@ -29,7 +30,7 @@ export default function Index() {
           ),
         }}
       />
-      <HomeScreen />
+      <HomeScreen devices={(home) => <HomeDevices home={home} />} />
     </>
   );
 }
