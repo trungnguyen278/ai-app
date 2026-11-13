@@ -1,6 +1,6 @@
 # Architecture
 
-> **Status:** accepted in [ADR-0002](decisions/0002-architecture.md) (the shape), on [ADR-0001](decisions/0001-platforms-and-framework.md) (the framework). Its skeleton is built: the routes, the catalogs and the foundation of the design system in `shared`, and the `studio`. So are the client of the app API, a home's devices included, with its simulated cloud, in `shared/cloud`; the cloud's cache, in `shared/queries`; `account`: signing in with the development provider, the session, and the person's account; and the first of `homes`: the main screen, which is one home and its people; creating a home; inviting people with a link or its QR code, and the invitations not yet used; adding profiles; joining a home from a link, a pasted one, or a QR code read with `shared/scanner`; and each person's page, to rename them, make them an admin or a member, or remove them, or to leave.
+> **Status:** accepted in [ADR-0002](decisions/0002-architecture.md) (the shape), on [ADR-0001](decisions/0001-platforms-and-framework.md) (the framework). Its skeleton is built: the routes, the catalogs and the foundation of the design system in `shared`, and the `studio`. So are the client of the app API, a home's devices included, with its simulated cloud, in `shared/cloud`; the cloud's cache, in `shared/queries`; `account`: signing in with the development provider, the session, and the person's account; and the first of `homes`: the main screen, which is one home and its people; creating a home; inviting people with a link or its QR code, and the invitations not yet used; adding profiles; joining a home from a link, a pasted one, or a QR code read with `shared/scanner`; and each person's page, to rename them, make them an admin or a member, or remove them, or to leave; and the first of `devices`: a home's devices on its screen, online or not, and each device's page, to rename it or remove it from the home.
 
 The app is how an owner reaches their devices and their home. It sets a device up, signs in to ai-cloud, manages homes and their people, changes settings and controls devices. One person builds it, for Android first and iOS from the same code (ADR-0001), and it serves every kind of device the project makes.
 
@@ -65,6 +65,7 @@ src/<module>/
 
 - **Through each other's `index.ts`**, and nothing else.
 - **What ai-cloud holds** goes through one query cache (TanStack Query). Screens share it, and it knows when to fetch again; no module keeps a copy of its own.
+- **A screen of one module that shows another's part** takes it as a slot that its route fills: the home's screen, in `homes`, shows its devices, from `devices`, which reads `homes` for the home and the person's role. Importing back would be a cycle, which the boundaries refuse.
 - **State that is the app's own** stays in the module that owns it, or in a small store when several modules need it.
 - **A device's session**, over Bluetooth LE, belongs to the module that opened it, and ends with the screen that needs it.
 
