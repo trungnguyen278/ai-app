@@ -26,20 +26,12 @@ const OUT = join(ROOT, 'src', 'shared', 'protocols', 'generated');
 // - `tellers`, the definitions of its schema that only tell bodies apart, which get no check of
 //   their own;
 // - `envelopes`, the definitions that check a whole message, by the type they are given: each
-//   message's `type` brings its own fields, through `if` and `then`, which TypeScript cannot say;
-// - `ajv`, what its schema needs of Ajv's strictness on top of `AJV_OPTIONS`.
+//   message's `type` brings its own fields, through `if` and `then`, which TypeScript cannot say.
 const PROTOCOLS = [
   // Each endpoint knows which body it takes and gives.
-  { name: 'app', tellers: /^from_(app|cloud)$/, envelopes: {}, ajv: {} },
+  { name: 'app', tellers: /^from_(app|cloud)$/, envelopes: {} },
   // A device's message comes before its type is known, so set-up checks each one whole.
-  // Its definitions for parts of a message, such as `named` and `answer`, constrain an object
-  // without saying `type: object`, which JSON Schema allows and Ajv's strictTypes refuses.
-  {
-    name: 'setup',
-    tellers: /^is_/,
-    envelopes: { from_app: 'Message', from_device: 'Message' },
-    ajv: { strictTypes: false },
-  },
+  { name: 'setup', tellers: /^is_/, envelopes: { from_app: 'Message', from_device: 'Message' } },
 ];
 // The identifier the schemas are given here, for Ajv to resolve their references: any URI.
 const BASE = 'https://ai-platform.invalid/protocols/';
@@ -72,7 +64,7 @@ async function format(source, file) {
 }
 
 /** The files to write for `protocol`, by path. */
-async function generate({ name, tellers, envelopes, ajv: strictness }) {
+async function generate({ name, tellers, envelopes }) {
   const path = join(PLATFORM, name, 'schema.json');
   const schema = JSON.parse(readFileSync(path, 'utf8'));
   const version = VERSION.exec(schema.title ?? '')?.[1];
@@ -101,7 +93,7 @@ async function generate({ name, tellers, envelopes, ajv: strictness }) {
     }
   }
 
-  const ajv = new Ajv2020({ ...AJV_OPTIONS, ...strictness });
+  const ajv = new Ajv2020(AJV_OPTIONS);
   ajv.addSchema({ ...schema, $id: id });
   const checks = standaloneCode(
     ajv,

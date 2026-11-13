@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// The code that a device shows, and the set-up string of its QR code (set-up 2.0, The code;
+// The code that a device shows, and the set-up string of its QR code (set-up 2.2, The code;
 // Finding the device). The code is a secret for the few minutes it lives: nothing here names it
 // in an error.
 import { CODE_DIGITS, major, PROTOCOL } from './protocol';

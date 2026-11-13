@@ -10,6 +10,7 @@ import * as appChecks from './generated/app-checks';
 import type { Check } from './generated/app-checks';
 import * as setupChecks from './generated/setup-checks';
 
+export { JSON_DEPTH, JsonError, readJson } from './json';
 export type * as App from './generated/app';
 export type * as Setup from './generated/setup';
 

@@ -3,7 +3,7 @@
 // decision 7) asks. Each error names the request and what happened, never a value: no code,
 // password, network or name (SEC-5).
 
-/** The error codes of set-up 2.0 that the app acts on (platform/protocols/setup/README.md). */
+/** The error codes of set-up 2.2 that the app acts on (platform/protocols/setup/README.md). */
 export const DEVICE_ERRORS = [
   'version',
   'busy',

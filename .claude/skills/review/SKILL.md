@@ -27,6 +27,8 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 
 - The protocol changed first, in ai-platform, and the submodule's pin moved with the code that speaks it.
 - Every message received is validated: its schema, its size, its numbers (finite), its strings (length); what fails is refused (SEC-14). Rates and sizes are limited (SEC-15).
+- Every JSON text received is read with `readJson` (`src/shared/protocols/json.ts`), never `JSON.parse`: it refuses what no side can hold (ai-platform ADR-0014), a U+0000, a lone surrogate, nesting past 64 or a number past a double, as one it cannot read. `JSON.parse` takes all of them, and an escaped lone surrogate passes a schema's patterns.
+- A device's name for a network goes as bytes: `ssid` only when they are UTF-8 without a NUL byte, `ssid_hex` otherwise, wherever a name goes. A set-up error replies to the message it is about whenever that message's `seq` can be read, even if the message breaks the schema.
 - A replayed message has no effect beyond its first one, and credentials expire (SEC-12).
 - A device or a cloud that does not answer, answers late or answers twice leaves the app usable, and the owner is told what happened.
 - Only what the protocol makes safe to repeat is sent again: a request with an Idempotency-Key, with the same key each time. A refresh token works once, so a refresh is never retried.

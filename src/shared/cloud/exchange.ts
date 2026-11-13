@@ -2,7 +2,14 @@
 // One request to the app API and its answer: the request as the protocol writes it, the answer
 // checked against the schema before anything reads it (SEC-14), and any other outcome as the
 // error that says what happened.
-import { checked, ProtocolError, type AppBody, type AppDefinition } from '@/src/shared/protocols';
+import {
+  checked,
+  JsonError,
+  ProtocolError,
+  readJson,
+  type AppBody,
+  type AppDefinition,
+} from '@/src/shared/protocols';
 
 import { OAuthRefused, Refused, Unavailable } from './errors';
 import {
@@ -98,10 +105,13 @@ function request(call: Call<AppDefinition | null>): CloudRequest {
   return { method: call.method, target: withQuery(call.path, call.query), headers, body };
 }
 
+/** The body `text`, as JSON that every side can hold (ADR-0014): one that the app cannot hold
+ * is one that it cannot read. */
 function parse(operation: string, text: string): unknown {
   try {
-    return JSON.parse(text);
-  } catch {
-    throw new ProtocolError(operation, '/', 'is not JSON');
+    return readJson(text);
+  } catch (error) {
+    if (!(error instanceof JsonError)) throw error;
+    throw new ProtocolError(operation, '/', error.message);
   }
 }

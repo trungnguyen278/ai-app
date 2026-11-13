@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// SPAKE2+ (RFC 9383), with the ciphersuite P256-SHA256-HKDF-SHA256-HMAC-SHA256, as set-up 2.0
+// SPAKE2+ (RFC 9383), with the ciphersuite P256-SHA256-HKDF-SHA256-HMAC-SHA256, as set-up 2.2
 // runs it (platform/protocols/setup/README.md, SPAKE2+): the app is the Prover, and a device the
 // Verifier. The cryptography is noble's (docs/decisions/0006-set-up-cryptography.md).
 import { mapHashToField } from '@noble/curves/abstract/modular.js';
