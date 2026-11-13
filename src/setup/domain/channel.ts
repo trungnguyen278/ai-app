@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// What set-up 2.0 encrypts, once the exchange is done (platform/protocols/setup/README.md, The
+// What set-up 2.2 encrypts, once the exchange is done (platform/protocols/setup/README.md, The
 // session): the context that names a session, its keys, and each message in AES-128-GCM.
 import { gcm } from '@noble/ciphers/aes.js';
 import { hkdf } from '@noble/hashes/hkdf.js';

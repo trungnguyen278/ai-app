@@ -26,7 +26,7 @@ The app is how an owner reaches their devices and their home. It sets a device u
                  └─────────────────────────────────────────┘
 ```
 
-- **Near a device, over Bluetooth LE:** set-up (set-up 2.0). Later, what must not go through the cloud, such as the classes of capabilities the cloud may use (SEC-9).
+- **Near a device, over Bluetooth LE:** set-up (set-up 2.2). Later, what must not go through the cloud, such as the classes of capabilities the cloud may use (SEC-9).
 - **Through ai-cloud, everything else:**
   - sign-in, homes and the devices' state;
   - the settings the cloud may change;
@@ -37,7 +37,7 @@ The app is how an owner reaches their devices and their home. It sets a device u
 
 | Module | Owns |
 |---|---|
-| `setup` | Finding a device in set-up, its code (from a QR code or typed), the SPAKE2+ session, the Wi-Fi network and first settings, and relaying the registration (set-up 2.0) |
+| `setup` | Finding a device in set-up, its code (from a QR code or typed), the SPAKE2+ session, the Wi-Fi network and first settings, and relaying the registration (set-up 2.2) |
 | `account` | Signing in to ai-cloud, the session, the owner's profile |
 | `homes` | Homes, their members and profiles, invitations ([ai-platform ADR-0005](https://github.com/trungnguyen278/ai-platform/blob/main/docs/decisions/0005-homes.md)) |
 | `devices` | A home's devices: their kind, model, state, health and updates, and what each declares |
@@ -81,7 +81,7 @@ Steps 5 and 6 need the owner's sign-in and the app ⇄ cloud protocol, which ai-
 
 ### The session, in `setup`
 
-- **`domain/`**: set-up 2.0 itself, without I/O: the fragments (`fragments.ts`), SPAKE2+ (`spake2plus.ts`), the context, the session keys and AES-GCM (`channel.ts`), the messages, checked against the schema (`messages.ts`), the set-up string and the typed code (`code.ts`), and what a session can end in (`errors.ts`). The cryptography is noble's ([ADR-0006](decisions/0006-set-up-cryptography.md)).
+- **`domain/`**: set-up 2.2 itself, without I/O: the fragments, never more than 512 bytes (`fragments.ts`), SPAKE2+ (`spake2plus.ts`), the context, the session keys and AES-GCM (`channel.ts`), the messages, read as JSON that every side can hold (`shared/protocols`' `readJson`, ai-platform ADR-0014) and checked against the schema (`messages.ts`), the set-up string and the typed code (`code.ts`), and what a session can end in (`errors.ts`). The cryptography is noble's ([ADR-0006](decisions/0006-set-up-cryptography.md)).
 - **`ports/link.ts`**: what set-up needs of the radio, a link to one device's set-up service, its indications enabled: write a fragment, hear the device's, close.
 - **`services/session.ts`**: the app's side. `greet` says hello and gives the device's discriminator; `exchange` runs SPAKE2+ with the code, then `info`; `Session` sends the requests, encrypted, one at a time.
   - Every message the device sends is checked: its fragments, its JSON, its schema, its `seq` and `reply_to`, its encryption. Anything else ends the session (`SessionLost`, `broken`), as does a link that ends (`ended`) or no answer within `[setup].answer_timeout` (`timeout`).
@@ -104,7 +104,7 @@ Steps 5 and 6 need the owner's sign-in and the app ⇄ cloud protocol, which ai-
 
 - **Unit and component tests:** Jest, with Expo's `jest-expo` preset, and React Native Testing Library.
 - **Protocols:** set-up's exchange is replayed from ai-platform's examples, byte for byte.
-- **A simulated device:** the device's side of set-up 2.0, in TypeScript, behind the Bluetooth LE port. Set-up then runs end to end in tests, and on a phone with no robot nearby.
+- **A simulated device:** the device's side of set-up 2.2, as the robot speaks it (ai-robot's `modules/setup.py` and `core/setup_session.py`), in TypeScript, behind the Bluetooth LE port. Set-up then runs end to end in tests, and on a phone with no robot nearby.
 - **A simulated cloud:** the app API in memory, behind the transport of `shared/cloud`. ai-platform's examples are replayed against it, as against ai-cloud.
 - **End to end:** Maestro, on an Android emulator and the iOS simulator, once the first flows exist.
 - **Boundaries:** dependency-cruiser in CI, as import-linter does in ai-cloud.

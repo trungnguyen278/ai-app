@@ -5,8 +5,8 @@ import { ProtocolError } from '@/src/shared/protocols';
 import { readDiscriminator, readSetupString, readTypedCode } from '@/src/setup/domain/code';
 import { DeviceRefused, NotConfirmed, SessionLost } from '@/src/setup/domain/errors';
 import { FragmentError, Joiner, split } from '@/src/setup/domain/fragments';
-import { decodeMessage, encodeMessage } from '@/src/setup/domain/messages';
-import { major } from '@/src/setup/domain/protocol';
+import { decodeMessage, encodeMessage, readMessage, seqOf } from '@/src/setup/domain/messages';
+import { major, MAX_FRAGMENT } from '@/src/setup/domain/protocol';
 
 const bytes = (count: number) => Uint8Array.from({ length: count }, (_, index) => index % 251);
 
@@ -40,6 +40,19 @@ describe('fragments', () => {
     const joined = fragments.map((fragment) => joiner.add(fragment));
     expect(joined[joined.length - 1]).toEqual(message);
     expect(joiner.add(split(bytes(3), 20)[0])).toEqual(bytes(3));
+  });
+
+  test('a fragment holds 512 bytes at most, whatever room the link has', () => {
+    // Android 14 asks for an ATT MTU of 517, which leaves 514 (set-up 2.2, The Bluetooth service).
+    expect(MAX_FRAGMENT).toBe(512);
+    const message = bytes(1500);
+    for (const size of [514, 4096]) {
+      const fragments = split(message, size);
+      expect(fragments.map((fragment) => fragment.length)).toEqual([512, 512, 481]);
+      const joiner = new Joiner();
+      expect(fragments.map((fragment) => joiner.add(fragment)).pop()).toEqual(message);
+    }
+    expect(split(message, 511).map((fragment) => fragment.length)).toEqual([511, 511, 483]);
   });
 
   test('a message of no byte, or too many, and a fragment too small, are refused', () => {
@@ -136,6 +149,33 @@ describe('messages', () => {
     expect(() => decodeMessage(encodeMessage({ type: 'join', seq: 1 }), 'from_app')).toThrow(
       ProtocolError,
     );
+  });
+
+  test('a message that no side can hold, or with a byte order mark, cannot be read', () => {
+    const utf8 = (text: string) => new TextEncoder().encode(text);
+    const nul = `{"type":"join","seq":1,"ssid":"a${String.fromCharCode(0x5c)}u0000b"}`;
+    expect(() => readMessage(utf8(nul), 'from_app')).toThrow(
+      new ProtocolError('from_app', '/', 'holds a U+0000 or a lone surrogate'),
+    );
+    const deep = `{"type":"info","seq":1,"x":${'['.repeat(64)}${']'.repeat(64)}}`;
+    expect(() => decodeMessage(utf8(deep), 'from_app')).toThrow(
+      new ProtocolError('from_app', '/', 'nests deeper than 64'),
+    );
+    const marked = Uint8Array.of(0xef, 0xbb, 0xbf, ...utf8('{"type":"info","seq":1}'));
+    expect(() => readMessage(marked, 'from_app')).toThrow(
+      new ProtocolError('from_app', '/', 'is not JSON'),
+    );
+    expect(() => readMessage(Uint8Array.of(0xff), 'from_device')).toThrow(
+      new ProtocolError('from_device', '/', 'is not UTF-8'),
+    );
+  });
+
+  test('a seq can be read from an object that has one, even if it breaks the schema', () => {
+    expect(seqOf({ type: 'nothing', seq: 7 })).toBe(7);
+    expect(seqOf({ seq: 1 })).toBe(1);
+    for (const value of [null, 7, [7], {}, { seq: 0 }, { seq: 1.5 }, { seq: '1' }]) {
+      expect(seqOf(value)).toBeUndefined();
+    }
   });
 });
 

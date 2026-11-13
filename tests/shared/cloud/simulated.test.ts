@@ -276,6 +276,15 @@ test('a request is refused for its body, its media type, its path, its method or
     headers: { 'content-type': 'application/json' },
   };
   expect(await status('PATCH', '/app/v1/account', patch)).toBe(400);
+  // A body that the cloud cannot hold, in a field that its schema leaves free (ADR-0014).
+  const free = (extra: string) => ({ ...patch, body: `{"display_name": "Linh", ${extra}}` });
+  expect(await status('PATCH', '/app/v1/account', free('"x": [[1]]'))).toBe(200);
+  expect(
+    await status('PATCH', '/app/v1/account', free(`"x": ${'['.repeat(64)}${']'.repeat(64)}`)),
+  ).toBe(400);
+  expect(
+    await status('PATCH', '/app/v1/account', free(`"a${String.fromCharCode(0x5c)}u0000": 1`)),
+  ).toBe(400);
   expect(
     await status('PATCH', '/app/v1/account', { token, json: { display_name: 'Lin\u0085h' } }),
   ).toBe(400);

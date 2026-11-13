@@ -26,7 +26,9 @@ export type DeviceInfo = Pick<Setup.Info, 'device' | 'bound' | 'network'>;
 export type Network = Setup.Network;
 /** The network the device is on. */
 export type NetworkStatus = Setup.NetworkStatus;
-/** The network to join: by its name, or by its name's bytes when they are not UTF-8. */
+/** The network to join, listed by `networks` or not: by its name, or by its name's bytes when they
+ * are not UTF-8 or hold a NUL byte. `hidden` makes the device probe for it by its name, which
+ * sends that name on the air, and then needs `security` (set-up 2.2, Networks). */
 export type JoinRequest = ({ ssid: string } | { ssid_hex: string }) & {
   password?: string;
   hidden?: boolean;
@@ -398,7 +400,7 @@ export class Session {
     return infoOf(message);
   }
 
-  /** The networks the device sees, after a scan, the strongest first. */
+  /** The networks the device sees, after a scan, but those that hide their name. */
   async networks(): Promise<Network[]> {
     const { message } = await this.conversation.ask('networks', [{ type: 'networks' }], 'networks');
     return (message as Setup.Message & Setup.Networks).networks;

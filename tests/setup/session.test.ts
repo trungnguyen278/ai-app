@@ -156,6 +156,24 @@ describe('a whole set-up, against the simulated device', () => {
     await expect(greet(device.connect(), options)).rejects.toThrow(
       new DeviceRefused('hello', 'busy'),
     );
+    // `busy` answers a second app's hello, whatever version it speaks, as its reply (set-up 2.1).
+    const second = device.connect();
+    const answers: Uint8Array[] = [];
+    const joiner = new Joiner();
+    second.listen({
+      fragment: (value) => {
+        const message = joiner.add(value);
+        if (message) answers.push(message);
+      },
+      closed: () => undefined,
+    });
+    for (const fragment of split(encodeMessage({ type: 'hello', seq: 1, protocol: '3.0' }), 20)) {
+      await second.write(fragment);
+    }
+    await settle();
+    expect(answers.map((answer) => decodeMessage(answer, 'from_device'))).toEqual([
+      expect.objectContaining({ type: 'error', seq: 1, reply_to: 1, code: 'busy' }),
+    ]);
     await running.close();
     await settle();
     const next = await greet(device.connect(), options);
@@ -257,6 +275,97 @@ describe('a whole set-up, against the simulated device', () => {
     await session.close();
   });
 
+  test('the device lists the networks it can name back, and gives names as set-up 2.2 does', async () => {
+    const many: SimulatedNetwork[] = Array.from({ length: 60 }, (_, index) => ({
+      ssid: `Network ${index}`,
+      security: 'wpa2',
+      signal: index,
+    }));
+    const device = exampleDevice({
+      networks: [
+        { ssid: 'Strong', security: 'open', signal: 100 },
+        // Hidden networks, as a scan finds them: no name, NUL bytes alone, or one space.
+        { ssid_hex: '00', security: 'wpa2', signal: 99 },
+        { ssid_hex: '000000', security: 'wpa2', signal: 99 },
+        { ssid: ' ', security: 'wpa2', signal: 99 },
+        // A name too long for set-up.
+        { ssid: 'é'.repeat(17), security: 'open', signal: 99 },
+        // A name that holds a NUL byte, one that is not UTF-8, and one that is, in hexadecimal.
+        { ssid_hex: '61006200', security: 'open', signal: 98 },
+        { ssid_hex: 'c3', security: 'open', signal: 97 },
+        { ssid_hex: '4361666520', security: 'open', signal: 96, password: 'x' },
+        { ssid: '  two ', security: 'open', signal: 95 },
+        // A name that begins with the bytes of a byte order mark keeps them.
+        { ssid_hex: 'efbbbf41', security: 'open', signal: 94 },
+        ...many,
+      ],
+    });
+    const { session } = await (await greet(device.connect(), options)).exchange(device.secret.code);
+    const networks = await session.networks();
+    expect(networks).toHaveLength(50);
+    expect(
+      networks.slice(0, 7).map((network) => network.ssid ?? `hex ${network.ssid_hex}`),
+    ).toEqual([
+      'Strong',
+      'hex 61006200',
+      'hex c3',
+      'Cafe ',
+      '  two ',
+      `${String.fromCharCode(0xfeff)}A`,
+      'Network 59',
+    ]);
+    // A name goes the same way wherever it goes: as the network the device is on, too.
+    expect(await session.join({ ssid_hex: '61006200' })).toEqual(
+      expect.objectContaining({ ssid_hex: '61006200' }),
+    );
+    expect(await session.join({ ssid: 'Cafe ' })).toEqual(
+      expect.objectContaining({ ssid: 'Cafe ' }),
+    );
+    // A network that `networks` did not list may be joined too, by its name.
+    expect(await session.join({ ssid: 'Network 0' })).toEqual(
+      expect.objectContaining({ ssid: 'Network 0' }),
+    );
+    // A name of more than 32 bytes is no network's: the device refuses it, and goes on.
+    await expect(session.join({ ssid: 'é'.repeat(17) })).rejects.toEqual(
+      expect.objectContaining({ operation: 'join', code: 'protocol' }),
+    );
+    expect((await session.info()).network).toEqual(expect.objectContaining({ ssid: 'Network 0' }));
+    await session.close();
+  });
+
+  test('fragments hold 512 bytes at most both ways, over a link that has more room', async () => {
+    const device = exampleDevice({ fragmentSize: 514 });
+    const link = device.connect();
+    const sizes: number[] = [];
+    const watched: Link = {
+      fragmentSize: link.fragmentSize,
+      write: (fragment) => {
+        sizes.push(fragment.length);
+        return link.write(fragment);
+      },
+      listen: (listener) =>
+        link.listen({
+          fragment: (value) => {
+            sizes.push(value.length);
+            listener.fragment(value);
+          },
+          closed: () => listener.closed(),
+        }),
+      close: () => link.close(),
+    };
+    expect(watched.fragmentSize).toBe(514);
+    const { session } = await (await greet(watched, options)).exchange(device.secret.code);
+    await session.configure({
+      languages: Array.from(
+        { length: 16 },
+        (_, index) => `en-${String(index).padStart(8, '0')}-abcdefgh-abcdefgh`,
+      ),
+    });
+    await session.register('c'.repeat(128), 'https://cloud.example');
+    await session.close();
+    expect(Math.max(...sizes)).toBe(512);
+  });
+
   test('requests wait for each other, and leave no timer behind', async () => {
     jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'] });
     try {
@@ -319,15 +428,32 @@ describe('the simulated device, driven by hand', () => {
         encodeMessage({ type: 'hello', seq: 2, protocol: '2.0' }),
         { code: 'protocol', reply_to: 2 },
       ],
-      [encodeMessage({ type: 'hello', seq: 1 }), { code: 'protocol' }],
+      [encodeMessage({ type: 'hello', seq: 1 }), { code: 'protocol', reply_to: 1 }],
+      [encodeMessage({ type: 'hello', seq: 1, protocol: 2 }), { code: 'protocol', reply_to: 1 }],
+      // A message whose seq cannot be read, or that no side can hold, gets no reply_to.
+      [encoder.encode('[1]'), { code: 'protocol', reply_to: undefined }],
+      [
+        encoder.encode('{"type":"hello","protocol":"2.2"}'),
+        { code: 'protocol', reply_to: undefined },
+      ],
+      [
+        encoder.encode('{"type":"hello","seq":0,"protocol":"2.2"}'),
+        { code: 'protocol', reply_to: undefined },
+      ],
+      [
+        encoder.encode(`{"type":"hello","seq":1,"protocol":"2.2","x":"${String.fromCharCode(0)}"}`),
+        { code: 'protocol', reply_to: undefined },
+      ],
     ];
     for (const [message, error] of cases) {
       const device = exampleDevice();
       const app = byHand(device);
       await app.send(message);
-      expect(json(await app.next())).toEqual(
-        expect.objectContaining({ type: 'error', seq: 1, ...(error as object) }),
-      );
+      const answer = json(await app.next());
+      const { reply_to: replyTo, ...rest } = error as { reply_to?: number };
+      expect(answer).toEqual(expect.objectContaining({ type: 'error', seq: 1, ...rest }));
+      expect(answer.reply_to).toBe(replyTo);
+      expect('reply_to' in answer).toBe(replyTo !== undefined);
       await app.next();
       expect(app.closed).toBe(true);
     }
@@ -407,7 +533,14 @@ describe('the simulated device, driven by hand', () => {
       encodeMessage({ type: 'confirm', seq: 3, confirm: base64url(finished.confirmation) }),
     );
     await app.send(encodeMessage({ type: 'info', seq: 4 }));
-    expect(await app.next()).toBeUndefined();
+    // It cannot be decrypted, so it cannot be read: the error, sealed, replies to nothing, as
+    // the robot's does.
+    const keys = sessionKeys(finished.shared);
+    const channel = new Channel(keys.app, keys.device);
+    const error = decodeMessage(channel.open((await app.next())!), 'from_device');
+    expect(error).toEqual(expect.objectContaining({ type: 'error', seq: 3, code: 'protocol' }));
+    expect('reply_to' in error).toBe(false);
+    await app.next();
     expect(app.closed).toBe(true);
     // Each code serves one attempt, as on the robot: a session that ends without `finish`, its
     // code confirmed, leaves a new one.

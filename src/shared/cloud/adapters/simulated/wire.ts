@@ -1,7 +1,14 @@
 // SPDX-License-Identifier: MIT
 // The simulated cloud's HTTP: what it reads of a request, and how it answers, as ai-cloud does
 // (its routes/http.py and shared/problems.py): JSON, Problem Details and OAuth's errors.
-import { checked, ProtocolError, type AppBody, type AppDefinition } from '@/src/shared/protocols';
+import {
+  checked,
+  JsonError,
+  ProtocolError,
+  readJson,
+  type AppBody,
+  type AppDefinition,
+} from '@/src/shared/protocols';
 
 import { ABOUT_BLANK, PROBLEM_TYPES, type ProblemCode } from '../../errors';
 import { formDecode, JSON_TYPE, mediaType, PROBLEM_TYPE, FORM_TYPE } from '../../http';
@@ -129,15 +136,13 @@ export class Incoming {
     if (mediaType(this.header('content-type')) !== JSON_TYPE) {
       throw problem(415, `the body must be ${JSON_TYPE}`);
     }
+    // A body that the cloud cannot hold is refused as one that it cannot read (ADR-0014).
     let body: unknown;
     try {
-      body = JSON.parse(this.raw);
-    } catch {
-      throw problem(400, 'the body is not JSON');
-    }
-    // A lone surrogate, which JSON's escapes can spell, is no text: nothing can store it.
-    if (hasLoneSurrogate(body)) {
-      throw problem(400, 'the body is not JSON');
+      body = readJson(this.raw);
+    } catch (error) {
+      if (!(error instanceof JsonError)) throw error;
+      throw problem(400, `the body ${error.message}`);
     }
     try {
       return checked(definition, body);
@@ -178,22 +183,4 @@ export function checkedForm<K extends AppDefinition>(definition: K, form: unknow
     if (error instanceof ProtocolError) throw oauthError('invalid_request', error.message);
     throw error;
   }
-}
-
-function hasLoneSurrogate(value: unknown): boolean {
-  if (typeof value === 'string') {
-    try {
-      encodeURIComponent(value);
-      return false;
-    } catch {
-      return true;
-    }
-  }
-  if (Array.isArray(value)) return value.some(hasLoneSurrogate);
-  if (typeof value === 'object' && value !== null) {
-    return Object.entries(value).some(
-      ([key, each]) => hasLoneSurrogate(key) || hasLoneSurrogate(each),
-    );
-  }
-  return false;
 }

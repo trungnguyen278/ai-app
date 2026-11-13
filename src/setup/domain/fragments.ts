@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-// A message in fragments, one per write or indication (set-up 2.0, The Bluetooth service). Byte
+// A message in fragments, one per write or indication (set-up 2.2, The Bluetooth service). Byte
 // 0 holds flags; a message's first fragment then holds its length, on 2 bytes, big-endian.
-import { MAX_MESSAGE, MIN_FRAGMENT } from './protocol';
+import { MAX_FRAGMENT, MAX_MESSAGE, MIN_FRAGMENT } from './protocol';
 
 const FIRST = 0x80;
 const LAST = 0x40;
@@ -16,7 +16,8 @@ export class FragmentError extends Error {
   }
 }
 
-/** `message` in fragments of at most `size` bytes each. */
+/** `message` in fragments of at most `size` bytes each, the room that a write or an indication
+ * has, and never more than `MAX_FRAGMENT`, which an attribute holds. */
 export function split(message: Uint8Array, size: number): Uint8Array[] {
   if (message.length < 1 || message.length > MAX_MESSAGE) {
     throw new RangeError(`a message has 1 to ${MAX_MESSAGE} bytes`);
@@ -24,7 +25,7 @@ export function split(message: Uint8Array, size: number): Uint8Array[] {
   if (!Number.isInteger(size) || size < MIN_FRAGMENT) {
     throw new RangeError(`a fragment has room for at least ${MIN_FRAGMENT} bytes`);
   }
-  const room = size - FLAGS;
+  const room = Math.min(size, MAX_FRAGMENT) - FLAGS;
   const fragments: Uint8Array[] = [];
   let offset = Math.min(message.length, room - LENGTH);
   const first = new Uint8Array(FLAGS + LENGTH + offset);

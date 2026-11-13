@@ -331,6 +331,13 @@ test('an answer that breaks the protocol fails where it arrives, and names no va
   expect(missing.message).toBe('account: / lacks id');
   spy.instead.push(answer(200, '<html>secret</html>'));
   expect((await refusal(client.account())).message).toBe('account: / is not JSON');
+  // An answer that the app cannot hold is one that it cannot read (ADR-0014).
+  spy.instead.push(answer(200, `{"id": "a", "x": ${'['.repeat(64)}${']'.repeat(64)}}`));
+  expect((await refusal(client.account())).message).toBe('account: / nests deeper than 64');
+  spy.instead.push(answer(200, `{"display_name": "secret${String.fromCharCode(0x5c)}ud800"}`));
+  expect((await refusal(client.account())).message).toBe(
+    'account: / holds a U+0000 or a lone surrogate',
+  );
   spy.instead.push(answer(302, ''));
   expect((await refusal(client.account())).message).toBe('account: / is answered 302');
   spy.instead.push(answer(404, '<html>Not here</html>'));

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Setting a device up over Bluetooth LE, set-up 2.0 (docs/architecture.md, Modules; ADR-0013 of
+// Setting a device up over Bluetooth LE, set-up 2.2 (docs/architecture.md, Modules; ADR-0013 of
 // ai-platform): what other modules and the routes may import.
 export { SimulatedDevice } from './adapters/simulated/device';
 export type {

@@ -14,7 +14,8 @@ export interface LinkListener {
 
 /** A link to one device's set-up service, its indications already enabled. */
 export interface Link {
-  /** Bytes in one write: the ATT MTU minus 3, as the phone's radio gives it, at least 20. */
+  /** Bytes in one write: the ATT MTU minus 3, as the phone's radio gives it, at least 20. It may
+   * exceed 512, as Android 14's MTU of 517 does: the session's fragments never do. */
   readonly fragmentSize: number;
   /** Writes one fragment to Request, with a response; settles once the device confirmed it, and
    * rejects if the link has ended. */

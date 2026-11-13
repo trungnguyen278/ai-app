@@ -1,23 +1,35 @@
 // SPDX-License-Identifier: MIT
-// A device in set-up, simulated in memory, as the robot runs set-up 2.0
-// (platform/protocols/setup/README.md; ai-robot, core/setup_session.py): its code, its networks,
-// its settings and its key. It checks every message of the app's against the schema, and answers
-// as a device would, errors included. Each `connect` gives a link to it.
+// A device in set-up, simulated in memory, as the robot runs set-up 2.2
+// (platform/protocols/setup/README.md; ai-robot, core/setup_session.py and modules/setup.py):
+// its code, its networks, its settings and its key. It reads every message of the app's as JSON
+// that every side can hold, checks it against the schema, and answers as a device would, errors
+// included. Each `connect` gives a link to it.
 import { p256 } from '@noble/curves/nist.js';
 
 import { base64url, checkedBase64url, cryptoRandom, type Random } from '@/src/shared/bytes';
-import { ProtocolError, type Setup } from '@/src/shared/protocols';
+import { ProtocolError, setupChecked, type Setup } from '@/src/shared/protocols';
 
 import { Channel, context, SealError, sessionKeys } from '../../domain/channel';
 import { FragmentError, Joiner, split } from '../../domain/fragments';
-import { decodeMessage, encodeMessage } from '../../domain/messages';
-import { CODE_DIGITS, major, MIN_FRAGMENT, PROTOCOL, SALT_BYTES } from '../../domain/protocol';
+import { encodeMessage, readMessage, seqOf } from '../../domain/messages';
+import {
+  CODE_DIGITS,
+  major,
+  MAX_NETWORKS,
+  MIN_FRAGMENT,
+  PROTOCOL,
+  SALT_BYTES,
+  SSID_BYTES,
+} from '../../domain/protocol';
 import { ExchangeError, randomScalar, record, stretch, Verifier } from '../../domain/spake2plus';
 import type { Link, LinkListener } from '../../ports/link';
 
 /** A network that the simulated device can reach. */
 export interface SimulatedNetwork {
-  /** Its name, or its name's bytes in hexadecimal when they are not UTF-8. */
+  /** Its name, or its name's bytes in hexadecimal: the device reads both as bytes, and gives them
+   * back as set-up does, in `ssid_hex` if they are not UTF-8 or hold a NUL byte. A scan's name of
+   * no bytes, of NUL bytes alone or of one space is a hidden network's, as NetworkManager reads it:
+   * the device leaves it out of `networks`. */
   ssid?: string;
   ssid_hex?: string;
   security: Setup.Network['security'];
@@ -119,14 +131,42 @@ function drawSecret(random: Random): SetupSecret {
   };
 }
 
-function sameName(network: SimulatedNetwork, named: { ssid?: string; ssid_hex?: string }) {
-  return named.ssid !== undefined
-    ? network.ssid === named.ssid
-    : network.ssid_hex === named.ssid_hex;
+/** A network's name, as bytes: from `ssid` in UTF-8, or from `ssid_hex` (ai-robot's
+ * `ssid_bytes`). */
+function nameBytes(named: { ssid?: string; ssid_hex?: string }): Uint8Array {
+  if (named.ssid !== undefined) {
+    return new TextEncoder().encode(named.ssid);
+  }
+  const hex = named.ssid_hex ?? '';
+  return Uint8Array.from({ length: hex.length / 2 }, (_, index) =>
+    parseInt(hex.slice(index * 2, index * 2 + 2), 16),
+  );
 }
 
-function nameOf(network: SimulatedNetwork): { ssid: string } | { ssid_hex: string } {
-  return network.ssid !== undefined ? { ssid: network.ssid } : { ssid_hex: network.ssid_hex ?? '' };
+/** How set-up gives the name `name`: `ssid` if it is UTF-8 without a NUL byte, which no text may
+ * hold (ADR-0014), and otherwise `ssid_hex` (ai-robot's `ssid_fields`). */
+function nameFields(name: Uint8Array): { ssid: string } | { ssid_hex: string } {
+  let text: string | null;
+  try {
+    text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(name);
+  } catch {
+    text = null;
+  }
+  if (text === null || name.includes(0)) {
+    return { ssid_hex: Array.from(name, (byte) => byte.toString(16).padStart(2, '0')).join('') };
+  }
+  return { ssid: text };
+}
+
+/** Whether a scan's `name` is a hidden network's: no bytes, NUL bytes alone (hostapd's
+ * `ignore_broadcast_ssid` 1 and 2), or one space, all of which NetworkManager reads as hidden
+ * (`_nm_utils_is_empty_ssid_arr`; ai-robot's `_hidden`). */
+function hiddenName(name: Uint8Array): boolean {
+  return name.every((byte) => byte === 0) || (name.length === 1 && name[0] === 0x20);
+}
+
+function sameBytes(a: Uint8Array, b: Uint8Array): boolean {
+  return a.length === b.length && a.every((byte, index) => byte === b[index]);
 }
 
 /** What a request was answered with: an answer's type and fields, or an error's code. */
@@ -232,7 +272,12 @@ export class SimulatedDevice {
     if (this.current === null) {
       return { state: 'disconnected' };
     }
-    return { state: 'connected', ...nameOf(this.current), address: this.address, internet: true };
+    return {
+      state: 'connected',
+      ...nameFields(nameBytes(this.current)),
+      address: this.address,
+      internet: true,
+    };
   }
 
   /** The answer to the request `message`. */
@@ -244,11 +289,18 @@ export class SimulatedDevice {
         return {
           type: 'networks',
           fields: {
+            // A network that hides its name, and one whose name is too long, are left out, as
+            // the robot does: the app could not name them back (Networks).
             networks: this.nearby
-              .filter((network) => !network.hidden)
-              .sort((a, b) => b.signal - a.signal)
-              .map((network) => ({
-                ...nameOf(network),
+              .map((network) => ({ network, name: nameBytes(network) }))
+              .filter(
+                ({ network, name }) =>
+                  !network.hidden && !hiddenName(name) && name.length <= SSID_BYTES,
+              )
+              .sort((a, b) => b.network.signal - a.network.signal)
+              .slice(0, MAX_NETWORKS)
+              .map(({ network, name }) => ({
+                ...nameFields(name),
                 security: network.security,
                 signal: network.signal,
                 saved: this.saved.has(network),
@@ -269,9 +321,16 @@ export class SimulatedDevice {
     }
   }
 
+  /** Joins the network that `request` names, listed or not: a hidden one only with `hidden`, which
+   * makes the device probe for it by its name (Networks). */
   private join(request: Setup.Message & Setup.Join): Reply {
+    const name = nameBytes(request);
+    if (name.length > SSID_BYTES) {
+      return { error: 'protocol' };
+    }
     const network = this.nearby.find(
-      (candidate) => sameName(candidate, request) && (!candidate.hidden || request.hidden === true),
+      (candidate) =>
+        sameBytes(nameBytes(candidate), name) && (!candidate.hidden || request.hidden === true),
     );
     if (network === undefined) {
       return { error: 'not_found' };
@@ -392,13 +451,21 @@ class DeviceSession {
     if (bytes === null) {
       return;
     }
+    // An error replies to the message it is about whenever its `seq` can be read: only one that
+    // cannot be decrypted, or read, gets none (Errors).
+    let value: unknown;
+    try {
+      value = readMessage(this.channel === null ? bytes : this.channel.open(bytes), 'from_app');
+    } catch (error) {
+      if (!(error instanceof SealError || error instanceof ProtocolError)) throw error;
+      return this.fail('protocol');
+    }
     let message: Setup.Message;
     try {
-      message = decodeMessage(this.channel === null ? bytes : this.channel.open(bytes), 'from_app');
+      message = setupChecked('from_app', value);
     } catch (error) {
-      if (error instanceof SealError) return this.close();
       if (!(error instanceof ProtocolError)) throw error;
-      return this.fail('protocol');
+      return this.fail('protocol', seqOf(value));
     }
     if (message.seq !== this.received + 1) {
       return this.fail('protocol', message.seq);
@@ -428,11 +495,12 @@ class DeviceSession {
   }
 
   private hello(message: Setup.Message & Setup.AppHello, bytes: Uint8Array): void {
-    if (major(message.protocol) !== major(PROTOCOL)) {
-      return this.fail('version', message.seq);
-    }
+    // A second app gets `busy`, whatever version it speaks, as from the robot.
     if (!this.device.begin(this)) {
       return this.fail('busy', message.seq);
+    }
+    if (major(message.protocol) !== major(PROTOCOL)) {
+      return this.fail('version', message.seq);
     }
     const { discriminator, salt } = this.device.secret;
     const sent = this.send({
