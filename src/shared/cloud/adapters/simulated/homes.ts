@@ -6,6 +6,9 @@ import type { CloudResponse } from '../../transport';
 import {
   accountOf,
   authenticate,
+  firstAnswer,
+  idempotencyKey,
+  keepFirstAnswer,
   limitRate,
   page,
   pageRequest,
@@ -26,20 +29,10 @@ import {
 } from './model';
 import { empty, json, problem, tagged, typed, type Incoming } from './wire';
 
-// Fixed by the app API (README, Requests): a UUID that the app makes, as a quoted string.
-const IDEMPOTENCY_KEY =
-  /^"([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})"$/;
-
 /** A home, as one of its people sees it. */
-interface View {
+export interface View {
   home: Home;
   member: Member;
-}
-
-/** A request's Idempotency-Key, and what makes its retries recognisable. */
-interface Key {
-  key: string;
-  fingerprint: string;
 }
 
 // Homes.
@@ -89,7 +82,8 @@ export function createHome(context: Context, request: Incoming): CloudResponse {
   };
   context.state.homes.set(home.id, home);
   context.state.members.set(owner.id, owner);
-  return keepFirstAnswer(context, principal, key, owner, homeAnswer({ home, member: owner }), 201);
+  const answer = tagged(homeAnswer({ home, member: owner }), 201);
+  return keepFirstAnswer(context, principal, key, answer, owner.id);
 }
 
 export function readHome(context: Context, request: Incoming, [id]: string[]): CloudResponse {
@@ -195,7 +189,8 @@ export function addProfile(context: Context, request: Incoming, [id]: string[]):
     version: 1,
   };
   context.state.members.set(profile.id, profile);
-  return keepFirstAnswer(context, principal, key, profile, memberAnswer(profile, principal), 201);
+  const answer = tagged(memberAnswer(profile, principal), 201);
+  return keepFirstAnswer(context, principal, key, answer, profile.id);
 }
 
 export function changeMember(context: Context, request: Incoming, ids: string[]): CloudResponse {
@@ -436,7 +431,7 @@ export function removeFromHomes(context: Context, accountId: string): void {
 // Helpers.
 
 /** An identifier in a request: one that is not a UUID names nothing. */
-function itemId(text: string): string {
+export function itemId(text: string): string {
   const id = uuid(text);
   if (id === null) throw problem(404, 'no such item in the account');
   return id;
@@ -444,7 +439,7 @@ function itemId(text: string): string {
 
 /** The home, as the person who asks sees it: 404 if they are not in it, as if it did not
  *  exist (SEC-6). */
-function inHome(context: Context, homeId: string, principal: Principal): View {
+export function inHome(context: Context, homeId: string, principal: Principal): View {
   const home = context.state.homes.get(homeId);
   const member = home && context.state.memberOf(homeId, principal.accountId);
   if (home === undefined || member === undefined) {
@@ -461,8 +456,9 @@ function memberIn(context: Context, homeId: string, memberId: string): Member {
   return member;
 }
 
-/** Whether `member` may change the home, invite people and add profiles. */
-function checkMayManage(member: Member): void {
+/** Whether `member` may change the home, invite people, add profiles and devices, and rename
+ *  and remove devices. */
+export function checkMayManage(member: Member): void {
   if (member.role !== 'owner' && member.role !== 'admin') {
     throw typed('role_required', 'the owner or an admin may do this');
   }
@@ -515,46 +511,4 @@ function checkTimeZone(name: string): void {
   } catch {
     throw problem(400, 'not a time zone of the IANA database');
   }
-}
-
-function idempotencyKey(request: Incoming): Key {
-  const match = IDEMPOTENCY_KEY.exec(request.header('idempotency-key') ?? '');
-  if (match === null) {
-    throw problem(400, 'Idempotency-Key must be one UUID, as a quoted string');
-  }
-  return {
-    key: match[1].toLowerCase(),
-    fingerprint: [request.method, request.path, request.raw].join('\n'),
-  };
-}
-
-/** The first answer to a retry, or undefined for a first request: 422 for a key that asked for
- *  something else. */
-function firstAnswer(context: Context, principal: Principal, key: Key): CloudResponse | undefined {
-  const first = context.state.firstAnswers.get(`${principal.accountId}\n${key.key}`);
-  const since = context.now - context.settings.idempotency_retention * 1000;
-  if (first === undefined || first.createTime < since) return undefined;
-  if (first.fingerprint !== key.fingerprint) {
-    throw problem(422, 'this key was used for another request');
-  }
-  return tagged(first.body as { etag: string }, first.status);
-}
-
-function keepFirstAnswer(
-  context: Context,
-  principal: Principal,
-  key: Key,
-  made: Member,
-  body: { etag: string },
-  status: number,
-): CloudResponse {
-  context.state.firstAnswers.set(`${principal.accountId}\n${key.key}`, {
-    fingerprint: key.fingerprint,
-    status,
-    // As it was answered, whatever changes after.
-    body: JSON.parse(JSON.stringify(body)),
-    memberId: made.id,
-    createTime: context.now,
-  });
-  return tagged(body, status);
 }

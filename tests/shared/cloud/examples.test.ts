@@ -6,7 +6,14 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { loadSettings } from '@/app.config';
-import { SimulatedCloud, type CloudRequest, type Method } from '@/src/shared/cloud';
+import {
+  SimulatedCloud,
+  type CloudRequest,
+  type Method,
+  type SimulatedSettings,
+} from '@/src/shared/cloud';
+
+import { HELLO, Robot } from './robot';
 
 type Body = Record<string, unknown>;
 
@@ -25,6 +32,48 @@ interface Person {
   name: string;
 }
 
+/**
+ * The robot of an example, as ai-cloud's replay has it (tests/devices/test_example.py): the
+ * example's identifier, a key of the tests' own, and whether its control channel is open.
+ */
+class ExampleRobot {
+  readonly robot: Robot;
+  linked = false;
+  /** Its registrations, for the example's. */
+  private readonly signed = new Map<string, string>();
+
+  constructor(
+    private readonly cloud: SimulatedCloud,
+    id: string,
+  ) {
+    this.robot = new Robot(id);
+  }
+
+  /** Its registration in place of the example's `theirs`, for `challenge`: the same one each
+   *  time the example sends `theirs` again. */
+  sign(theirs: string, challenge: string, server: string): string {
+    if (!this.signed.has(theirs)) this.signed.set(theirs, this.robot.register(challenge, server));
+    return this.signed.get(theirs)!;
+  }
+
+  connect(): void {
+    expect(this.cloud.connectDevice(this.robot.key, HELLO)).toBe(true);
+    this.linked = true;
+  }
+
+  /** It stops, its connection with it. */
+  stop(): void {
+    this.cloud.disconnectDevice(this.robot.key);
+    this.linked = false;
+  }
+
+  /** Removed, its session ends, and it offers set-up: the cloud no longer knows its key. */
+  removed(): void {
+    expect(this.cloud.connectDevice(this.robot.key, HELLO)).toBe(false);
+    this.linked = false;
+  }
+}
+
 /** What a replay knows: who is who, and what the cloud made up for what the example did. */
 class Replay {
   readonly cloud: SimulatedCloud;
@@ -33,10 +82,17 @@ class Replay {
   /** The example's made-up values, and the cloud's. */
   readonly known = new Map<string, string>();
   speaker: string;
+  /** The example's robot, if it has one. */
+  robot?: ExampleRobot;
 
-  constructor(first: string) {
+  constructor(
+    first: string,
+    private readonly simulated: Partial<SimulatedSettings> = {},
+  ) {
     const { cloud } = loadSettings('development');
-    this.cloud = new SimulatedCloud({ ...cloud.simulated, latency: 0 }, [cloud.client_id]);
+    this.cloud = new SimulatedCloud({ ...cloud.simulated, latency: 0, ...simulated }, [
+      cloud.client_id,
+    ]);
     this.speaker = first;
   }
 
@@ -148,6 +204,16 @@ class Replay {
     return result;
   }
 
+  /** The example's registration, signed again by the replay's robot: the same device, with
+   *  the cloud's challenge. */
+  registration(body: Body): Body {
+    const theirs = body.registration;
+    if (typeof theirs !== 'string' || this.robot === undefined) return body;
+    const claims = JSON.parse(Buffer.from(theirs.split('.')[1], 'base64url').toString());
+    const server = this.simulated.server!;
+    return { ...body, registration: this.robot.sign(theirs, this.ours(claims.nonce), server) };
+  }
+
   /** Every exchange of `steps`, as the example writes it. */
   async run(steps: Step[], speakers: Record<string, string>): Promise<void> {
     for (let index = 0; index < steps.length; index++) {
@@ -156,14 +222,22 @@ class Replay {
         for (const [words, who] of Object.entries(speakers)) {
           if (step.note.includes(words)) this.speaker = who;
         }
+        if (step.note.includes('loses what it kept')) this.robot?.stop();
+        if (step.note.includes('connects again')) this.robot?.connect();
         continue;
       }
       const answer = steps[++index];
       const [method, target] = step.request!.split(' ') as [Method, string];
-      const body = step.message === undefined ? undefined : this.ours(this.idTokens(step.message));
+      const message = step.message === undefined ? undefined : this.registration(step.message);
+      const body = message === undefined ? undefined : this.ours(this.idTokens(message));
       const request = this.request(method, this.ours(target), body, this.ours(step.headers ?? {}));
+      if (answer.message?.connected === true && this.robot?.linked === false) {
+        // The app reads the device until it has connected: it connects meanwhile.
+        this.robot.connect();
+      }
       const response = await this.cloud.send(request);
       expect([step.request, response.status]).toEqual([step.request, answer.status]);
+      if (method === 'DELETE' && this.robot?.linked) this.robot.removed();
       if (answer.message !== undefined) {
         const answered = JSON.parse(response.body);
         this.learn(answer.message, answered, step.request);
@@ -179,7 +253,16 @@ class Replay {
 }
 
 // Fields whose values the cloud makes up, and the example too.
-const MADE_UP = ['id', 'member_id', 'code', 'nonce', 'access_token', 'refresh_token', 'id_token'];
+const MADE_UP = [
+  'id',
+  'member_id',
+  'code',
+  'nonce',
+  'challenge',
+  'access_token',
+  'refresh_token',
+  'id_token',
+];
 // Fields for logs, not part of the protocol.
 const LOGGED = ['detail', 'error_description'];
 // Fields compared by neither: the cloud's clock, or logs.
@@ -266,4 +349,38 @@ test('homes.json: a home, its people, an invitation, handing it over and deletin
     'The old owner leaves': 'linh',
     'The new owner, the last': 'minh',
   });
+});
+
+test('devices.json: a robot set up, named, read, taken back after it lost what it kept, and removed', async () => {
+  // The example's server, as its challenges name it.
+  const replay = new Replay('linh', { server: 'https://cloud.example' });
+  await replay.signIn('linh', { ...LINH, subject: '109876543210987654321' }, 'Pixel 8');
+  await replay.signIn(
+    'minh',
+    { subject: '108765432109876543210', email: 'minh@example.com', name: 'Minh' },
+    'Pixel 9',
+  );
+  // Linh's two homes, and Minh a member of the first, as the example has them.
+  replay.speaker = 'linh';
+  const first = await replay.call(
+    'POST',
+    '/app/v1/homes',
+    { name: 'Nhà Linh', time_zone: 'Asia/Ho_Chi_Minh', languages: ['vi'] },
+    { 'Idempotency-Key': '"01a1a06c-1400-75e6-a77f-f2149dbe59d5"' },
+  );
+  const { code } = await replay.call('POST', `/app/v1/homes/${first.id}/invitations`);
+  replay.speaker = 'minh';
+  await replay.call('POST', '/app/v1/invitations:accept', { code });
+  replay.speaker = 'linh';
+  const second = await replay.call(
+    'POST',
+    '/app/v1/homes',
+    { name: 'Nhà Đà Lạt', time_zone: 'Asia/Ho_Chi_Minh', languages: ['vi'] },
+    { 'Idempotency-Key': '"01a1a5c8-0000-7000-8000-000000000001"' },
+  );
+  replay.known.set('01a1a592-7000-71fb-9722-9e6fccd5bf7b', first.id as string);
+  replay.known.set('01a1a5c9-5e80-70e4-9678-2fc9ea0d06c7', second.id as string);
+  replay.robot = new ExampleRobot(replay.cloud, '4a4ce4bd-2853-43d8-98dc-3dc06daec6e5');
+  await replay.run(example('devices'), { 'Minh, a member': 'minh', 'A week later': 'linh' });
+  expect(replay.robot.linked).toBe(false);
 });

@@ -5,6 +5,8 @@ export { FetchTransport } from './adapters/fetch';
 export type { Person, ProviderSignIn } from './adapters/simulated/accounts';
 export { SimulatedCloud } from './adapters/simulated/cloud';
 export type { SimulatedOptions } from './adapters/simulated/cloud';
+export type { Description as DeviceDescription } from './adapters/simulated/model';
+export type { PublicJwk } from './adapters/simulated/registration';
 export { CloudClient, SignInClient } from './client';
 export type {
   ClientOptions,
@@ -13,6 +15,7 @@ export type {
   FreshSignIn,
   NewInvitation,
   PageRequest,
+  Registered,
 } from './client';
 export { cloudTransport } from './connect';
 export { failureMessage } from './failures';

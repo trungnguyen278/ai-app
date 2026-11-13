@@ -103,6 +103,14 @@ invitation_lifetime = 259_200
 invitations_per_home = 10
 # Seconds the simulated providers' ID tokens are valid, as the development cloud's are.
 id_token_lifetime = 600
+# The address that devices use to reach the cloud, which the app gives a device at set-up and
+# its registration names. Simulated devices reach the simulated cloud in memory, so it is a
+# name under .invalid, which never resolves (RFC 6761, 6.4).
+server = "https://simulated.invalid"
+# Seconds a challenge to register a device is valid: as AWS IoT's claim certificates.
+challenge_lifetime = 300
+# How many devices a home may have: as SmartThings.
+devices_per_home = 300
 
 [cloud.simulated.nonce_rate]
 # How many nonces the phone gets: 10 a minute.
@@ -111,5 +119,10 @@ period = 60
 
 [cloud.simulated.invitation_rate]
 # How many invitation codes one account may try: 10 a minute.
+limit = 10
+period = 60
+
+[cloud.simulated.challenge_rate]
+# How many challenges to register a device one account gets: 10 a minute.
 limit = 10
 period = 60

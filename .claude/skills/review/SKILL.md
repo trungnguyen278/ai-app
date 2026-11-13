@@ -30,6 +30,8 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 - Every JSON text received is read with `readJson` (`src/shared/protocols/json.ts`), never `JSON.parse`: it refuses what no side can hold (ai-platform ADR-0014), a U+0000, a lone surrogate, nesting past 64 or a number past a double, as one it cannot read. `JSON.parse` takes all of them, and an escaped lone surrogate passes a schema's patterns.
 - A device's name for a network goes as bytes: `ssid` only when they are UTF-8 without a NUL byte, `ssid_hex` otherwise, wherever a name goes. A set-up error replies to the message it is about whenever that message's `seq` can be read, even if the message breaks the schema.
 - A replayed message has no effect beyond its first one, and credentials expire (SEC-12).
+  - What is used once is used first of all, and the answer is kept with its Idempotency-Key whatever it is, a refusal included: a registration's challenge, once used, can give no other answer to a retry.
+- A signature or a key is read as the protocol reads it, not as a library's default does. noble refuses a high `s` unless told (`lowS: false`), where JWS takes either (RFC 7518, 3.4). A key's coordinates are read canonically, as ai-cloud reads them: base64url with other unused bits would give one key two thumbprints.
 - A device or a cloud that does not answer, answers late or answers twice leaves the app usable, and the owner is told what happened.
 - Only what the protocol makes safe to repeat is sent again: a request with an Idempotency-Key, with the same key each time. A refresh token works once, so a refresh is never retried.
 - A simulated device or cloud keeps to the real one: the protocol's examples replay against it, and it refuses what the real one refuses, in the same order.
@@ -78,6 +80,7 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 - TanStack Query shows a mutation's pending state a tick after `mutate`: a test waits for it (`waitFor`). To see a screen while the cloud is asked, a transport holds the request until the test lets it go.
 - `jest.restoreAllMocks` restores spies only (jest-mock 30): the `jest.fn()`s of a `jest.mock` factory keep their calls from test to test, so a file that asserts a call did not happen clears them first (`jest.clearAllMocks`).
 - A test file run alone, as a mutant's run does, runs in band, and Jest waits for any handle left open; pass `--forceExit`.
+- An error that the runtime throws, such as `TextDecoder`'s with `fatal`, can be of another realm's class under Jest: `instanceof TypeError` was false there, and a header that was no UTF-8 failed the simulated cloud instead of being refused. Catch such a call alone, without testing the class, as `readMessage` does.
 - What a screen reader hears is tested on each platform, with `jest.replaceProperty(Platform, 'OS', …)`, restored after each test (`jest.restoreAllMocks`). A test that renders again uses `rerender`, which keeps `renderScreen`'s providers.
 
 ### Repository rules (CONTRIBUTING.md, AGENTS.md)

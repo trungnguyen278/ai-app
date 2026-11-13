@@ -125,8 +125,12 @@
             "invitation_lifetime",
             "invitations_per_home",
             "id_token_lifetime",
+            "server",
+            "challenge_lifetime",
+            "devices_per_home",
             "nonce_rate",
-            "invitation_rate"
+            "invitation_rate",
+            "challenge_rate"
           ],
           "properties": {
             "latency": { "type": "number", "minimum": 0 },
@@ -155,8 +159,22 @@
             "invitation_lifetime": { "$ref": "#/$defs/seconds" },
             "invitations_per_home": { "$ref": "#/$defs/count" },
             "id_token_lifetime": { "$ref": "#/$defs/seconds" },
+            "server": {
+              "description": "As the app API's $defs/device_challenge, server",
+              "type": "string",
+              "pattern": "^https?://",
+              "maxLength": 2048
+            },
+            "challenge_lifetime": {
+              "description": "At most the app API's $defs/device_challenge, expires_in",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600
+            },
+            "devices_per_home": { "$ref": "#/$defs/count" },
             "nonce_rate": { "$ref": "#/$defs/rate" },
-            "invitation_rate": { "$ref": "#/$defs/rate" }
+            "invitation_rate": { "$ref": "#/$defs/rate" },
+            "challenge_rate": { "$ref": "#/$defs/rate" }
           }
         }
       }

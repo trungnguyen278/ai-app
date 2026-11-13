@@ -1,6 +1,6 @@
 # Architecture
 
-> **Status:** accepted in [ADR-0002](decisions/0002-architecture.md) (the shape), on [ADR-0001](decisions/0001-platforms-and-framework.md) (the framework). Its skeleton is built: the routes, the catalogs and the foundation of the design system in `shared`, and the `studio`. So are the client of the app API, with its simulated cloud, in `shared/cloud`; the cloud's cache, in `shared/queries`; `account`: signing in with the development provider, the session, and the person's account; and the first of `homes`: the main screen, which is one home and its people; creating a home; inviting people with a link or its QR code, and the invitations not yet used; adding profiles; joining a home from a link, a pasted one, or a QR code read with `shared/scanner`; and each person's page, to rename them, make them an admin or a member, or remove them, or to leave.
+> **Status:** accepted in [ADR-0002](decisions/0002-architecture.md) (the shape), on [ADR-0001](decisions/0001-platforms-and-framework.md) (the framework). Its skeleton is built: the routes, the catalogs and the foundation of the design system in `shared`, and the `studio`. So are the client of the app API, a home's devices included, with its simulated cloud, in `shared/cloud`; the cloud's cache, in `shared/queries`; `account`: signing in with the development provider, the session, and the person's account; and the first of `homes`: the main screen, which is one home and its people; creating a home; inviting people with a link or its QR code, and the invitations not yet used; adding profiles; joining a home from a link, a pasted one, or a QR code read with `shared/scanner`; and each person's page, to rename them, make them an admin or a member, or remove them, or to leave.
 
 The app is how an owner reaches their devices and their home. It sets a device up, signs in to ai-cloud, manages homes and their people, changes settings and controls devices. One person builds it, for Android first and iOS from the same code (ADR-0001), and it serves every kind of device the project makes.
 
@@ -77,7 +77,7 @@ src/<module>/
 5. `setup` asks ai-cloud, through `homes`, for a challenge for the home the owner chose. The device signs its registration with it, and the app relays the registration to ai-cloud.
 6. The device is bound once ai-cloud accepts its first assertion. `devices` then shows it in the home.
 
-Steps 5 and 6 need the owner's sign-in and the app ⇄ cloud protocol, which ai-platform decides.
+Steps 5 and 6 need the owner's sign-in and the app ⇄ cloud protocol, which ai-platform decides. `shared/cloud` speaks the app's part of step 5 (the app API's Devices): `createDeviceChallenge`, then `registerDevice`, with an Idempotency-Key, which tells a device new to the home from one the home held already, such as a device that lost what it kept.
 
 ### The session, in `setup`
 
@@ -106,6 +106,8 @@ Steps 5 and 6 need the owner's sign-in and the app ⇄ cloud protocol, which ai-
 - **Protocols:** set-up's exchange is replayed from ai-platform's examples, byte for byte.
 - **A simulated device:** the device's side of set-up 2.2, as the robot speaks it (ai-robot's `modules/setup.py` and `core/setup_session.py`), in TypeScript, behind the Bluetooth LE port. Set-up then runs end to end in tests, and on a phone with no robot nearby.
 - **A simulated cloud:** the app API in memory, behind the transport of `shared/cloud`. ai-platform's examples are replayed against it, as against ai-cloud.
+  - It verifies a device's registration as ai-cloud does, and the tests' robot (`tests/shared/cloud/robot.ts`) signs registrations with a key of its own.
+  - It plays what the app sees of a device's own side: a device opens its control channel with the key it registered and says what it is (`connectDevice`), or stops (`disconnectDevice`).
 - **End to end:** Maestro, on an Android emulator and the iOS simulator, once the first flows exist.
 - **Boundaries:** dependency-cruiser in CI, as import-linter does in ai-cloud.
 

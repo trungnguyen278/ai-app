@@ -44,6 +44,9 @@ const TYPED: Readonly<Record<ProblemCode, [number, string]>> = {
   home_limit_reached: [409, 'Home limit reached'],
   member_limit_reached: [409, 'Member limit reached'],
   invitation_limit_reached: [409, 'Invitation limit reached'],
+  registration_invalid: [400, 'Registration invalid'],
+  device_taken: [409, 'Device taken'],
+  device_limit_reached: [409, 'Device limit reached'],
 };
 
 /** An answer, thrown from where a request is refused to where it is answered. */

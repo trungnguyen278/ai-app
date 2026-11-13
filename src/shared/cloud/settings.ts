@@ -26,8 +26,13 @@ export interface SimulatedSettings {
   invitations_per_home: number;
   /** Seconds the simulated providers' ID tokens are valid. */
   id_token_lifetime: number;
+  /** The address that devices use, which challenges give and registrations name. */
+  server: string;
+  challenge_lifetime: number;
+  devices_per_home: number;
   nonce_rate: Rate;
   invitation_rate: Rate;
+  challenge_rate: Rate;
 }
 
 /** How the app reaches the cloud; config/base.toml says what each setting is. */
