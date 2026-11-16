@@ -7,6 +7,7 @@
 import { p256 } from '@noble/curves/nist.js';
 
 import { base64url, checkedBase64url, cryptoRandom, type Random } from '@/src/shared/bytes';
+import type { DeviceDescription, PublicJwk } from '@/src/shared/cloud';
 import { ProtocolError, setupChecked, type Setup } from '@/src/shared/protocols';
 
 import { Channel, context, SealError, sessionKeys } from '../../domain/channel';
@@ -40,6 +41,14 @@ export interface SimulatedNetwork {
   hidden?: boolean;
 }
 
+/** The server that a device reaches once set-up is over: the simulated cloud, which plays the
+ * cloud link's side (`connectDevice`). */
+export interface DeviceServer {
+  /** The device opens its control channel with its key, and says what it is: false if the
+   * server holds no device with that key. */
+  connectDevice(key: PublicJwk, hello: DeviceDescription): boolean;
+}
+
 /** The code, the discriminator and the salt that a device draws for each attempt. */
 export interface SetupSecret {
   code: string;
@@ -47,24 +56,36 @@ export interface SetupSecret {
   salt: Uint8Array;
 }
 
+/** What `info` says of a device, but its settings. */
+type Identity = Pick<Setup.Info['device'], 'id' | 'name' | 'kind' | 'model' | 'software'>;
+
 export interface SimulatedDeviceOptions {
   random?: Random;
   /** What `info` says of the device. */
-  device?: Partial<Omit<Setup.Info['device'], 'languages' | 'time_zone'>>;
+  device?: Partial<Identity>;
   /** The languages the device supports, its own first. */
   languages?: string[];
   time_zone?: string;
   /** Whether a time zone is one the device knows: by default, one that `Intl` knows. */
   knowsTimeZone?: (zone: string) => boolean;
   networks?: SimulatedNetwork[];
+  /** The name of the network it is on from the start, one of `networks`: none by default. */
+  joined?: string;
+  /** Whether it reaches the Internet over its network, `null` while it does not know: `true` by
+   * default. */
+  internet?: boolean | null;
   /** The address the device gets on a network. */
   address?: string;
   /** Whether the device is bound already. */
   bound?: boolean;
   /** The bytes in each fragment its links take: the ATT MTU minus 3. */
   fragmentSize?: number;
+  /** The set-up version it speaks: this app's by default. */
+  protocol?: string;
   /** The first attempt's secret, to replay an example; drawn otherwise. */
   secret?: SetupSecret;
+  /** The server at an address, as the device's network reaches it: none by default. */
+  reach?: (server: string) => DeviceServer | undefined;
 }
 
 /** The device's message for people, with each error code it answers. */
@@ -174,23 +195,32 @@ type Reply = { type: string; fields?: Record<string, unknown> } | { error: Devic
 
 export class SimulatedDevice {
   private readonly random: Random;
-  private readonly identity: Omit<Setup.Info['device'], 'languages' | 'time_zone'>;
+  private readonly identity: Identity;
   private readonly supported: string[];
   private readonly knowsTimeZone: (zone: string) => boolean;
   private readonly fragmentSize: number;
+  /** The set-up version it speaks. */
+  readonly protocol: string;
   private readonly address: string;
   private readonly key: Uint8Array;
   private readonly nearby: SimulatedNetwork[];
   private readonly saved = new Set<SimulatedNetwork>();
   private current: SimulatedNetwork | null = null;
   private secretNow: SetupSecret;
+  private readonly reach: (server: string) => DeviceServer | undefined;
+  /** Whether set-up is open: from the start while the device is not bound, and when the owner
+   * asks on it (When set-up is open). */
+  private setUp: boolean;
   /** The session that has said hello, until it ends. */
   private running: DeviceSession | null = null;
+  private readonly watchers = new Set<() => void>();
   /** The device's settings. */
   languages: string[];
   timeZone: string;
   /** Whether it is bound: the test or the simulated cloud says so. */
   bound: boolean;
+  /** Whether it reaches the Internet over its network: a test changes it. */
+  internet: boolean | null;
   /** The server of its last registration. */
   server: string | null = null;
   /** Whether a session has finished set-up. */
@@ -210,11 +240,70 @@ export class SimulatedDevice {
     this.timeZone = options.time_zone ?? 'UTC';
     this.knowsTimeZone = options.knowsTimeZone ?? knownToIntl;
     this.nearby = options.networks ?? [];
+    if (options.joined !== undefined) {
+      const network = this.nearby.find((candidate) => candidate.ssid === options.joined);
+      if (network === undefined) {
+        throw new Error('joined names none of the networks');
+      }
+      this.saved.add(network);
+      this.current = network;
+    }
+    this.internet = options.internet === undefined ? true : options.internet;
     this.address = options.address ?? '192.168.1.23';
     this.bound = options.bound ?? false;
     this.fragmentSize = options.fragmentSize ?? MIN_FRAGMENT;
+    this.protocol = options.protocol ?? PROTOCOL;
     this.key = p256.Point.Fn.toBytes(randomScalar(this.random));
     this.secretNow = options.secret ?? drawSecret(this.random);
+    this.reach = options.reach ?? (() => undefined);
+    this.setUp = !this.bound;
+  }
+
+  /** The identifier it made itself. */
+  get id(): string {
+    return this.identity.id;
+  }
+
+  /** The name it shows. */
+  get name(): string {
+    return this.identity.name;
+  }
+
+  /** Whether set-up is open. */
+  get open(): boolean {
+    return this.setUp;
+  }
+
+  /** Whether it advertises the set-up service: only while set-up is open and no session runs. */
+  get advertising(): boolean {
+    return this.setUp && this.running === null;
+  }
+
+  /** Tells `watcher` each time what the device's screen shows may have changed: its code, set-up
+   * opened or closed, a session begun or ended. */
+  subscribe(watcher: () => void): () => void {
+    this.watchers.add(watcher);
+    return () => {
+      this.watchers.delete(watcher);
+    };
+  }
+
+  private changed(): void {
+    for (const watcher of this.watchers) watcher();
+  }
+
+  /** The owner asks on the device to set it up: set-up opens, with a new code. */
+  openSetUp(): void {
+    if (!this.setUp) {
+      this.setUp = true;
+      this.redraw();
+    }
+  }
+
+  /** The owner cancels set-up on the device, or its window ends. */
+  closeSetUp(): void {
+    this.setUp = false;
+    this.changed();
   }
 
   /** The code it shows now, and its discriminator: a new one after each attempt. */
@@ -227,9 +316,14 @@ export class SimulatedDevice {
     return p256.getPublicKey(this.key, false);
   }
 
-  /** A new connection to its set-up service, its indications enabled. */
+  /** A new connection to its set-up service, its indications enabled. Once set-up has closed,
+   * the device ends it, without a message. */
   connect(): Link {
     const link = new SimulatedLink(this.fragmentSize);
+    if (!this.setUp) {
+      link.end();
+      return link;
+    }
     const session = new DeviceSession(this, link);
     link.onWrite = (fragment) => session.receive(fragment);
     link.onClose = () => session.ended();
@@ -242,18 +336,21 @@ export class SimulatedDevice {
       return false;
     }
     this.running = session;
+    this.changed();
     return true;
   }
 
   end(session: DeviceSession): void {
     if (this.running === session) {
       this.running = null;
+      this.changed();
     }
   }
 
   /** An attempt is over: the device shows a new code. */
   redraw(): void {
     this.secretNow = drawSecret(this.random);
+    this.changed();
   }
 
   scalar(): bigint {
@@ -276,7 +373,7 @@ export class SimulatedDevice {
       state: 'connected',
       ...nameFields(nameBytes(this.current)),
       address: this.address,
-      internet: true,
+      internet: this.internet,
     };
   }
 
@@ -314,11 +411,41 @@ export class SimulatedDevice {
       case 'register':
         return this.register(message as Setup.Message & Setup.Register);
       case 'finish':
-        this.finished = true;
+        this.finish();
         return { type: 'finished' };
       default:
         return { error: 'unknown' };
     }
+  }
+
+  /** Set-up is over. A device registered, or bound already, closes it; one registered then asks
+   * its server for a token, and is bound once the server accepts it. One that is neither offers
+   * set-up again (Requests and answers, `finish`). */
+  private finish(): void {
+    this.finished = true;
+    if (this.server === null && !this.bound) {
+      return;
+    }
+    this.setUp = false;
+    if (this.server !== null && this.current !== null) {
+      const { kind, model, software } = this.identity;
+      if (this.reach(this.server)?.connectDevice(this.jwk(), { kind, model, software })) {
+        this.bound = true;
+      }
+    }
+    this.changed();
+  }
+
+  /** Its public key, as a JWK (RFC 7517): its registration's `jwk`. */
+  private jwk(): PublicJwk {
+    const point = this.publicKey;
+    const half = (point.length - 1) / 2;
+    return {
+      crv: 'P-256',
+      kty: 'EC',
+      x: base64url(point.subarray(1, 1 + half)),
+      y: base64url(point.subarray(1 + half)),
+    };
   }
 
   /** Joins the network that `request` names, listed or not: a hidden one only with `hidden`, which
@@ -372,18 +499,7 @@ export class SimulatedDevice {
 
   /** The registration (The registration): a JWT that the device's key signs with ES256. */
   private sign(request: Setup.Register): string {
-    const point = this.publicKey;
-    const half = (point.length - 1) / 2;
-    const header = {
-      alg: 'ES256',
-      jwk: {
-        crv: 'P-256',
-        kty: 'EC',
-        x: base64url(point.subarray(1, 1 + half)),
-        y: base64url(point.subarray(1 + half)),
-      },
-      typ: REGISTRATION_TYPE,
-    };
+    const header = { alg: 'ES256', jwk: this.jwk(), typ: REGISTRATION_TYPE };
     const claims = {
       iss: this.identity.id,
       sub: this.identity.id,
@@ -499,14 +615,14 @@ class DeviceSession {
     if (!this.device.begin(this)) {
       return this.fail('busy', message.seq);
     }
-    if (major(message.protocol) !== major(PROTOCOL)) {
+    if (major(message.protocol) !== major(this.device.protocol)) {
       return this.fail('version', message.seq);
     }
     const { discriminator, salt } = this.device.secret;
     const sent = this.send({
       type: 'hello',
       reply_to: message.seq,
-      protocol: PROTOCOL,
+      protocol: this.device.protocol,
       discriminator,
       salt: base64url(salt),
     });

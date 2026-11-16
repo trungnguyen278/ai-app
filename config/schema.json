@@ -39,9 +39,47 @@
     "setup": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["answer_timeout"],
+      "required": [
+        "answer_timeout",
+        "radio",
+        "scan_time",
+        "internet_wait",
+        "recheck",
+        "online_poll",
+        "online_timeout",
+        "simulated"
+      ],
       "properties": {
-        "answer_timeout": { "type": "number", "exclusiveMinimum": 0 }
+        "answer_timeout": { "type": "number", "exclusiveMinimum": 0 },
+        "radio": { "enum": ["bluetooth", "simulated"] },
+        "scan_time": { "type": "number", "exclusiveMinimum": 0 },
+        "internet_wait": { "type": "number", "minimum": 0 },
+        "recheck": { "type": "number", "exclusiveMinimum": 0 },
+        "online_poll": { "type": "number", "exclusiveMinimum": 0 },
+        "online_timeout": { "type": "number", "exclusiveMinimum": 0 },
+        "simulated": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["devices", "networks"],
+          "properties": {
+            "devices": { "type": "integer", "minimum": 0 },
+            "networks": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["ssid", "security", "signal"],
+                "properties": {
+                  "ssid": { "type": "string", "minLength": 1 },
+                  "security": { "enum": ["open", "wpa2", "wpa3", "other"] },
+                  "signal": { "type": "integer", "minimum": 0, "maximum": 100 },
+                  "password": { "type": "string", "minLength": 1 },
+                  "hidden": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "app": {

@@ -36,3 +36,11 @@ export const CODE_DIGITS = 8;
 
 /** The bytes of the device's salt (Before the exchange). */
 export const SALT_BYTES = 16;
+
+/** The most characters of a network's password (Limits). */
+export const MAX_PASSWORD = 128;
+
+/** The characters of a WPA2 Personal passphrase, or the hexadecimal digits of its key (Limits;
+ * NetworkManager's `psk`). */
+export const WPA2_PASSPHRASE = { least: 8, most: 63 } as const;
+export const PSK_DIGITS = 64;

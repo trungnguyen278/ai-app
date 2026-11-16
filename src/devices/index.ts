@@ -2,4 +2,6 @@
 // A home's devices (docs/architecture.md, Modules): what other modules and the routes may import.
 export { DeviceScreen } from './screens/DeviceScreen';
 export { HomeDevices } from './screens/HomeDevices';
-export { useDeviceName } from './screens/names';
+export { useDeviceName, useDeviceNames, useKindNames } from './screens/names';
+export { isRenamable, useDevices, useRenameDevice } from './services/devices';
+export type { Arrival, Renamable } from './services/devices';

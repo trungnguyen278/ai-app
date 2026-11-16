@@ -46,6 +46,53 @@ stale_time = 30
 # Longer than the longest answer a device takes: a robot answers `join` within its join_timeout,
 # 60 seconds (ai-robot, config/base.toml, [modules.setup]).
 answer_timeout = 90
+# The radio that finds devices in set-up: "bluetooth", the phone's; or "simulated", devices in
+# set-up run inside the app, in memory, as [setup.simulated] describes them.
+radio = "bluetooth"
+# Seconds the app listens for devices in set-up before it connects to them. A robot advertises
+# every 1.28 seconds, Linux's default interval (net/bluetooth/hci_core.c, le_adv_min_interval
+# 0x0800 units of 0.625 ms, read 2026-11-16): 5 seconds hears it about four times.
+scan_time = 5
+# Seconds the app asks a device again, while it is on a network but does not know yet whether it
+# reaches the Internet, before it offers the networks (the set-up protocol, How the app runs it).
+internet_wait = 30
+# Seconds between those questions.
+recheck = 2
+# Seconds between reads of a device just added, until the cloud says it is online.
+online_poll = 2
+# Seconds after which the app says that a device just added has not come online, while it keeps
+# waiting: longer than the robot's own wait for the server, its bind_timeout of 120 (ai-robot,
+# config/base.toml, [modules.setup]).
+online_timeout = 150
+
+[setup.simulated]
+# The devices in set-up of the simulated radio, for a phone with no robot nearby: their codes are
+# in the studio. Two, so that a typed code asks for the discriminator.
+devices = 2
+
+# The networks that the simulated devices see. They are made up, and so are their passwords.
+[[setup.simulated.networks]]
+ssid = "Simulated home"
+security = "wpa2"
+signal = 80
+password = "simulated"
+
+[[setup.simulated.networks]]
+ssid = "Simulated cafe"
+security = "open"
+signal = 45
+
+[[setup.simulated.networks]]
+ssid = "Simulated office"
+security = "other"
+signal = 30
+
+[[setup.simulated.networks]]
+ssid = "Simulated hidden"
+security = "wpa3"
+signal = 60
+password = "simulated"
+hidden = true
 
 [cloud]
 # The cloud that the app talks to (ADR-0004, decision 6): "simulated", the app API run inside

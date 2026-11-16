@@ -47,3 +47,13 @@ export function readDiscriminator(text: string): string | null {
   const discriminator = text.trim().toUpperCase();
   return DISCRIMINATOR.test(discriminator) ? discriminator : null;
 }
+
+/** The set-up string of a device's QR code: what its screen shows, and the studio's devices. */
+export function writeSetupString(discriminator: string, code: string): string {
+  return `${PREFIX}${major(PROTOCOL)}:${discriminator}:${code}`;
+}
+
+/** The code as the device shows it, and as a person reads it: two groups of four digits. */
+export function groupCode(code: string): string {
+  return `${code.slice(0, CODE_DIGITS / 2)} ${code.slice(CODE_DIGITS / 2)}`;
+}

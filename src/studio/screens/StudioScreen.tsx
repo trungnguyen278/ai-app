@@ -42,6 +42,7 @@ export function StudioScreen() {
         <LinkRow href="/studio/layout" label={text('studio.layout')} />
         <LinkRow href="/studio/components" label={text('studio.components')} />
         <LinkRow href="/studio/motion" label={text('studio.motion')} />
+        <LinkRow href="/studio/devices" label={text('studio.devices')} />
       </Section>
     </Screen>
   );

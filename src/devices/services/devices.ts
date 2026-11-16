@@ -9,8 +9,15 @@ import type { App } from '@/src/shared/protocols';
 
 import { devicesOf } from '../domain/keys';
 
+/** A device that a screen waits for, such as one just set up: the devices are read again every
+ * `interval` seconds until it is online. */
+export interface Arrival {
+  deviceId: string;
+  interval: number;
+}
+
 /** The devices of a home, every page of them, in the cloud's order. */
-export function useDevices(homeId: string) {
+export function useDevices(homeId: string, arrival?: Arrival) {
   const cloud = useCloud();
   return useQuery({
     queryKey: devicesOf(homeId),
@@ -19,6 +26,11 @@ export function useDevices(homeId: string) {
         (page) => cloud.devices(homeId, page),
         (page) => page.devices,
       ),
+    refetchInterval: (query) =>
+      arrival === undefined ||
+      query.state.data?.some((device) => device.id === arrival.deviceId && device.connected)
+        ? false
+        : arrival.interval * 1000,
   });
 }
 

@@ -196,6 +196,19 @@ describe("the home's devices", () => {
 });
 
 describe('what each role is offered', () => {
+  test('the owner and an admin add a device, from the home; a member does not', async () => {
+    const at = await household();
+    for (const viewer of ['linh', 'an'] as const) {
+      await lookAtHome(at, viewer);
+      await fireEvent.press(await screen.findByRole('button', { name: 'Add a device' }));
+      expect(router.push).toHaveBeenLastCalledWith(`/homes/${at.home.id}/devices/new`);
+      await screen.unmount();
+    }
+    await lookAtHome(at, 'minh');
+    expect(await screen.findByText('No devices in this home yet.')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Add a device' })).toBeNull();
+  });
+
   test('the owner and an admin rename and remove a device', async () => {
     const at = await household();
     const bi = await at.add('Bi', HELLO);

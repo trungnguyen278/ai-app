@@ -71,12 +71,14 @@ src/<module>/
 
 ## Set-up, end to end
 
-1. The owner scans the device's QR code, or types its code.
-2. `setup` scans for the set-up service, and keeps the device whose discriminator matches.
+1. The owner or an admin taps "Add a device" on the home (`/homes/[id]/devices/new`), reads why Bluetooth is needed, and allows it.
+2. They scan the device's QR code, or type its code. `setup` scans for the set-up service, and keeps the device whose discriminator matches; a typed code, with several devices in set-up, asks for the discriminator first, so that no code is tried on another device.
 3. The session: the hellos, then SPAKE2+ with the code. Every message after that is encrypted.
-4. The Wi-Fi network, the device's first languages and its time zone.
-5. `setup` asks ai-cloud, through `homes`, for a challenge for the home the owner chose. The device signs its registration with it, and the app relays the registration to ai-cloud.
-6. The device is bound once ai-cloud accepts its first assertion. `devices` then shows it in the home.
+4. The Wi-Fi network, from the device's own scan, unless it reaches the Internet already; then the home's languages and its time zone.
+5. `setup` asks ai-cloud for a challenge for the home. The device signs its registration with it, and the app relays the registration to ai-cloud, with the device's name.
+6. The device is bound once ai-cloud accepts its first assertion. The app asks for its name in the home, then says it is ready once the cloud sees it online, and opens its page.
+
+A device that is bound already, in one of the person's homes, is given its new network and nothing else, then `finish`. One in no home of theirs is taken. After an interruption, the app looks the device up in the home by its identifier, and otherwise starts again from the code the device shows then (set-up 2.2, How the app runs it).
 
 Steps 5 and 6 need the owner's sign-in and the app ⇄ cloud protocol, which ai-platform decides. `shared/cloud` speaks the app's part of step 5 (the app API's Devices): `createDeviceChallenge`, then `registerDevice`, with an Idempotency-Key, which tells a device new to the home from one the home held already, such as a device that lost what it kept.
 
@@ -84,11 +86,14 @@ Steps 5 and 6 need the owner's sign-in and the app ⇄ cloud protocol, which ai-
 
 - **`domain/`**: set-up 2.2 itself, without I/O: the fragments, never more than 512 bytes (`fragments.ts`), SPAKE2+ (`spake2plus.ts`), the context, the session keys and AES-GCM (`channel.ts`), the messages, read as JSON that every side can hold (`shared/protocols`' `readJson`, ai-platform ADR-0014) and checked against the schema (`messages.ts`), the set-up string and the typed code (`code.ts`), and what a session can end in (`errors.ts`). The cryptography is noble's ([ADR-0006](decisions/0006-set-up-cryptography.md)).
 - **`ports/link.ts`**: what set-up needs of the radio, a link to one device's set-up service, its indications enabled: write a fragment, hear the device's, close.
+- **`ports/radio.ts`**: the phone's radio: whether Bluetooth may be used (`ready`, `ask`, `blocked`, `off`, `unsupported`), asking for it, and the devices that advertise the set-up service, each a `Link` to connect. `adapters/connect.ts`' `radioFor` gives the one `[setup].radio` names: the simulated radio, or, until the Bluetooth adapter comes (step 2 of the dev log's plan of 2026-11-12), `NoRadio`, which says set-up is not supported.
 - **`services/session.ts`**: the app's side. `greet` says hello and gives the device's discriminator; `exchange` runs SPAKE2+ with the code, then `info`; `Session` sends the requests, encrypted, one at a time.
   - Every message the device sends is checked: its fragments, its JSON, its schema, its `seq` and `reply_to`, its encryption. Anything else ends the session (`SessionLost`, `broken`), as does a link that ends (`ended`) or no answer within `[setup].answer_timeout` (`timeout`).
   - A device's error comes as `DeviceRefused`, with its code, and leaves the session open; a wrong confirmation of the device's, as `NotConfirmed`.
   - The app ends a session by disconnecting: it sends no error of its own.
-- **`adapters/simulated/device.ts`**: a device in set-up, in memory, as the robot runs it: its code and discriminator, drawn again after a failed attempt; one session at a time; its networks, settings and key; and every error the protocol names.
+- **`services/flow.ts`**: `SetupFlow`, the steps a person goes through, as a store that the screens read (`subscribe` and `current`): finding the device, the exchange, the network, the settings, the registration and `finish`, and each failure the screens name. It sends no `configure` and no `register` to a bound device, and drops the session once it ends. Closed while it waits, it lets go of whatever it got meanwhile. It tells the cloud's failures from the device's by where they come from: each request to the cloud is wrapped, and only those leave the device's session open.
+- **`screens/`**: `SetupScreen` and its steps; `RadioProvider`, which the app's root fills with `radioFor`'s radio; and `SimulatedDevicesScreen`, the studio's page of the simulated devices' screens, their codes and QR codes.
+- **`adapters/simulated/device.ts`**: a device in set-up, in memory, as the robot runs it: its code and discriminator, drawn again after a failed attempt; one session at a time; its networks, settings and key; and every error the protocol names. Its set-up opens and closes as the robot's does, and once registered it reaches the simulated cloud, if that is the server its registration names. `adapters/simulated/radio.ts` hears those that advertise.
 
 ## Security and privacy
 
