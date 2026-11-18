@@ -36,6 +36,11 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 - Only what the protocol makes safe to repeat is sent again: a request with an Idempotency-Key, with the same key each time. A refresh token works once, so a refresh is never retried.
 - A simulated device or cloud keeps to the real one: the protocol's examples replay against it, and it refuses what the real one refuses, in the same order.
 - A set-up session over a link: an answer can come before the app has written all it meant to, such as the device's error to the confirmation, in the clear. The app then stops writing, reads it, and takes in the clear only that error, before the device's first encrypted message. A link can also end before its listener is installed: the session ends at once.
+- Set-up's flow sends no `configure` and no `register` to a device that is bound already, tries a code only on the device whose discriminator matches, and drops its session once the session ends. Each step after an `await` checks that the screen is still there, so that a flow closed meanwhile does nothing more to the device.
+  - What a step got while it waited, such as a link made after the close, is let go when the flow finds itself closed: `end()` in `run`'s catch. Letting a device go is an `await` too, followed by a check. Both once left a link open, or connected to the next device.
+  - Among several devices, one that refuses (`busy`, `version`) may not be the code's: the others are tried, and the person is told only if none is. A newer device once ended the search before the code's own.
+  - What the phone allowed before, such as Bluetooth, is read again where it is needed: the person may turn it off between two steps, and is then told that, not that no device is near.
+  - A failure is told by where it comes from, not by its type alone: `ProtocolError` is the cloud's answer as much as an outgoing message's check. The flow wraps each request to the cloud (`fromCloud`); a cloud answer that broke the app API once ended the device's session.
 - What a device sends cannot grow the app's memory: a fragment while nothing is asked ends the session before it is kept, and a message being joined takes the length it announced, checked first, however many fragments come. Fragments without data once piled up without end.
 - What is hashed or sealed is the exact bytes sent: set-up's context hashes both hellos as written. An example made by another JSON encoder, such as Python's spaced one, replays at the level of its parts, not of a whole session.
 - A change makes the cache read again everything it touches at the cloud, the effects the protocol names included: removing or demoting a person revokes their invitations. It does so whatever the answer, since a lost answer may hide a change made.
@@ -54,6 +59,7 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 ### The interface
 
 - Nothing blocks the interface: network, Bluetooth and storage work asynchronously.
+- A page drawn from a query shows its error page only when the query never succeeded (TanStack's `isLoadingError`). A background read that fails keeps the page, and with it what lives under it: a set-up's session once ended when the homes could not be read again.
 - Every text comes from the catalogs, and layouts hold longer translations and larger text sizes.
 - A catalog's text that becomes data, such as a default name the person may keep or a message they send, comes from `usePlainText`: MF2 isolates every value with invisible marks, which would be stored with it.
 - Dates and numbers are formatted by the catalogs' messages (`:datetime`, `:number`), never by hand. Hermes has no `Intl.PluralRules` (its IntlAPIs.md, read 2026-11-04): a message that selects a plural waits for a polyfill.
@@ -67,6 +73,7 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 - A change sent with `If-Match` that the cloud refuses as stale (`Refused.stale`) keeps what the person typed, and says that someone changed it meanwhile. A component keyed by the ETag would forget both.
 - Changes to one thing sent with `If-Match`, such as a person's name and role, go one at a time: a second sent while the first is under way carries the same ETag, and is refused as stale, as if someone else had changed it.
 - A choice the cloud makes, such as a role, shows the option chosen while the cloud is asked, then what the cloud has: after a refusal, never the option refused.
+- A text has a key for each use: a state shown and a button to press are two keys (`setup.simulated.state.open`, `setup.simulated.open`), even where their English words are the same, as their translations need not be.
 - A group of radio buttons is a `radiogroup` that is not an element of its own: an `accessible` container would hide its options from screen readers.
 
 ### Tests
@@ -81,10 +88,16 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 - Invisible characters in source, such as MF2's isolating marks (U+2066 to U+2069), are written as escapes, which a reviewer can see. Some editing tools write the character itself: check the file's bytes.
 - TanStack Query shows a mutation's pending state a tick after `mutate`: a test waits for it (`waitFor`). To see a screen while the cloud is asked, a transport holds the request until the test lets it go.
 - `jest.restoreAllMocks` restores spies only (jest-mock 30): the `jest.fn()`s of a `jest.mock` factory keep their calls from test to test, so a file that asserts a call did not happen clears them first (`jest.clearAllMocks`).
-- React Native Testing Library 14 renders and unmounts asynchronously: a test awaits `unmount`, or its `act` overlaps the next render, and the tests after it fail.
+- React Native Testing Library 14 renders, fires events and unmounts asynchronously: a test awaits `unmount` and every `fireEvent`, or its `act` overlaps the next render, and the tests after it fail.
+- A text with a value in it holds MF2's isolating marks: a test reads it with a normalizer that drops them, and names a button with them.
 - A test file run alone, as a mutant's run does, runs in band, and Jest waits for any handle left open; pass `--forceExit`.
 - An error that the runtime throws, such as `TextDecoder`'s with `fatal`, can be of another realm's class under Jest: `instanceof TypeError` was false there, and a header that was no UTF-8 failed the simulated cloud instead of being refused. Catch such a call alone, without testing the class, as `readMessage` does.
 - What a screen reader hears is tested on each platform, with `jest.replaceProperty(Platform, 'OS', …)`, restored after each test (`jest.restoreAllMocks`). A test that renders again uses `rerender`, which keeps `renderScreen`'s providers.
+
+### Types
+
+- `Omit` on a type with an index signature, such as one generated from a schema that allows more properties, drops every named key: `Pick` the keys wanted.
+- A type named as one of TypeScript's own (`Awaited`, `Record`) hides it in its file.
 
 ### Repository rules (CONTRIBUTING.md, AGENTS.md)
 

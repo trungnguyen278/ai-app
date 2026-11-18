@@ -120,6 +120,13 @@ test("the main screen shows the home's devices, each leading to its page", async
   expect(app.getPathname()).toBe(page);
 });
 
+test('adding a device opens from the home, over its devices', async () => {
+  const { app, home } = await signedInWithDevice();
+  await fireEvent.press(await screen.findByRole('button', { name: 'Add a device' }));
+  expect(await screen.findByRole('header', { name: /^Add a device to / })).toBeOnTheScreen();
+  expect(app.getPathname()).toBe(`${home}/devices/new`);
+});
+
 test("a device's page with no page behind it, as a link opens it, leads to the home once the device is removed", async () => {
   const { app, home, page } = await signedInWithDevice();
   await screen.findByRole('link', { name: /Bi/ });
@@ -175,6 +182,7 @@ test('the studio has its pages', () => {
     '/studio',
     '/studio/colors',
     '/studio/components',
+    '/studio/devices',
     '/studio/layout',
     '/studio/motion',
     '/studio/type',

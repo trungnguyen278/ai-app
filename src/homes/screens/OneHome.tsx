@@ -32,7 +32,9 @@ export function OneHome({
       </Screen>
     );
   }
-  if (homes.isError) {
+  // A read that fails once the homes are known keeps the page, which a later read brings up to
+  // date: a screen in use, such as a device's set-up, is not lost to one failure.
+  if (homes.isLoadingError) {
     return (
       <Screen style={styles.page}>
         <Notice role="alert" ink="danger">

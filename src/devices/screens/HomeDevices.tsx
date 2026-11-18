@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
+import { mayManage } from '@/src/homes';
 import { useText } from '@/src/shared/catalog';
 import { failureMessage } from '@/src/shared/cloud';
-import { Notice, Press, RADIUS, Skeleton, SPACE, Text, TYPE } from '@/src/shared/design';
+import { Button, Notice, Press, RADIUS, Skeleton, SPACE, Text, TYPE } from '@/src/shared/design';
 import type { App } from '@/src/shared/protocols';
 
 import { useDevices } from '../services/devices';
@@ -12,7 +13,8 @@ import { useDeviceNames } from './names';
 
 /**
  * A home's devices, on its screen, as Google's Home and Apple's Home show them there: each by
- * its name, and whether it is online, leading to its page.
+ * its name, and whether it is online, leading to its page. The owner and admins add one there
+ * (ADR-0013 of ai-platform, decision 1).
  */
 export function HomeDevices({ home }: { home: App.Home }) {
   const text = useText();
@@ -34,6 +36,13 @@ export function HomeDevices({ home }: { home: App.Home }) {
             <Device key={device.id} homeId={home.id} device={device} />
           ))}
         </View>
+      )}
+      {mayManage(home.role) && (
+        <Button
+          variant="secondary"
+          label={text('devices.add')}
+          onPress={() => router.push(`/homes/${home.id}/devices/new`)}
+        />
       )}
     </View>
   );

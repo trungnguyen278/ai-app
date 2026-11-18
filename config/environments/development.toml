@@ -9,6 +9,10 @@ ios_bundle_identifier = "io.github.trungnguyen278.aiapp.dev"
 [studio]
 enabled = true
 
+[setup]
+# Devices in set-up run inside the app, so that set-up is tried with no robot nearby.
+radio = "simulated"
+
 [cloud]
 # A developer's own cloud, on their machine, may be reached without TLS (SEC-1).
 plain_http = true

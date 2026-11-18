@@ -182,6 +182,8 @@ describe('a whole set-up, against the simulated device', () => {
 
   test('the device keeps the settings it can, and refuses what it cannot do', async () => {
     const device = exampleDevice({ bound: true, knowsTimeZone: (zone) => zone !== 'Mars/Base' });
+    // A bound device is open to set-up only when the owner asks on it (When set-up is open).
+    device.openSetUp();
     const greeting = await greet(device.connect(), options);
     const { session, info } = await greeting.exchange(device.secret.code);
     expect(info.bound).toBe(true);

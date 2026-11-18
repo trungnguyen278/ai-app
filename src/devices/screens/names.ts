@@ -11,8 +11,15 @@ import { useDevice } from '../services/devices';
  * is the one its owner starts from to rename it, so it is plain, without isolating marks.
  */
 export function useDeviceNames(): (device: App.Device) => string {
+  const kindName = useKindNames();
+  return (device) => device.name ?? kindName(device.kind);
+}
+
+/** The app's name for a kind of device, plain: what a device of that kind is called until it has
+ * a name of its own. */
+export function useKindNames(): (kind: string | undefined) => string {
   const plain = usePlainText();
-  return (device) => device.name ?? plain(`devices.kind.${kindOf(device.kind)}`);
+  return (kind) => plain(`devices.kind.${kindOf(kind)}`);
 }
 
 /** What a device of a home is called, once its devices are read: what its screen is called. */

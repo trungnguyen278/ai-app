@@ -7,7 +7,9 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useMemo, useState } from 'react';
 
 import { AccountProvider, useSession } from '@/src/account';
+import { radioFor, RadioProvider } from '@/src/setup';
 import { CatalogProvider, phoneCatalog } from '@/src/shared/catalog';
+import { cloudTransport } from '@/src/shared/cloud';
 import { runtimeSettings } from '@/src/shared/config';
 import { DesignProvider, FONT_FILES } from '@/src/shared/design';
 import { followTheApp, newQueryClient } from '@/src/shared/queries';
@@ -20,12 +22,18 @@ if (!isRunningInExpoGo()) {
 }
 
 /**
- * The app's root: every screen gets the cloud's cache, the session, the texts of the phone's
- * languages and the theme.
+ * The app's root: every screen gets the cloud's cache, the session, the radio that finds devices
+ * in set-up, the texts of the phone's languages and the theme. The radio's simulated devices reach
+ * the cloud the session talks to, when it is the simulated one.
  */
 export default function RootLayout() {
   const catalog = useMemo(() => phoneCatalog(), []);
   const [queries] = useState(() => newQueryClient(runtimeSettings().queries));
+  const [transport] = useState(() => cloudTransport(runtimeSettings().cloud));
+  const [radio] = useState(() => {
+    const { setup, cloud } = runtimeSettings();
+    return radioFor(setup, transport, cloud);
+  });
   const [loaded, failed] = useFonts(FONT_FILES);
   useEffect(() => {
     if (failed !== null) {
@@ -38,12 +46,14 @@ export default function RootLayout() {
   }
   return (
     <QueryClientProvider client={queries}>
-      <AccountProvider>
-        <CatalogProvider catalog={catalog}>
-          <DesignProvider>
-            <Routes />
-          </DesignProvider>
-        </CatalogProvider>
+      <AccountProvider transport={transport}>
+        <RadioProvider radio={radio}>
+          <CatalogProvider catalog={catalog}>
+            <DesignProvider>
+              <Routes />
+            </DesignProvider>
+          </CatalogProvider>
+        </RadioProvider>
       </AccountProvider>
     </QueryClientProvider>
   );
@@ -81,6 +91,7 @@ function Routes() {
         <Stack.Screen name="homes/[id]/invite" />
         <Stack.Screen name="homes/[id]/profiles/new" />
         <Stack.Screen name="homes/[id]/people/[memberId]" />
+        <Stack.Screen name="homes/[id]/devices/new" />
         <Stack.Screen name="homes/[id]/devices/[deviceId]" />
         <Stack.Screen name="account" />
       </Stack.Protected>
@@ -95,6 +106,7 @@ function Routes() {
         <Stack.Screen name="studio/layout" />
         <Stack.Screen name="studio/components" />
         <Stack.Screen name="studio/motion" />
+        <Stack.Screen name="studio/devices" />
       </Stack.Protected>
     </Stack>
   );

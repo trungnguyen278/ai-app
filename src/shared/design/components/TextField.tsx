@@ -17,7 +17,7 @@ import { Notice } from './Notice';
 import { Text } from './Text';
 
 /** What a field holds: the keyboard, and what the phone may fill it with, follow from it. */
-export type FieldKind = 'text' | 'name' | 'email' | 'link';
+export type FieldKind = 'text' | 'name' | 'email' | 'link' | 'digits' | 'verbatim' | 'password';
 
 /** A field's input, as its `ref` holds it. */
 export type FieldInput = ComponentRef<typeof TextInput>;
@@ -44,6 +44,30 @@ const KINDS: Readonly<Record<FieldKind, Partial<TextInputProps>>> = {
     autoCorrect: false,
     keyboardType: 'url',
     textContentType: 'URL',
+  },
+  // Digits read off a screen, such as a device's code: the phone's number pad, nothing suggested.
+  digits: {
+    autoComplete: 'off',
+    autoCorrect: false,
+    keyboardType: 'number-pad',
+    textContentType: 'none',
+  },
+  // Characters copied as they are, such as a discriminator or a network's name: nothing
+  // capitalised, corrected or suggested.
+  verbatim: {
+    autoCapitalize: 'none',
+    autoComplete: 'off',
+    autoCorrect: false,
+    textContentType: 'none',
+  },
+  // A password that is not the person's own for the app, such as a Wi-Fi network's: hidden as it
+  // is typed, and not offered to the phone's password manager for this app.
+  password: {
+    autoCapitalize: 'none',
+    autoComplete: 'off',
+    autoCorrect: false,
+    secureTextEntry: true,
+    textContentType: 'none',
   },
 };
 

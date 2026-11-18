@@ -71,7 +71,7 @@ test("the studio tries each of the robot's tones, named for screen readers", asy
 test('each page opens from a row, laid out as one', async () => {
   await renderScreen(<StudioScreen />);
   const rows = screen.getAllByRole('link');
-  expect(rows).toHaveLength(5);
+  expect(rows).toHaveLength(6);
   for (const row of rows) {
     expect(row).toHaveStyle({ flexDirection: 'row', minHeight: TARGET });
   }
@@ -79,7 +79,14 @@ test('each page opens from a row, laid out as one', async () => {
 
 test('the studio leads to each page, in the phone’s language', async () => {
   await renderScreen(<StudioScreen />, ['vi']);
-  for (const page of ['Màu sắc', 'Chữ', 'Khoảng cách và góc bo', 'Thành phần', 'Chuyển động']) {
+  for (const page of [
+    'Màu sắc',
+    'Chữ',
+    'Khoảng cách và góc bo',
+    'Thành phần',
+    'Chuyển động',
+    'Thiết bị đang chờ cài đặt',
+  ]) {
     expect(screen.getByRole('link', { name: page })).toBeOnTheScreen();
   }
 });

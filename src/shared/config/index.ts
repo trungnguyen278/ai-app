@@ -28,6 +28,33 @@ export interface QueriesSettings {
 export interface SetupSettings {
   /** Seconds the app waits for each of a device's answers. */
   answer_timeout: number;
+  /** The radio that finds devices in set-up: the phone's, or one simulated in memory. */
+  radio: 'bluetooth' | 'simulated';
+  /** Seconds the app listens for devices in set-up before it connects to them. */
+  scan_time: number;
+  /** Seconds the app asks again while a device does not know whether it reaches the Internet. */
+  internet_wait: number;
+  /** Seconds between those questions. */
+  recheck: number;
+  /** Seconds between reads of a device just added, until it is online. */
+  online_poll: number;
+  /** Seconds after which the app says that a device just added has not come online. */
+  online_timeout: number;
+  simulated: SimulatedSetupSettings;
+}
+
+/** The simulated radio's devices in set-up (config/base.toml, [setup.simulated]). */
+export interface SimulatedSetupSettings {
+  /** How many devices are in set-up. */
+  devices: number;
+  /** The networks they see. */
+  networks: {
+    ssid: string;
+    security: 'open' | 'wpa2' | 'wpa3' | 'other';
+    signal: number;
+    password?: string;
+    hidden?: boolean;
+  }[];
 }
 
 /** The settings app.config.ts puts in Expo's `extra`, from config/. */
