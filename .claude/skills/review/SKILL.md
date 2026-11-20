@@ -27,7 +27,10 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 
 - The protocol changed first, in ai-platform, and the submodule's pin moved with the code that speaks it.
 - Every message received is validated: its schema, its size, its numbers (finite), its strings (length); what fails is refused (SEC-14). Rates and sizes are limited (SEC-15).
-- Every JSON text received is read with `readJson` (`src/shared/protocols/json.ts`), never `JSON.parse`: it refuses what no side can hold (ai-platform ADR-0014), a U+0000, a lone surrogate, nesting past 64 or a number past a double, as one it cannot read. `JSON.parse` takes all of them, and an escaped lone surrogate passes a schema's patterns.
+- Every JSON text received is read with `readJson` (`src/shared/protocols/json.ts`), never `JSON.parse`: it refuses what no side can hold (ai-platform ADR-0014), a U+0000, a lone surrogate, nesting past 64, a number past a double or a name twice in one object, as one it cannot read. `JSON.parse` takes all of them, and an escaped lone surrogate passes a schema's patterns.
+  - A check of the parsed value sees only what the parser kept: `JSON.parse` keeps a repeated name's last value, and the value it dropped, a U+0000 in it, went unchecked. The other sides refuse the text.
+  - A scan of a text received reads each string once, passing over each escape: one that goes back at each escaped quote, or a pattern that needs the closing quote and tries again from each, takes time in the square of the length, as ai-robot's first depth count did.
+  - A list's `uniqueItems` compares every pair of items when they are `$ref`s: the checks are generated without `allErrors`, so that `maxItems` refuses a long list first.
 - A device's name for a network goes as bytes: `ssid` only when they are UTF-8 without a NUL byte, `ssid_hex` otherwise, wherever a name goes. A set-up error replies to the message it is about whenever that message's `seq` can be read, even if the message breaks the schema.
 - A replayed message has no effect beyond its first one, and credentials expire (SEC-12).
   - What is used once is used first of all, and the answer is kept with its Idempotency-Key whatever it is, a refusal included: a registration's challenge, once used, can give no other answer to a retry.
@@ -84,6 +87,7 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 - Protocol exchanges are tested against ai-platform's examples, and against a simulated device.
 - A fake keeps to its port's contract as the real adapter will: a fake link that skipped the listener of a link already ended hid a listener left installed. A rule that no session can reach today, such as a long message after the one that opens the channel, is tested on the unit that holds it, the `Conversation`.
 - No fixed sleeps to wait for readiness: wait for the condition, with a timeout.
+- A test of time grows its input, with a budget at each size. Jest cannot stop synchronous code at its timeout: code that took the square of the length would hang on a large input alone, where it fails at a small one among growing sizes.
 - A time reads the same on every machine: the tests run in UTC (`jest.config.js`), and the simulated cloud takes a clock.
 - Invisible characters in source, such as MF2's isolating marks (U+2066 to U+2069), are written as escapes, which a reviewer can see. Some editing tools write the character itself: check the file's bytes.
 - TanStack Query shows a mutation's pending state a tick after `mutate`: a test waits for it (`waitFor`). To see a screen while the cloud is asked, a transport holds the request until the test lets it go.
