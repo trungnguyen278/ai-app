@@ -7,7 +7,7 @@ import { join } from 'node:path';
 
 import Ajv2020 from 'ajv/dist/2020';
 
-import { checked, ProtocolError, type AppDefinition } from '@/src/shared/protocols';
+import { checked, ProtocolError, setupChecked, type AppDefinition } from '@/src/shared/protocols';
 
 type Body = Record<string, unknown>;
 
@@ -174,4 +174,26 @@ test('a single field has its check too, for what people type', () => {
   expect(refusal('name', 'Nhà\tLinh').message).toBe('name: / breaks pattern');
   expect(refusal('time_zone', 'Asia/Ho Chi Minh').message).toBe('time_zone: / breaks pattern');
   expect(accepts('email', 'linh@example.com')).toBe(true);
+});
+
+test('a list longer than its schema allows is refused before its items are compared', () => {
+  // Ajv's uniqueItems compares every pair of items when the items' schema names no type of its
+  // own, as a `$ref` does not (ajv 8.20.0, vocabularies/validation/uniqueItems.js, read
+  // 2026-11-20). Its checks read maxItems first and stop at the first rule broken (allErrors is
+  // off): no list longer than maxItems reaches the comparison.
+  const distinct = (count: number) =>
+    Array.from({ length: count }, (_, index) => `en-${index.toString(36)}`);
+  expect(accepts('languages', ['en', 'vi'])).toBe(true);
+  expect(accepts('languages', ['en', 'en'])).toBe(false);
+  for (const count of [1024, 4096, 16384, 65536]) {
+    const languages = distinct(count);
+    const start = performance.now();
+    expect(refusal('languages', languages).message).toBe('languages: / breaks maxItems 10');
+    expect(refusal('home_languages', languages).message).toBe(
+      'home_languages: / breaks maxItems 10',
+    );
+    expect(() => setupChecked('languages', languages)).toThrow('languages: / breaks maxItems 16');
+    // Comparing every pair would take seconds by 16,384 items.
+    expect(performance.now() - start).toBeLessThan(100);
+  }
 });
