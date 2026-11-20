@@ -1,0 +1,21 @@
+// SPDX-License-Identifier: MIT
+// The app's own module that reads Android's Location setting (ADR-0007), built as Expo's template
+// for a local module builds one (expo/expo, packages/expo-module-template, read 2026-11-21).
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.locationsetting'
+version = '0.1.0'
+
+android {
+  namespace "expo.modules.locationsetting"
+  defaultConfig {
+    versionCode 1
+    versionName "0.1.0"
+  }
+  lintOptions {
+    abortOnError false
+  }
+}

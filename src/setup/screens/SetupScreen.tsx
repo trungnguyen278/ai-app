@@ -106,6 +106,10 @@ function Intro({ flow, home }: { flow: SetupFlow; home: App.Home }) {
   );
 }
 
+/** The page of Android's settings where Location is turned on (Settings.ACTION_LOCATION_SOURCE_
+ * SETTINGS, developer.android.com, read 2026-11-21), which Nordic's scanner opens too. */
+const LOCATION_SETTINGS = 'android.settings.LOCATION_SOURCE_SETTINGS';
+
 /** Bluetooth cannot be used: why, and the way to the settings. Its state is read again whenever
  * the app comes back to the front, as the person may have changed it there. */
 function Radio({
@@ -134,7 +138,17 @@ function Radio({
           onPress={() => void Linking.openSettings()}
         />
       )}
-      {state === 'off' && (
+      {state === 'location' && (
+        <Button
+          variant="secondary"
+          label={text('setup.radio.location_settings')}
+          // Some phones have no such page (the action's reference): the notice still says what to
+          // do. The page is declared in modules/location-setting's manifest, without which Android
+          // 11 may not find it.
+          onPress={() => void Linking.sendIntent(LOCATION_SETTINGS).catch(() => undefined)}
+        />
+      )}
+      {(state === 'off' || state === 'location') && (
         <Button
           variant="secondary"
           label={text('setup.retry')}

@@ -36,6 +36,8 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
   - What is used once is used first of all, and the answer is kept with its Idempotency-Key whatever it is, a refusal included: a registration's challenge, once used, can give no other answer to a retry.
 - A signature or a key is read as the protocol reads it, not as a library's default does. noble refuses a high `s` unless told (`lowS: false`), where JWS takes either (RFC 7518, 3.4). A key's coordinates are read canonically, as ai-cloud reads them: base64url with other unused bits would give one key two thumbprints.
 - A device or a cloud that does not answer, answers late or answers twice leaves the app usable, and the owner is told what happened.
+  - Every wait on a link ends by the app's own timer, since a session's timer for an answer starts only once its writes have settled: a connection within `[setup].connect_timeout`, a write within `[setup].write_timeout`, after which the link ends. The stack's own end of a link is not enough: an ATT transaction fails after 30 seconds (Bluetooth Core, Vol 3, Part F, 3.3.3), but react-native-ble-manager never settles an Android write that the device refused for its authentication, whatever the stack does (2026-11-21).
+  - A failure is named after what the phone's radio says once it happened: Bluetooth turned off while the phone connects fails the connection, which set-up once told as a code that expired.
 - Only what the protocol makes safe to repeat is sent again: a request with an Idempotency-Key, with the same key each time. A refresh token works once, so a refresh is never retried.
 - A simulated device or cloud keeps to the real one: the protocol's examples replay against it, and it refuses what the real one refuses, in the same order.
 - A set-up session over a link: an answer can come before the app has written all it meant to, such as the device's error to the confirmation, in the clear. The app then stops writing, reads it, and takes in the clear only that error, before the device's first encrypted message. A link can also end before its listener is installed: the session ends at once.
@@ -56,7 +58,7 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 - An error names what failed, never a value: no code, password, network or name, and no length or size taken from the data (SEC-5).
 - The app asks for a permission, such as Bluetooth or notifications, when it first needs it, and says why, in the owner's language.
   - The phone's own question, such as iOS's reason for the camera, comes from the catalogs too, through `NATIVE_MESSAGES` in `app.config.ts`, as plain text.
-  - A plugin asks for nothing the app does not use: `npx expo config --type introspect` shows the permissions a build gets.
+  - A plugin asks for nothing the app does not use. The permissions a build gets are its merged manifest's (`aapt2 dump permissions` on the APK): `npx expo config --type introspect` shows only the plugins' part, in `uses-permission` and in `uses-permission-sdk-23`, and a library's own manifest merges in. react-native-ble-manager's plugin declares `BLUETOOTH` and `BLUETOOTH_ADMIN` for every Android, where its manifest limits them to Android 11.
   - Expo's permission hooks read the permission only as they start: a screen that sends the person to the settings reads it again when the app comes back to the front.
 
 ### The interface
@@ -67,6 +69,10 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 - A catalog's text that becomes data, such as a default name the person may keep or a message they send, comes from `usePlainText`: MF2 isolates every value with invisible marks, which would be stored with it.
 - Dates and numbers are formatted by the catalogs' messages (`:datetime`, `:number`), never by hand. Hermes has no `Intl.PluralRules` (its IntlAPIs.md, read 2026-11-04): a message that selects a plural waits for a polyfill.
   - `:datetime` formats a time whatever `dateFields` says (messageformat 4.1.0): a day alone is `:date`, with `fields` and `length`.
+- Jest runs on Node, the phone on Hermes, whose `Intl` has fewer parts than Node's (Hermes's IntlAPIs.md). What a change or a library calls is checked against that list, and the change is tried on a phone: messageformat builds an `Intl.Locale` for every message, which passed every test and left every text of the app unformatted on a phone (2026-11-21).
+- What a platform did before is read too, down to the app's lowest version: before Android 12, a Bluetooth scan finds nothing while Location is off (AOSP's `GattService`), which a phone on Android 17 never shows.
+  - Another app's page, opened with `Linking.sendIntent`, is declared in a manifest's `<queries>`: React Native resolves the activity first, which from Android 11 sees only the apps declared. Its promise is caught, since a phone may have no such page.
+- A library with a native module loads only where the module is. react-native-ble-manager's throws as it loads on the web, in Expo Go and in Jest: its adapter `require`s it once `TurboModuleRegistry.get` has found the module.
 - Every route guard names where it leads (`redirectTo`): without one, Expo Router leads to the first open route in its own order, by name.
 - A page that a link can open, as any route can, may have nothing behind it: after an action that leaves it, it goes back only when `router.canGoBack()`, and to the page above it otherwise: `goBack(above)` in `shared/navigation`. A bare `router.back()` left three pages stuck (2026-11-20).
 - A screen a link opens signs the person in on that screen (`SignInScreen`'s `reason`), so that the link keeps its place: a guard would replace it.

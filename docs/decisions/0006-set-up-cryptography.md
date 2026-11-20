@@ -1,6 +1,6 @@
 # 0006 — Set-up's cryptography: noble's libraries, in JavaScript, and the phone's randomness
 
-- **Status:** Accepted (delegated to the developer, 2026-11-12)
+- **Status:** Accepted (delegated to the developer, 2026-11-12). Its follow-up measured scrypt on a phone, in a development build: about 51 seconds ([dev log, 2026-11-21](../devlog/2026-11.md)).
 - **Date:** 2026-11-12
 
 ## Context

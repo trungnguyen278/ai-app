@@ -14,3 +14,4 @@ Each significant decision is a short file: context, decision, alternatives consi
 | [0004](0004-talking-to-the-cloud.md) | Talking to ai-cloud: types and checks made from the protocol, one client, a session in secure storage | Accepted; decision 1 widened by 0005 | 2026-11-04 |
 | [0005](0005-checks-for-every-definition.md) | The app API's checks: one for every definition | Accepted | 2026-11-04 |
 | [0006](0006-set-up-cryptography.md) | Set-up's cryptography: noble's libraries, in JavaScript, and the phone's randomness | Accepted (delegated) | 2026-11-12 |
+| [0007](0007-bluetooth-le-library.md) | The Bluetooth LE library: react-native-ble-manager, behind the radio port | Accepted (delegated) | 2026-11-21 |

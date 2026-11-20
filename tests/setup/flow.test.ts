@@ -450,6 +450,52 @@ describe('Bluetooth', () => {
     expect(flow.current()).toMatchObject({ step: 'networks' });
   });
 
+  test('turned off during the scan: said so, rather than that no device is near', async () => {
+    const { devices, start, radio } = await world();
+    const { flow } = start();
+    await flow.begin();
+    jest.spyOn(radio, 'scan').mockImplementationOnce(async () => {
+      radio.current = 'off';
+      return [];
+    });
+    await flow.typed(devices[0].secret.code);
+    expect(flow.current()).toEqual({ step: 'radio', state: 'off' });
+    radio.current = 'ready';
+    await flow.recheck();
+    expect(flow.current()).toMatchObject({ step: 'networks' });
+  });
+
+  test.each(['scanned', 'typed'] as const)(
+    'turned off while the device connects, its code %s: said so, and the code tried once it is on',
+    async (how) => {
+      const { devices, start, radio } = await world();
+      const { flow } = start();
+      await flow.begin();
+      const [device] = devices;
+      // The phone fails to connect, as Bluetooth goes off.
+      jest.spyOn(radio, 'scan').mockImplementationOnce(async () => [
+        {
+          id: device.id,
+          connect: async () => {
+            radio.current = 'off';
+            throw new Error('the radio failed to connect');
+          },
+        },
+      ]);
+      if (how === 'scanned') {
+        expect(flow.scanned(qrOf(device))).toBe(true);
+        await rest(flow);
+      } else {
+        await flow.typed(device.secret.code);
+      }
+      // Not a code that expired, nor a device away.
+      expect(flow.current()).toEqual({ step: 'radio', state: 'off' });
+      radio.current = 'ready';
+      await flow.recheck();
+      expect(flow.current()).toMatchObject({ step: 'networks' });
+    },
+  );
+
   test('withdrawn after the explanation: asked for again', async () => {
     const { devices, start, radio } = await world({ radio: { state: 'ask' } });
     const { flow } = start();
@@ -771,6 +817,28 @@ describe('when something goes wrong', () => {
     connecting.open();
     await typing;
     expect(made).toEqual({ link: true, closed: true });
+  });
+
+  test("closing while it reads Bluetooth's state after an empty scan stops it there", async () => {
+    const { devices, start } = await world();
+    const reading = gate();
+    const radio: Radio = {
+      state: async () => {
+        reading.reached();
+        await reading.opened;
+        return 'off';
+      },
+      allow: async () => 'ready',
+      scan: async () => [],
+    };
+    const { flow } = start({ radio });
+    await flow.begin();
+    const typing = flow.typed(devices[0].secret.code);
+    await reading.reaching;
+    await flow.close();
+    reading.open();
+    await typing;
+    expect(flow.current()).toEqual({ step: 'working', work: 'finding' });
   });
 
   test("closing while a device not the code's is let go connects to no other", async () => {

@@ -5,6 +5,8 @@ import { SimulatedCloud, type CloudSettings, type Transport } from '@/src/shared
 import type { SetupSettings } from '@/src/shared/config';
 
 import type { Radio } from '../ports/radio';
+import { phoneCentral } from './bluetooth/phone';
+import { BluetoothRadio } from './bluetooth/radio';
 import { SimulatedDevice, type DeviceServer } from './simulated/device';
 import { SimulatedRadio } from './simulated/radio';
 import { NoRadio } from './unavailable';
@@ -12,8 +14,8 @@ import { NoRadio } from './unavailable';
 /**
  * The simulated radio, with `[setup.simulated]`'s devices in set-up, or the phone's. A simulated
  * device reaches the server its registration names only when that is the simulated cloud that
- * `transport` is. The phone's radio is the Bluetooth adapter, step 2 of adding a device (dev log,
- * 2026-11-12); an app without one, such as the web's, says that set-up is not supported.
+ * `transport` is. The phone's radio is Bluetooth LE; an app without it, the web's or Expo Go's,
+ * says that set-up is not supported.
  */
 export function radioFor(
   settings: SetupSettings,
@@ -36,5 +38,6 @@ export function radioFor(
     // The phone asks for Bluetooth once, as it would the first time.
     return new SimulatedRadio(devices, { state: 'ask' });
   }
-  return new NoRadio();
+  const central = phoneCentral();
+  return central === null ? new NoRadio() : new BluetoothRadio(central, settings);
 }

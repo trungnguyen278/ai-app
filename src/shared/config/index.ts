@@ -32,6 +32,10 @@ export interface SetupSettings {
   radio: 'bluetooth' | 'simulated';
   /** Seconds the app listens for devices in set-up before it connects to them. */
   scan_time: number;
+  /** Seconds the app gives a device it heard to connect and turn on its indications. */
+  connect_timeout: number;
+  /** Seconds the app waits for a device to confirm a write, before it ends the link. */
+  write_timeout: number;
   /** Seconds the app asks again while a device does not know whether it reaches the Internet. */
   internet_wait: number;
   /** Seconds between those questions. */

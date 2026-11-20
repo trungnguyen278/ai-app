@@ -175,7 +175,7 @@ describe("Expo's configuration", () => {
     ]);
   });
 
-  test("asks for the camera in each catalog's language, and never for the microphone", () => {
+  test("asks for the camera and for Bluetooth in each catalog's language, and never for the microphone", () => {
     const camera = expo().plugins?.find(
       (plugin) => Array.isArray(plugin) && plugin[0] === 'expo-camera',
     );
@@ -187,11 +187,27 @@ describe("Expo's configuration", () => {
         recordAudioAndroid: false,
       },
     ]);
+    const bluetooth = expo().plugins?.find(
+      (plugin) => Array.isArray(plugin) && plugin[0] === 'react-native-ble-manager',
+    );
+    expect(bluetooth).toEqual([
+      'react-native-ble-manager',
+      {
+        neverForLocation: true,
+        isBleRequired: false,
+        bluetoothAlwaysPermission: CATALOGS.en['native.bluetooth'],
+      },
+    ]);
     expect(expo().locales).toEqual(
       Object.fromEntries(
         Object.entries(CATALOGS).map(([language, messages]) => [
           language,
-          { ios: { NSCameraUsageDescription: messages['native.camera'] } },
+          {
+            ios: {
+              NSCameraUsageDescription: messages['native.camera'],
+              NSBluetoothAlwaysUsageDescription: messages['native.bluetooth'],
+            },
+          },
         ]),
       ),
     );

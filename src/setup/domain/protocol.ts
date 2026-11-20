@@ -18,6 +18,13 @@ export const KEYS_INFO = 'ai-platform/setup/2 keys';
 /** The most bytes a message has, encrypted or not (The Bluetooth service; Limits). */
 export const MAX_MESSAGE = 8192;
 
+/** The set-up service, which a device advertises while set-up is open, and its two
+ * characteristics: Request, which the app writes with a response, and Answer, which the device
+ * indicates (The Bluetooth service). */
+export const SERVICE_UUID = 'eaf35dcb-e774-4881-b0c6-4990127a1289';
+export const REQUEST_UUID = 'eaf35dcc-e774-4881-b0c6-4990127a1289';
+export const ANSWER_UUID = 'eaf35dcd-e774-4881-b0c6-4990127a1289';
+
 /** The smallest fragment: the smallest ATT MTU, 23, minus 3 bytes (The Bluetooth service). */
 export const MIN_FRAGMENT = 20;
 
