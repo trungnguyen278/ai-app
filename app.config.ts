@@ -175,7 +175,10 @@ export function catalogLanguages(directory = LOCALES_DIR): string[] {
  * them under: what iOS asks before the camera opens. They are plain text, which the catalogs'
  * tests keep free of MF2's syntax, since the system shows them as they are written.
  */
-export const NATIVE_MESSAGES = { NSCameraUsageDescription: 'native.camera' } as const;
+export const NATIVE_MESSAGES = {
+  NSCameraUsageDescription: 'native.camera',
+  NSBluetoothAlwaysUsageDescription: 'native.bluetooth',
+} as const;
 
 /** The native messages, in each catalog's language that has them (Expo's `locales`). */
 export function nativeLocales(directory = LOCALES_DIR): Record<string, { ios: Table }> {
@@ -199,12 +202,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   const { light, dark } = JSON.parse(readFileSync(PALETTE, 'utf8'));
   const languages = catalogLanguages();
   const locales = nativeLocales();
-  const cameraReason = locales[SOURCE_LANGUAGE]?.ios.NSCameraUsageDescription;
-  if (typeof cameraReason !== 'string') {
-    throw new Error(
-      `locales/${SOURCE_LANGUAGE}.json lacks ${NATIVE_MESSAGES.NSCameraUsageDescription}`,
-    );
-  }
+  const reason = (key: keyof typeof NATIVE_MESSAGES): string => {
+    const text = locales[SOURCE_LANGUAGE]?.ios[key];
+    if (typeof text !== 'string') {
+      throw new Error(`locales/${SOURCE_LANGUAGE}.json lacks ${NATIVE_MESSAGES[key]}`);
+    }
+    return text;
+  };
   return {
     ...config,
     name: app.name,
@@ -237,7 +241,22 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       // reason is English's, which each language's `locales` replaces.
       [
         'expo-camera',
-        { cameraPermission: cameraReason, microphonePermission: false, recordAudioAndroid: false },
+        {
+          cameraPermission: reason('NSCameraUsageDescription'),
+          microphonePermission: false,
+          recordAudioAndroid: false,
+        },
+      ],
+      // Bluetooth LE finds a device in set-up and talks to it, and never locates the phone: Android
+      // 12 and later do not ask for its location (`neverForLocation`). A phone without Bluetooth LE
+      // still installs the app, whose set-up says it is not supported.
+      [
+        'react-native-ble-manager',
+        {
+          neverForLocation: true,
+          isBleRequired: false,
+          bluetoothAlwaysPermission: reason('NSBluetoothAlwaysUsageDescription'),
+        },
       ],
     ],
     extra: { ...config.extra, settings: runtimeSettings(settings) },

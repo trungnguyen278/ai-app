@@ -53,6 +53,17 @@ radio = "bluetooth"
 # every 1.28 seconds, Linux's default interval (net/bluetooth/hci_core.c, le_adv_min_interval
 # 0x0800 units of 0.625 ms, read 2026-11-16): 5 seconds hears it about four times.
 scan_time = 5
+# Seconds the app gives a device it heard to connect, to tell the size of its writes and to turn on
+# its indications, before it lets the device go: 20, as Matter's Linux central gives a device in
+# commissioning (connectedhomeip, src/platform/Linux/BLEManagerImpl.cpp, kConnectTimeout, read
+# 2026-11-21). An iPhone tries to connect for ever, unless told to stop.
+connect_timeout = 20
+# Seconds the app waits for a device to confirm a write, before it ends the link: the ATT's 30, after
+# which the phone's stack ends a link whose transaction has no answer (Bluetooth Core, Vol 3, Part
+# F, 3.3.3), and 5 more for that end to reach the app. react-native-ble-manager never settles a
+# write on Android that the device refused for its authentication (Peripheral.java,
+# onCharacteristicWrite, 13.0.1), and only the end of the link lets it go.
+write_timeout = 35
 # Seconds the app asks a device again, while it is on a network but does not know yet whether it
 # reaches the Internet, before it offers the networks (the set-up protocol, How the app runs it).
 internet_wait = 30

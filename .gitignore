@@ -36,6 +36,8 @@ npm-debug.*
 /android/
 /ios/
 .kotlin/
+# What Gradle builds of the app's own native modules (modules/)
+modules/*/android/build/
 
 # ---- Settings for one machine (config/base.toml says how they merge) ----
 config/local.toml

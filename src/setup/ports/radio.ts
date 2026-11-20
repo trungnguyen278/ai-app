@@ -16,6 +16,8 @@ export type RadioState =
   | 'blocked'
   /** Bluetooth is turned off. */
   | 'off'
+  /** Location is off, without which Android 11 and older find no device. */
+  | 'location'
   /** This phone, or this build of the app, has no Bluetooth LE: the web, Expo Go. */
   | 'unsupported';
 

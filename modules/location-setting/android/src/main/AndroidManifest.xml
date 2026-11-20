@@ -1,0 +1,11 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- Set-up opens Location's page of the settings with React Native's Linking.sendIntent, which
+       resolves the page before it starts it: from Android 11 that sees only the apps a manifest
+       declares, or the system's own that the phone shows to every app (developer.android.com,
+       package visibility, read 2026-11-21). -->
+  <queries>
+    <intent>
+      <action android:name="android.settings.LOCATION_SOURCE_SETTINGS" />
+    </intent>
+  </queries>
+</manifest>

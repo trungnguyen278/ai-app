@@ -409,9 +409,45 @@ describe('Bluetooth', () => {
       await screen.findByText('Bluetooth is off. Turn it on, then try again.'),
     ).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Open settings' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Open location settings' })).toBeNull();
     made.radio.current = 'ready';
     await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
     expect(await screen.findByRole('button', { name: 'Type the code instead' })).toBeOnTheScreen();
+  });
+
+  test('Location off, before Android 12: its settings opened, and tried again', async () => {
+    const intent = jest.spyOn(Linking, 'sendIntent').mockResolvedValue();
+    const made = await world({ radio: { state: 'location' } });
+    await open(made);
+    await fireEvent.press(await screen.findByRole('button', CONTINUE));
+    expect(
+      await screen.findByText(
+        'Location is off. This phone finds Bluetooth devices only while Location is on: turn it on, then try again.',
+      ),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Open settings' })).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Open location settings' }));
+    expect(intent).toHaveBeenCalledWith('android.settings.LOCATION_SOURCE_SETTINGS');
+    made.radio.current = 'ready';
+    await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByRole('button', { name: 'Type the code instead' })).toBeOnTheScreen();
+  });
+
+  test('Location off, on a phone without its page of the settings: nothing thrown', async () => {
+    jest.spyOn(Linking, 'sendIntent').mockRejectedValue(new Error('no such page'));
+    const unhandled = jest.fn();
+    process.on('unhandledRejection', unhandled);
+    try {
+      const made = await world({ radio: { state: 'location' } });
+      await open(made);
+      await fireEvent.press(await screen.findByRole('button', CONTINUE));
+      await fireEvent.press(await screen.findByRole('button', { name: 'Open location settings' }));
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(unhandled).not.toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: 'Try again' })).toBeOnTheScreen();
+    } finally {
+      process.off('unhandledRejection', unhandled);
+    }
   });
 });
 

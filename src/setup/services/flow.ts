@@ -368,6 +368,7 @@ export class SetupFlow {
     const nearby = await this.deps.radio.scan(this.deps.session.settings.scan_time);
     this.check();
     if (nearby.length === 0) {
+      if (await this.radioLost()) return;
       return this.fail('none', true, () => this.find());
     }
     // A typed code finds its device alone only when one device is in set-up: no code is ever
@@ -399,6 +400,8 @@ export class SetupFlow {
       }
       return this.exchange(greeting, target.code);
     }
+    // Bluetooth may have gone while the devices were tried, which none of their answers tells.
+    if (await this.radioLost()) return;
     // Busy first: it passes, and trying again then reaches a device that is the code's.
     if (busy) {
       return this.fail('busy', true, () => this.find());
@@ -409,6 +412,17 @@ export class SetupFlow {
     return this.fail(target.discriminator === undefined ? 'none' : 'expired', true, async () =>
       target.discriminator === undefined ? this.find() : this.toCode(),
     );
+  }
+
+  /** Whether Bluetooth was turned off, or refused, while set-up looked for the device: the person
+   * is told so, rather than that no device answered, and the code is tried once it is back
+   * (`recheck`). */
+  private async radioLost(): Promise<boolean> {
+    const state = await this.deps.radio.state();
+    this.check();
+    if (state === 'ready') return false;
+    this.set({ step: 'radio', state: blocked(state) });
+    return true;
   }
 
   /** Says hello to `candidate`: its greeting, or why not; `null` for one that went away. */

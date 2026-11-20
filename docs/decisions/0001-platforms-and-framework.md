@@ -1,6 +1,6 @@
 # 0001 — Platforms and framework: React Native with Expo, Android first
 
-- **Status:** Accepted
+- **Status:** Accepted. Decision 5's library is chosen by [ADR-0007](0007-bluetooth-le-library.md): react-native-ble-manager.
 - **Date:** 2026-10-29
 
 ## Context
