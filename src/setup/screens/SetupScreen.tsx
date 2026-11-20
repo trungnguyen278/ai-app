@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { AppState, Linking, StyleSheet, View } from 'react-native';
-import { router } from 'expo-router';
 
 import { useCloud } from '@/src/account';
 import { useKindNames } from '@/src/devices';
@@ -11,6 +10,7 @@ import { useText } from '@/src/shared/catalog';
 import { failureMessage } from '@/src/shared/cloud';
 import { runtimeSettings } from '@/src/shared/config';
 import { Button, haptic, Notice, Pulse, Screen, SPACE, Text, TextField } from '@/src/shared/design';
+import { goBack } from '@/src/shared/navigation';
 import type { App } from '@/src/shared/protocols';
 import { QrScanner } from '@/src/shared/scanner';
 
@@ -270,16 +270,14 @@ function Failed({
       {step.retry ? (
         <Button label={text('setup.retry')} onPress={() => void flow.retry()} />
       ) : (
-        <Button variant="secondary" label={text('setup.close')} onPress={() => leave(homeId)} />
+        <Button
+          variant="secondary"
+          label={text('setup.close')}
+          onPress={() => goBack(`/homes/${homeId}`)}
+        />
       )}
     </Screen>
   );
-}
-
-/** Leaves set-up for the page below it, or for the home when a link opened it with nothing below. */
-function leave(homeId: string) {
-  if (router.canGoBack()) router.back();
-  else router.replace(`/homes/${homeId}`);
 }
 
 const styles = StyleSheet.create({

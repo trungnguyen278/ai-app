@@ -65,7 +65,7 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 - Dates and numbers are formatted by the catalogs' messages (`:datetime`, `:number`), never by hand. Hermes has no `Intl.PluralRules` (its IntlAPIs.md, read 2026-11-04): a message that selects a plural waits for a polyfill.
   - `:datetime` formats a time whatever `dateFields` says (messageformat 4.1.0): a day alone is `:date`, with `fields` and `length`.
 - Every route guard names where it leads (`redirectTo`): without one, Expo Router leads to the first open route in its own order, by name.
-- A page that a link can open, as any route can, may have nothing behind it: after an action that leaves it, it goes back only when `router.canGoBack()`, and to the page above it otherwise.
+- A page that a link can open, as any route can, may have nothing behind it: after an action that leaves it, it goes back only when `router.canGoBack()`, and to the page above it otherwise: `goBack(above)` in `shared/navigation`. A bare `router.back()` left three pages stuck (2026-11-20).
 - A screen a link opens signs the person in on that screen (`SignInScreen`'s `reason`), so that the link keeps its place: a guard would replace it.
 - What people use has a label for screen readers, and enough contrast in the light and dark themes.
 - A message that appears or changes, such as a failure or what a change did, is a `Notice`, which each platform's screen reader says. A role alone says nothing on iOS, and React Native's `Text` drops `aria-live` (only its `View` maps it). An Android live region speaks a change to a view already on the screen, not a view that arrives with its text; and a `View` with nothing but a live region is flattened away.
