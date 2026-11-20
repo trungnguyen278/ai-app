@@ -20,7 +20,7 @@ import { HELLO, Robot } from '../shared/cloud/robot';
 
 jest.mock('expo-router', () => ({
   ...jest.requireActual('expo-router'),
-  router: { back: jest.fn(), replace: jest.fn(), push: jest.fn(), canGoBack: () => true },
+  router: { back: jest.fn(), replace: jest.fn(), push: jest.fn(), canGoBack: jest.fn(() => true) },
 }));
 
 const HOME = { name: 'Nhà Linh', time_zone: 'Asia/Ho_Chi_Minh', languages: ['vi'] };
@@ -384,7 +384,7 @@ describe('renaming', () => {
 });
 
 describe('removing', () => {
-  test('asks first, says what stays on the device, and removes it only once agreed', async () => {
+  test('asks first, says what stays on the robot and where its reset is, and removes it only once agreed', async () => {
     const at = await household();
     const bi = await at.add('Bi', HELLO);
     const alert = dialogs();
@@ -392,7 +392,7 @@ describe('removing', () => {
     await fireEvent.press(screen.getByRole('button', { name: REMOVE }));
     expect(alert).toHaveBeenCalledWith(
       'Remove \u2068Bi\u2069?',
-      'It leaves \u2068Nhà Linh\u2069, and can be set up again. It keeps its Wi-Fi network, its name and its settings: reset it to its factory settings before you give it to someone else.',
+      'It leaves \u2068Nhà Linh\u2069, and can be set up again. It keeps its Wi-Fi network, its name and its settings. To give it to someone else, reset it instead: hold a finger on its face, then choose Settings > About > Reset to factory settings. If it is online, it leaves the home by itself.',
       expect.any(Array),
     );
     press(alert, 'cancel');
@@ -400,20 +400,51 @@ describe('removing', () => {
     await fireEvent.press(screen.getByRole('button', { name: REMOVE }));
     press(alert, 'destructive');
     await waitFor(() => expect(router.back).toHaveBeenCalled());
+    expect(router.replace).not.toHaveBeenCalled();
     expect(await at.names()).toEqual([]);
   });
 
-  test('in Vietnamese, the dialog says the same', async () => {
+  test('in Vietnamese, the dialog says the same, with the robot reset as its screen names it', async () => {
     const at = await household();
-    const bi = await at.add('Bi');
+    const bi = await at.add('Bi', HELLO);
     const alert = dialogs();
     await look(at, 'an', bi.id, { languages: ['vi'] });
     await fireEvent.press(screen.getByRole('button', { name: 'Xoá khỏi nhà' }));
     expect(alert.mock.calls[0].slice(0, 2)).toEqual([
       'Xoá \u2068Bi\u2069 khỏi nhà?',
-      'Thiết bị sẽ rời \u2068Nhà Linh\u2069, và có thể được cài đặt lại. Nó vẫn giữ mạng Wi-Fi, tên và các cài đặt của mình: hãy khôi phục cài đặt gốc cho thiết bị trước khi trao nó cho người khác.',
+      'Robot sẽ rời \u2068Nhà Linh\u2069, và có thể được cài đặt lại. Nó vẫn giữ mạng Wi-Fi, tên và các cài đặt của mình. Để trao nó cho người khác, hãy khôi phục cài đặt gốc thay vì xoá: giữ ngón tay trên khuôn mặt của robot, rồi chọn Settings > About > Reset to factory settings. Nếu đang trực tuyến, robot sẽ tự rời khỏi nhà.',
     ]);
     expect(alert.mock.calls[0][2]!.map((button) => button.text)).toEqual(['Huỷ', 'Xoá']);
+  });
+
+  test('a device of a kind the app does not know is told to reset, with no path it cannot know', async () => {
+    const at = await household();
+    const bi = await at.add('Bi');
+    const alert = dialogs();
+    await look(at, 'linh', bi.id);
+    await fireEvent.press(screen.getByRole('button', { name: REMOVE }));
+    expect(alert.mock.calls[0][1]).toBe(
+      'It leaves \u2068Nhà Linh\u2069, and can be set up again. It keeps its Wi-Fi network, its name and its settings: reset it to its factory settings before you give it to someone else.',
+    );
+    await screen.unmount();
+    await look(at, 'an', bi.id, { languages: ['vi'] });
+    await fireEvent.press(screen.getByRole('button', { name: 'Xoá khỏi nhà' }));
+    expect(alert.mock.calls[1][1]).toBe(
+      'Thiết bị sẽ rời \u2068Nhà Linh\u2069, và có thể được cài đặt lại. Nó vẫn giữ mạng Wi-Fi, tên và các cài đặt của mình: hãy khôi phục cài đặt gốc cho thiết bị trước khi trao nó cho người khác.',
+    );
+  });
+
+  test('a page that a link opened goes to the home after the removal, having no page to go back to', async () => {
+    const at = await household();
+    const bi = await at.add('Bi', HELLO);
+    const alert = dialogs();
+    jest.mocked(router.canGoBack).mockReturnValueOnce(false);
+    await look(at, 'linh', bi.id);
+    await fireEvent.press(screen.getByRole('button', { name: REMOVE }));
+    press(alert, 'destructive');
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith(`/homes/${at.home.id}`));
+    expect(router.back).not.toHaveBeenCalled();
+    expect(await at.names()).toEqual([]);
   });
 
   test('a device removed meanwhile is no failure', async () => {

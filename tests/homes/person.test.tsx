@@ -20,7 +20,7 @@ import { renderScreen } from '../render';
 
 jest.mock('expo-router', () => ({
   ...jest.requireActual('expo-router'),
-  router: { back: jest.fn(), replace: jest.fn(), push: jest.fn(), canGoBack: () => true },
+  router: { back: jest.fn(), replace: jest.fn(), push: jest.fn(), canGoBack: jest.fn(() => true) },
 }));
 
 const HOME = { name: 'Nhà Linh', time_zone: 'Asia/Ho_Chi_Minh', languages: ['vi'] };
@@ -402,9 +402,22 @@ describe('removing and leaving', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Remove from the home' }));
     press(alert, 'destructive');
     await waitFor(() => expect(router.back).toHaveBeenCalled());
+    expect(router.replace).not.toHaveBeenCalled();
     expect((await at.api.members(at.home.id)).members.map((m) => m.display_name)).not.toContain(
       'Bà',
     );
+  });
+
+  test('a page that a link opened goes to the home after the removal, having no page to go back to', async () => {
+    const at = await household();
+    const alert = dialogs();
+    jest.mocked(router.canGoBack).mockReturnValueOnce(false);
+    await look(at, 'linh', 'Bà');
+    await fireEvent.press(screen.getByRole('button', { name: 'Remove from the home' }));
+    press(alert, 'destructive');
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith(`/homes/${at.home.id}`));
+    expect(router.back).not.toHaveBeenCalled();
+    expect((await at.api.members(at.home.id)).members).toHaveLength(3);
   });
 
   test('removing a person with an account says that their account stays', async () => {

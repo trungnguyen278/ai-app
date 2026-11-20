@@ -2,6 +2,7 @@
 // The people of a home, on the simulated cloud: what its owner and a member are offered, the
 // invitations not yet used, inviting someone with a link, adding a profile, and joining.
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { router } from 'expo-router';
 import { Share } from 'react-native';
 
 import { AddProfileScreen, HomeScreen, InviteScreen, JoinScreen } from '@/src/homes';
@@ -14,6 +15,10 @@ import { camera, resetCamera } from '../mocks/camera';
 import { renderScreen } from '../render';
 
 jest.mock('expo-camera', () => jest.requireActual('../mocks/camera'));
+jest.mock('expo-router', () => ({
+  ...jest.requireActual('expo-router'),
+  router: { back: jest.fn(), replace: jest.fn(), push: jest.fn(), canGoBack: jest.fn(() => true) },
+}));
 
 const HOME = { name: 'Nhà Linh', time_zone: 'Asia/Ho_Chi_Minh', languages: ['vi'] };
 // The cloud's time stands still, so that an invitation's expiry reads the same every run: three
@@ -411,5 +416,65 @@ describe('joining a home', () => {
     expect(kept()).toContain(code);
     await view.unmount();
     await waitFor(() => expect(kept()).not.toContain(code));
+  });
+});
+
+describe('a page done with goes back, or to the page above it when a link opened it', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  /** Where the person went: back, when a page was `behind`, or else to `above`. */
+  async function wentTo(behind: boolean, above: string) {
+    if (behind) {
+      await waitFor(() => expect(router.back).toHaveBeenCalled());
+      expect(router.replace).not.toHaveBeenCalled();
+    } else {
+      await waitFor(() => expect(router.replace).toHaveBeenCalledWith(above));
+      expect(router.back).not.toHaveBeenCalled();
+    }
+  }
+
+  test.each([true, false])('a profile added (a page behind: %s)', async (behind) => {
+    jest.mocked(router.canGoBack).mockReturnValueOnce(behind);
+    const { cloud, secrets, api } = await signedIn('Linh');
+    const home = await api.createHome(HOME);
+    await renderScreen(
+      <Account transport={cloud} secrets={secrets}>
+        <AddProfileScreen homeId={home.id} />
+      </Account>,
+    );
+    await fireEvent.changeText(await screen.findByTestId('profile-name'), 'Bà');
+    await fireEvent.press(screen.getByRole('button', { name: 'Add the profile' }));
+    await wentTo(behind, `/homes/${home.id}`);
+    expect((await api.members(home.id)).members).toHaveLength(2);
+  });
+
+  test.each([true, false])('an invitation made (a page behind: %s)', async (behind) => {
+    jest.mocked(router.canGoBack).mockReturnValueOnce(behind);
+    const { cloud, secrets, api } = await signedIn(
+      'Linh',
+      simulatedCloud(() => NOW),
+    );
+    const home = await api.createHome(HOME);
+    await renderScreen(
+      <Account transport={cloud} secrets={secrets}>
+        <InviteScreen homeId={home.id} />
+      </Account>,
+    );
+    await fireEvent.press(await screen.findByRole('button', { name: 'Make a link' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Done' }));
+    await wentTo(behind, `/homes/${home.id}`);
+  });
+
+  test.each([true, false])('an invitation turned down (a page behind: %s)', async (behind) => {
+    jest.mocked(router.canGoBack).mockReturnValueOnce(behind);
+    const { owner, home, code, minh } = await invited();
+    await renderScreen(
+      <Account transport={owner.cloud} secrets={minh.secrets}>
+        <JoinScreen link={code} />
+      </Account>,
+    );
+    await fireEvent.press(await screen.findByRole('button', { name: 'Not now' }));
+    await wentTo(behind, '/');
+    expect((await owner.api.members(home.id)).members).toHaveLength(1);
   });
 });

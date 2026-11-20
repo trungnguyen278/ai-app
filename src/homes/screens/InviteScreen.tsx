@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: MIT
-import { router } from 'expo-router';
 import { Share, StyleSheet, View } from 'react-native';
 
 import { usePlainText, useText } from '@/src/shared/catalog';
@@ -16,6 +15,7 @@ import {
   SPACE,
   Text,
 } from '@/src/shared/design';
+import { goBack } from '@/src/shared/navigation';
 import type { App } from '@/src/shared/protocols';
 
 import { invitationLink } from '../domain/links';
@@ -116,7 +116,11 @@ function Made({ home, invitation }: { home: App.Home; invitation: NewInvitation 
       <Text variant="caption" ink="textMuted">
         {text('homes.invite.once')}
       </Text>
-      <Button variant="secondary" label={text('homes.invite.done')} onPress={() => router.back()} />
+      <Button
+        variant="secondary"
+        label={text('homes.invite.done')}
+        onPress={() => goBack(`/homes/${home.id}`)}
+      />
     </Screen>
   );
 }

@@ -45,7 +45,7 @@ The app is how an owner reaches their devices and their home. It sets a device u
 | `control` | Driving a device's capabilities, within their safety classes |
 | `notifications` | Registering the phone for push, and showing what the cloud sends |
 | `studio` | The design system, a page for each of its parts, in both themes: in the development app only ([ADR-0003](decisions/0003-interface-and-motion.md)) |
-| `shared` | Configuration, catalogs, the protocols' schemas read from `platform/`, errors, logs, the [design system](design.md), and reading QR codes with the camera (`scanner`), for `homes` and `setup` |
+| `shared` | Configuration, catalogs, the protocols' schemas read from `platform/`, errors, logs, the [design system](design.md), reading QR codes with the camera (`scanner`), for `homes` and `setup`, and going back from a page that a link may have opened, with nothing behind it (`navigation`) |
 
 Each module has the same shape:
 

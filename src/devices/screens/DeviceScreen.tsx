@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: MIT
-import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 
@@ -18,6 +17,7 @@ import {
   TextField,
   TYPE,
 } from '@/src/shared/design';
+import { goBack } from '@/src/shared/navigation';
 import { accepts, type App } from '@/src/shared/protocols';
 
 import { kindOf } from '../domain/kinds';
@@ -188,7 +188,9 @@ function About({ device }: { device: App.Device }) {
 /**
  * Removing the device from the home, confirmed first in the phone's own dialog, which says what
  * removing leaves on the device (PROV-4): it only unlinks it, so the device keeps its network,
- * its name and its settings, and its owner resets it before giving it away.
+ * its name and its settings, and its owner resets it before giving it away. For a kind the app
+ * knows, the dialog names where the reset is, as the device's own screen shows it; a reset done
+ * online also takes the device out of its home (ai-platform ADR-0015).
  */
 function Remove({ home, device, name }: { home: App.Home; device: App.Device; name: string }) {
   const text = useText();
@@ -197,7 +199,7 @@ function Remove({ home, device, name }: { home: App.Home; device: App.Device; na
   function confirm() {
     Alert.alert(
       text('devices.device.remove.title', { name }),
-      text('devices.device.remove.message', { home: home.name }),
+      text(`devices.device.remove.message.${kindOf(device.kind)}`, { home: home.name }),
       [
         { text: text('devices.device.cancel'), style: 'cancel' },
         {
@@ -207,9 +209,7 @@ function Remove({ home, device, name }: { home: App.Home; device: App.Device; na
             remove.mutate(device, {
               onSuccess: () => {
                 haptic('success');
-                // A page that a link opened has no page to go back to: the home's, then.
-                if (router.canGoBack()) router.back();
-                else router.replace(`/homes/${home.id}`);
+                goBack(`/homes/${home.id}`);
               },
               onError: () => haptic('error'),
             }),

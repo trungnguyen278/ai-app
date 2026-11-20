@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
-import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet } from 'react-native';
 
 import { useText } from '@/src/shared/catalog';
 import { failureMessage, Refused } from '@/src/shared/cloud';
 import { Button, haptic, Notice, Screen, SPACE, Text, TextField } from '@/src/shared/design';
+import { goBack } from '@/src/shared/navigation';
 import { accepts, type App } from '@/src/shared/protocols';
 
 import { useAddProfile } from '../services/homes';
@@ -36,7 +36,7 @@ function AddProfile({ home }: { home: App.Home }) {
     add.mutate(chosen, {
       onSuccess: () => {
         haptic('success');
-        router.back();
+        goBack(`/homes/${home.id}`);
       },
       onError: () => haptic('error'),
     });

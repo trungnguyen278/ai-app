@@ -19,6 +19,7 @@ import {
   TextField,
   TYPE,
 } from '@/src/shared/design';
+import { goBack } from '@/src/shared/navigation';
 import { QrScanner } from '@/src/shared/scanner';
 
 import { codeIn } from '../domain/links';
@@ -42,12 +43,6 @@ export function JoinScreen({ link }: { link?: string }) {
     );
   }
   return <Join given={given ?? null} broken={given === null} />;
-}
-
-/** Back where the person came from, or the main screen when the link opened the app here. */
-function leave() {
-  if (router.canGoBack()) router.back();
-  else router.replace('/');
 }
 
 /** The code the link gave, or a QR code or a link for one; then what it invites to. */
@@ -199,7 +194,7 @@ function Preview({ code, onAnother }: { code: string; onAnother: () => void }) {
           }
         />
       </Appear>
-      <Button variant="plain" label={text('join.not_now')} onPress={leave} />
+      <Button variant="plain" label={text('join.not_now')} onPress={() => goBack('/')} />
       {failure !== undefined && (
         <Notice role="alert" ink="danger">
           {failure}

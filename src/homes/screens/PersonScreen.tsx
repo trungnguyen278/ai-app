@@ -18,6 +18,7 @@ import {
   TextField,
   TYPE,
 } from '@/src/shared/design';
+import { goBack } from '@/src/shared/navigation';
 import { accepts, type App } from '@/src/shared/protocols';
 
 import { demotes, GIVEN_ROLES, hasAccount, roleOf, type GivenRole } from '../domain/people';
@@ -146,7 +147,7 @@ function PersonView({ home, member }: { home: App.Home; member: App.Member }) {
         remove.mutate(member, {
           onSuccess: () => {
             haptic('success');
-            router.back();
+            goBack(`/homes/${home.id}`);
           },
           onError: () => haptic('error'),
         }),
