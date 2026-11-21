@@ -28,6 +28,23 @@ export class JsonError extends Error {
 }
 
 /**
+ * The text that `bytes` hold, as the app reads every JSON text it receives, over Bluetooth LE or
+ * HTTP: `JsonError` if they are not UTF-8, the only encoding of I-JSON (RFC 7493, 2.1; ADR-0014,
+ * decision 1). A byte order mark is kept, and so refused: RFC 8259 (8.1) lets a reader ignore
+ * one, but no side sends one, and the robot refuses one too.
+ */
+export function utf8Text(bytes: Uint8Array): string {
+  try {
+    // `fatal`, so that bytes that are not UTF-8 are refused, not repaired with U+FFFD;
+    // `ignoreBOM`, so that a byte order mark stays in the text, which `readJson` then refuses.
+    return new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes);
+  } catch {
+    // The Encoding Standard's TypeError, whose class need not be this realm's, as under Jest.
+    throw new JsonError('is not UTF-8');
+  }
+}
+
+/**
  * `text` as JSON that every side can hold: `JsonError` for a text that is not JSON, that nests
  * deeper than `JSON_DEPTH`, that holds a U+0000 or a lone surrogate in a name or a string, a
  * number past a double's range, written with a fraction, an exponent or as an integer, or a name

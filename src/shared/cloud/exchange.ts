@@ -7,6 +7,7 @@ import {
   JsonError,
   ProtocolError,
   readJson,
+  utf8Text,
   type AppBody,
   type AppDefinition,
 } from '@/src/shared/protocols';
@@ -70,7 +71,9 @@ export async function exchange<K extends AppDefinition | null>(
   const { status } = response;
   if (call.success.includes(status)) {
     const body =
-      call.answer === null ? undefined : checked(call.answer, parse(call.operation, response.body));
+      call.answer === null
+        ? undefined
+        : checked(call.answer, readBody(call.operation, response.body));
     return { status, body: body as Body<K> };
   }
   const wait = retryAfter(response.headers['retry-after'], clock());
@@ -78,7 +81,7 @@ export async function exchange<K extends AppDefinition | null>(
     throw new Unavailable(call.operation, status, wait);
   }
   if (status >= 400) {
-    const body = parse(call.operation, response.body);
+    const body = readBody(call.operation, response.body);
     if (call.oauth) {
       throw new OAuthRefused(call.operation, status, checked('oauth_error', body).error);
     }
@@ -105,11 +108,15 @@ function request(call: Call<AppDefinition | null>): CloudRequest {
   return { method: call.method, target: withQuery(call.path, call.query), headers, body };
 }
 
-/** The body `text`, as JSON that every side can hold (ADR-0014): one that the app cannot hold
- * is one that it cannot read. */
-function parse(operation: string, text: string): unknown {
+/**
+ * The JSON value of an answer's `bytes`, read as every text the app receives is (ADR-0014): from
+ * UTF-8, the only encoding of I-JSON (decision 1), as JSON that every side can hold. One that the
+ * app cannot hold is one that it cannot read: `ProtocolError`, named after `operation`. An answer
+ * that says the cloud cannot serve is not read at all.
+ */
+export function readBody(operation: string, bytes: Uint8Array): unknown {
   try {
-    return readJson(text);
+    return readJson(utf8Text(bytes));
   } catch (error) {
     if (!(error instanceof JsonError)) throw error;
     throw new ProtocolError(operation, '/', error.message);

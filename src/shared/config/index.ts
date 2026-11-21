@@ -34,7 +34,9 @@ export interface SetupSettings {
   scan_time: number;
   /** Seconds the app gives a device it heard to connect and turn on its indications. */
   connect_timeout: number;
-  /** Seconds the app waits for a device to confirm a write, before it ends the link. */
+  /** Seconds the app waits for a device to confirm a write, before it ends the link: on Android,
+   * the only way out of a write that the device refused for its authentication
+   * (innoveit/react-native-ble-manager#1463). */
   write_timeout: number;
   /** Seconds the app asks again while a device does not know whether it reaches the Internet. */
   internet_wait: number;

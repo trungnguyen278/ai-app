@@ -22,8 +22,9 @@ export interface CloudResponse {
   readonly status: number;
   /** Its header fields, by lower-case name. */
   readonly headers: Readonly<Record<string, string>>;
-  /** Its body, empty when it has none. */
-  readonly body: string;
+  /** Its body's bytes, as they came, empty when it has none: `exchange` reads them as UTF-8
+   * where it reads the body, and only there. */
+  readonly body: Uint8Array;
 }
 
 /** What carries requests to a cloud and brings its answers back. */

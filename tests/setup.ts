@@ -33,6 +33,27 @@ jest.mock('expo-network', () => ({
   getNetworkStateAsync: async () => ({ isConnected: true, isInternetReachable: true }),
 }));
 
+// A query cache keeps an entry that no screen uses for its gcTime, 5 minutes by default where
+// TanStack Query sees a window, as it does here, and holds a timer for it all along: a timer that
+// outlives the test, and keeps Jest's worker from exiting. Every cache made through the app's one
+// factory keeps its entries for ever instead, as TanStack Query's testing guide says to do with
+// Jest ("Set gcTime to Infinity with Jest", read 2026-11-22); each test makes its own cache.
+jest.mock('@/src/shared/queries', () => {
+  const actual = jest.requireActual<typeof import('@/src/shared/queries')>('@/src/shared/queries');
+  return {
+    ...actual,
+    newQueryClient: (...given: Parameters<typeof actual.newQueryClient>) => {
+      const client = actual.newQueryClient(...given);
+      const { queries, mutations } = client.getDefaultOptions();
+      client.setDefaultOptions({
+        queries: { ...queries, gcTime: Infinity },
+        mutations: { ...mutations, gcTime: Infinity },
+      });
+      return client;
+    },
+  };
+});
+
 setUpTests();
 
 // The tests run as a build of the development app, not as Expo Go: its own links start with its

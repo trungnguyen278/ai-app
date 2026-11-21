@@ -52,7 +52,7 @@ npm run protocols -- --check   # the protocols' types and checks, as platform/'s
 npm run typecheck
 npm run lint          # ESLint, and Prettier's formatting
 npm run boundaries    # the modules' boundaries (dependency-cruiser)
-npm test              # Jest, with the catalogs' checks and MF2's test suite
+npm test              # Jest, with the catalogs' checks, MF2's test suite and ai-platform's vectors
 ```
 
 After moving the pin of `platform/`, `npm run protocols` makes the protocols' types and checks again, in `src/shared/protocols/generated/` ([ADR-0004](docs/decisions/0004-talking-to-the-cloud.md)).
