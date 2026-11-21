@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Every text people see, from Unicode MessageFormat 2 messages, looked up along the owner's
 // languages, then English (ai-platform's catalogs/README.md; its ADR-0002 and ADR-0007).
+// First, the parts of Intl that messageformat needs and Hermes lacks (ADR-0008).
+import './intl';
+
 import { MessageFormat } from 'messageformat';
 // The functions LDML 48.2 adds to the defaults, :date, :datetime and :time among them, by which
 // dates are formatted (the catalogs' README). The working group's tests check them

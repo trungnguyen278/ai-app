@@ -15,3 +15,4 @@ Each significant decision is a short file: context, decision, alternatives consi
 | [0005](0005-checks-for-every-definition.md) | The app API's checks: one for every definition | Accepted | 2026-11-04 |
 | [0006](0006-set-up-cryptography.md) | Set-up's cryptography: noble's libraries, in JavaScript, and the phone's randomness | Accepted (delegated) | 2026-11-12 |
 | [0007](0007-bluetooth-le-library.md) | The Bluetooth LE library: react-native-ble-manager, behind the radio port | Accepted (delegated) | 2026-11-21 |
+| [0008](0008-intl-on-hermes.md) | Intl on Hermes: FormatJS's polyfills, loaded by the catalogs | Accepted (delegated) | 2026-11-21 |

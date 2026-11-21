@@ -27,6 +27,32 @@ const GOING_BACK = [
   },
 ];
 
+// Hermes builds only part of Intl (ADR-0008). What it lacks fails on a phone and passes in Jest,
+// on Node: the catalogs format dates, numbers and plurals, and load the polyfills they need.
+const HERMES_INTL = [
+  ...['DisplayNames', 'DurationFormat', 'ListFormat', 'RelativeTimeFormat', 'Segmenter'].map(
+    (property) => ({
+      object: 'Intl',
+      property,
+      message: `Hermes has no Intl.${property}: format text through the catalogs.`,
+    }),
+  ),
+  {
+    object: 'Intl',
+    property: 'supportedValuesOf',
+    message: 'Hermes has no Intl.supportedValuesOf.',
+  },
+  ...['Locale', 'PluralRules'].map((property) => ({
+    object: 'Intl',
+    property,
+    message: `Hermes has no Intl.${property}, which only the catalogs polyfill: format through them.`,
+  })),
+  {
+    property: 'formatToParts',
+    message: "Hermes on iOS has no NumberFormat's formatToParts, which MessageFormat's calls too.",
+  },
+];
+
 module.exports = defineConfig([
   globalIgnores([
     'platform/*',
@@ -47,6 +73,7 @@ module.exports = defineConfig([
         'error',
         { patterns: [{ regex: '^node:', message: 'Node modules do not run on a phone.' }] },
       ],
+      'no-restricted-properties': ['error', ...HERMES_INTL],
     },
   },
   // Rules on the app's own code, each kept by the one part of shared that holds what it asks for.

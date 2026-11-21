@@ -13,7 +13,7 @@ The app is how an owner reaches their devices and their home. It sets a device u
    - Every message received is checked against its schema (SEC-14).
 4. **A device is the authority on itself.** The app shows and drives what a device declares, within its owner's safety classes (SEC-8, SEC-9). It never assumes one kind of device.
 5. **Secrets stay in the phone's secure storage:** the Keystore on Android, the Keychain on iOS. They are never in logs, error reports or analytics, and logs carry no content.
-6. **Every text comes from a catalog**, in the owner's language (ai-platform ADR-0002). Layouts hold longer translations and larger text.
+6. **Every text comes from a catalog**, in the owner's language (ai-platform ADR-0002). Layouts hold longer translations and larger text. The catalogs format dates, numbers and plurals, and load the parts of Intl that Hermes lacks ([ADR-0008](decisions/0008-intl-on-hermes.md)).
 7. **Unreachable is a normal state.** A device out of range, a cloud that does not answer, a phone offline: each screen says what it can and cannot do then.
 
 ## The big picture
@@ -159,5 +159,7 @@ ai-app/
 | [0004](decisions/0004-talking-to-the-cloud.md) | Talking to ai-cloud: types and checks made from the protocol, one client, a session in secure storage |
 | [0005](decisions/0005-checks-for-every-definition.md) | The app API's checks: one for every definition |
 | [0006](decisions/0006-set-up-cryptography.md) | Set-up's cryptography: noble's libraries, in JavaScript, and the phone's randomness |
+| [0007](decisions/0007-bluetooth-le-library.md) | The Bluetooth LE library: react-native-ble-manager, behind the radio port |
+| [0008](decisions/0008-intl-on-hermes.md) | Intl on Hermes: FormatJS's polyfills of what the catalogs need, loaded by them |
 | [ai-platform 0007](https://github.com/trungnguyen278/ai-platform/blob/main/docs/decisions/0007-catalogs.md) | The catalogs: Unicode MessageFormat 2, one JSON file per language |
 | [ai-platform 0008](https://github.com/trungnguyen278/ai-platform/blob/main/docs/decisions/0008-sign-in.md), [0009](https://github.com/trungnguyen278/ai-platform/blob/main/docs/decisions/0009-people-in-a-home.md) | The owners' sign-in, and the people in a home, which the app API carries ([`platform/protocols/app/`](https://github.com/trungnguyen278/ai-platform/blob/main/protocols/app/README.md)) |
