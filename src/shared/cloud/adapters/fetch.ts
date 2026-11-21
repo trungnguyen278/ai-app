@@ -40,9 +40,10 @@ export class FetchTransport implements Transport {
         controller.abort();
         throw this.tooLarge();
       }
-      const body = await response.text();
-      // Each UTF-16 unit of the text took at least one byte.
-      if (body.length > this.answerLimit) {
+      // Its bytes, not fetch's text, which repairs what is not UTF-8 (the Fetch Standard's
+      // text(), and expo/fetch's on Android, which decodes with Kotlin's UTF_8 charset).
+      const body = new Uint8Array(await response.arrayBuffer());
+      if (body.byteLength > this.answerLimit) {
         throw this.tooLarge();
       }
       return { status: response.status, headers, body };

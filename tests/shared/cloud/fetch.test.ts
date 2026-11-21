@@ -18,15 +18,18 @@ const REQUEST: CloudRequest = {
   body: '{"name":"Nhà"}',
 };
 
-/** An answer, as fetch gives one. */
-function answer(status: number, body: string, headers: Record<string, string> = {}) {
+/** An answer, as fetch gives one: its body, as text in UTF-8 or as bytes. */
+function answer(status: number, body: string | Uint8Array, headers: Record<string, string> = {}) {
+  const bytes = typeof body === 'string' ? new TextEncoder().encode(body) : body;
   return {
     status,
     headers: {
       forEach: (each: (value: string, name: string) => void) =>
         Object.entries(headers).forEach(([name, value]) => each(value, name)),
     },
-    text: async () => body,
+    arrayBuffer: async () => bytes.slice().buffer,
+    // fetch's own text repairs bytes that are not UTF-8, as the Fetch Standard's does.
+    text: async () => new TextDecoder().decode(bytes),
   } as unknown as Response;
 }
 
@@ -50,7 +53,7 @@ test('sends the request to the address, and gives the answer with its fields in 
   expect(response).toEqual({
     status: 201,
     headers: { 'content-type': 'application/json', etag: 'W/"1"' },
-    body: '{"id":"1"}',
+    body: new TextEncoder().encode('{"id":"1"}'),
   });
   const [url, init] = fetcher.mock.calls[0] as unknown as [string, RequestInit];
   expect(url).toBe('https://cloud.example/app/v1/homes?page_size=20');
@@ -97,7 +100,7 @@ test('an answer that is cut off is an unreachable cloud', async () => {
     async () =>
       ({
         ...answer(200, ''),
-        text: async () => {
+        arrayBuffer: async () => {
           throw new TypeError('Network request failed');
         },
       }) as unknown as Response,
@@ -106,7 +109,7 @@ test('an answer that is cut off is an unreachable cloud', async () => {
 });
 
 test('an answer over the limit is refused, unread when it says its length', async () => {
-  const text = jest.fn(async () => 'x');
+  const read = jest.fn(async () => new ArrayBuffer(1));
   const told = new FetchTransport(
     'https://cloud.example',
     15,
@@ -114,13 +117,13 @@ test('an answer over the limit is refused, unread when it says its length', asyn
     async () =>
       ({
         ...answer(200, '', { 'content-length': '1025' }),
-        text,
+        arrayBuffer: read,
       }) as unknown as Response,
   );
   const error = await failure(told.send(REQUEST));
   expect(error).toBeInstanceOf(ProtocolError);
   expect(error.message).toBe('answer: / is over 1024 bytes');
-  expect(text).not.toHaveBeenCalled();
+  expect(read).not.toHaveBeenCalled();
   const untold = new FetchTransport('https://cloud.example', 15, 1024, async () =>
     answer(200, 'x'.repeat(1025)),
   );
@@ -129,6 +132,27 @@ test('an answer over the limit is refused, unread when it says its length', asyn
     answer(200, 'x'.repeat(1024), { 'content-length': '1024' }),
   );
   expect((await within.send(REQUEST)).body).toHaveLength(1024);
+  // The limit counts bytes: "é" takes two in UTF-8, and one unit of a JavaScript string.
+  const wide = new FetchTransport('https://cloud.example', 15, 1024, async () =>
+    answer(200, 'é'.repeat(513)),
+  );
+  expect((await failure(wide.send(REQUEST))).message).toBe('answer: / is over 1024 bytes');
+  const fits = new FetchTransport('https://cloud.example', 15, 1024, async () =>
+    answer(200, 'é'.repeat(512)),
+  );
+  expect((await fits.send(REQUEST)).body).toEqual(new TextEncoder().encode('é'.repeat(512)));
+});
+
+test('an answer comes as its bytes, whatever they are', async () => {
+  // fetch's text would read these as ["\uFFFD"], and drop the byte order mark.
+  const notUtf8 = Uint8Array.of(0xef, 0xbb, 0xbf, 0x5b, 0x22, 0xff, 0x22, 0x5d);
+  for (const status of [200, 404, 503]) {
+    const transport = new FetchTransport('https://cloud.example', 15, 1024, async () =>
+      answer(status, notUtf8),
+    );
+    const response = await transport.send(REQUEST);
+    expect([response.status, response.body]).toEqual([status, notUtf8]);
+  }
 });
 
 test('the configuration chooses the simulated cloud, or fetch to its address', () => {

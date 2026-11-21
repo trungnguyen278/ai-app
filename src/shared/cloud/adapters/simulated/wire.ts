@@ -17,6 +17,11 @@ import type { CloudRequest, CloudResponse } from '../../transport';
 /** What answers carrying tokens or personal data say to caches (RFC 6749, 5.1). */
 const NO_STORE = { 'cache-control': 'no-store', pragma: 'no-cache' };
 
+/** `value` as an answer's body: its JSON text, in UTF-8. */
+function encoded(value: unknown): Uint8Array {
+  return new TextEncoder().encode(JSON.stringify(value));
+}
+
 /** The reason phrases of the statuses it answers (RFC 9110, 15; RFC 6585, 4). */
 const PHRASES: Readonly<Record<number, string>> = {
   400: 'Bad Request',
@@ -66,7 +71,7 @@ export function json(
   return {
     status,
     headers: { 'content-type': JSON_TYPE, ...NO_STORE, ...headers },
-    body: JSON.stringify(body),
+    body: encoded(body),
   };
 }
 
@@ -77,7 +82,7 @@ export function tagged<T extends { etag: string }>(body: T, status = 200): Cloud
 
 /** An answer with no body. */
 export function empty(status: number): CloudResponse {
-  return { status, headers: { ...NO_STORE }, body: '' };
+  return { status, headers: { ...NO_STORE }, body: new Uint8Array() };
 }
 
 /** A problem whose status says it all: `about:blank`. */
@@ -89,7 +94,7 @@ export function problem(
   return new Answered({
     status,
     headers: { 'content-type': PROBLEM_TYPE, ...headers },
-    body: JSON.stringify({ type: ABOUT_BLANK, title: PHRASES[status], status, detail }),
+    body: encoded({ type: ABOUT_BLANK, title: PHRASES[status], status, detail }),
   });
 }
 
@@ -99,7 +104,7 @@ export function typed(code: ProblemCode, detail: string): Answered {
   return new Answered({
     status,
     headers: { 'content-type': PROBLEM_TYPE },
-    body: JSON.stringify({ type: PROBLEM_TYPES + code, title, status, detail }),
+    body: encoded({ type: PROBLEM_TYPES + code, title, status, detail }),
   });
 }
 

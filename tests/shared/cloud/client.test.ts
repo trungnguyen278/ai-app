@@ -33,7 +33,7 @@ class Spy implements Transport {
   /** What the next requests get instead of the cloud's answer, in order. */
   readonly instead: ((request: CloudRequest) => Promise<CloudResponse>)[] = [];
 
-  constructor(private readonly next: Transport) {}
+  constructor(readonly next: Transport) {}
 
   send(request: CloudRequest): Promise<CloudResponse> {
     this.requests.push(request);
@@ -326,7 +326,7 @@ test('an answer that breaks the protocol fails where it arrives, and names no va
   const { client } = await person('Linh');
   const answer =
     (status: number, body: string, headers = {}) =>
-    async () => ({ status, headers, body });
+    async () => ({ status, headers, body: new TextEncoder().encode(body) });
   spy.instead.push(answer(200, JSON.stringify({ display_name: 'secret-name' })));
   const missing = await refusal(client.account());
   expect(missing).toBeInstanceOf(ProtocolError);
@@ -346,12 +346,39 @@ test('an answer that breaks the protocol fails where it arrives, and names no va
   expect(await refusal(client.account())).toBeInstanceOf(ProtocolError);
 });
 
+test('a body is read from UTF-8 where it is read, and not where the cloud cannot serve', async () => {
+  const { person, spy } = setUp();
+  const { client } = await person('Linh');
+  // fetch's text would read these bytes as ["\uFFFD"], which is JSON.
+  const notUtf8 = Uint8Array.of(0x5b, 0x22, 0xff, 0x22, 0x5d);
+  for (const status of [200, 404]) {
+    spy.instead.push(async () => ({ status, headers: {}, body: notUtf8 }));
+    const error = await refusal(client.account());
+    expect(error).toBeInstanceOf(ProtocolError);
+    expect(error.message).toBe('account: / is not UTF-8');
+  }
+  // A byte order mark stays in the text, which is then no JSON: the same answer without one is.
+  spy.instead.push(async (request) => {
+    const answer = await spy.next.send(request);
+    return { ...answer, body: Uint8Array.of(0xef, 0xbb, 0xbf, ...answer.body) };
+  });
+  expect((await refusal(client.account())).message).toBe('account: / is not JSON');
+  expect((await client.account()).display_name).toBe('Linh');
+  // An answer that says the cloud cannot serve is not read.
+  spy.instead.push(async () => ({ status: 503, headers: {}, body: notUtf8 }));
+  expect(await refusal(client.account())).toBeInstanceOf(Unavailable);
+});
+
 test('a new invitation without its code breaks the protocol, though a listed one has none', async () => {
   const { person, spy } = setUp();
   const { client } = await person('Linh');
   const home = await client.createHome(HOME);
   const { code: _, ...listed } = await client.createInvitation(home.id);
-  spy.instead.push(async () => ({ status: 201, headers: {}, body: JSON.stringify(listed) }));
+  spy.instead.push(async () => ({
+    status: 201,
+    headers: {},
+    body: new TextEncoder().encode(JSON.stringify(listed)),
+  }));
   expect((await refusal(client.createInvitation(home.id))).message).toBe(
     'createInvitation: /code is missing',
   );
@@ -360,7 +387,11 @@ test('a new invitation without its code breaks the protocol, though a listed one
 test('a status of 500 or more is Unavailable, with how long to wait', async () => {
   const { person, spy } = setUp();
   const { client } = await person('Linh');
-  spy.instead.push(async () => ({ status: 503, headers: { 'retry-after': '7' }, body: '' }));
+  spy.instead.push(async () => ({
+    status: 503,
+    headers: { 'retry-after': '7' },
+    body: new Uint8Array(),
+  }));
   const error = (await refusal(client.account())) as Unavailable;
   expect(error).toBeInstanceOf(Unavailable);
   expect([error.status, error.retryAfter]).toEqual([503, 7]);

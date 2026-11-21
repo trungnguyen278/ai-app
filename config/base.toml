@@ -62,7 +62,8 @@ connect_timeout = 20
 # which the phone's stack ends a link whose transaction has no answer (Bluetooth Core, Vol 3, Part
 # F, 3.3.3), and 5 more for that end to reach the app. react-native-ble-manager never settles a
 # write on Android that the device refused for its authentication (Peripheral.java,
-# onCharacteristicWrite, 13.0.1), and only the end of the link lets it go.
+# onCharacteristicWrite, 13.0.1; innoveit/react-native-ble-manager#1463), and only the end of the
+# link lets it go.
 write_timeout = 35
 # Seconds the app asks a device again, while it is on a network but does not know yet whether it
 # reaches the Internet, before it offers the networks (the set-up protocol, How the app runs it).

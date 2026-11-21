@@ -84,7 +84,7 @@ Steps 5 and 6 need the owner's sign-in and the app ⇄ cloud protocol, which ai-
 
 ### The session, in `setup`
 
-- **`domain/`**: set-up 2.2 itself, without I/O: the fragments, never more than 512 bytes (`fragments.ts`), SPAKE2+ (`spake2plus.ts`), the context, the session keys and AES-GCM (`channel.ts`), the messages, read as JSON that every side can hold (`shared/protocols`' `readJson`, ai-platform ADR-0014) and checked against the schema (`messages.ts`), the set-up string and the typed code (`code.ts`), and what a session can end in (`errors.ts`). The cryptography is noble's ([ADR-0006](decisions/0006-set-up-cryptography.md)).
+- **`domain/`**: set-up 2.2 itself, without I/O: the fragments, never more than 512 bytes (`fragments.ts`), SPAKE2+ (`spake2plus.ts`), the context, the session keys and AES-GCM (`channel.ts`), the messages, read from UTF-8 as JSON that every side can hold (`shared/protocols`' `utf8Text` and `readJson`, ai-platform ADR-0014) and checked against the schema (`messages.ts`), the set-up string and the typed code (`code.ts`), and what a session can end in (`errors.ts`). The cryptography is noble's ([ADR-0006](decisions/0006-set-up-cryptography.md)).
 - **`ports/link.ts`**: what set-up needs of the radio, a link to one device's set-up service, its indications enabled: write a fragment, hear the device's, close.
 - **`ports/radio.ts`**: the phone's radio: whether Bluetooth may be used (`ready`, `ask`, `blocked`, `off`, `unsupported`), asking for it, and the devices that advertise the set-up service, each a `Link` to connect. `adapters/connect.ts`' `radioFor` gives the one `[setup].radio` names: the simulated radio, or the phone's Bluetooth LE, or `NoRadio`, which says set-up is not supported, in an app without Bluetooth: the web's, Expo Go's.
 - **`services/session.ts`**: the app's side. `greet` says hello and gives the device's discriminator; `exchange` runs SPAKE2+ with the code, then `info`; `Session` sends the requests, encrypted, one at a time.
@@ -103,6 +103,7 @@ Steps 5 and 6 need the owner's sign-in and the app ⇄ cloud protocol, which ai-
   - Android loses it when the app is uninstalled, and the owner then signs in again.
   - A read guarded by biometrics blocks the interface, so none happens on the path that starts the app.
   - On the simulated cloud, which forgets its sessions when the app stops, the session is kept in memory too.
+- **What the app receives,** from a device or from the cloud, is read from its bytes: as UTF-8, a byte order mark refused, then as JSON that every side can hold (`shared/protocols`' `utf8Text` and `readJson`, ai-platform ADR-0014), then checked against its schema. An answer of the cloud comes as fetch's bytes, not its text, which repairs what is not UTF-8; its limit, `[cloud].answer_limit`, counts them. The transport carries them, and `exchange` reads a body where it reads one: never that of an answer that says the cloud cannot serve.
 - **TLS on every connection to the cloud** (SEC-1). Plain HTTP only to a development cloud on the developer's own machine.
 - **Permissions** (Bluetooth, the camera, notifications) are asked for when first needed, with the reason in the owner's language.
 - **Logs and error reports** carry no secrets and no content: no codes, tokens, Wi-Fi passwords or conversations.
@@ -111,6 +112,7 @@ Steps 5 and 6 need the owner's sign-in and the app ⇄ cloud protocol, which ai-
 
 - **Unit and component tests:** Jest, with Expo's `jest-expo` preset, and React Native Testing Library.
 - **Protocols:** set-up's exchange is replayed from ai-platform's examples, byte for byte.
+- **ai-platform's vectors** (`platform/vectors/`, in `tests/shared/vectors.test.ts`), which ai-cloud and ai-robot run too: every text of `reading.json` through set-up's reader and the app API's, each from the bytes its transport gives, and every message of `validating.json` of set-up and the app API through the generated checks, each within its file's `seconds`.
 - **A simulated device:** the device's side of set-up 2.2, as the robot speaks it (ai-robot's `modules/setup.py` and `core/setup_session.py`), in TypeScript, behind the Bluetooth LE port. Set-up then runs end to end in tests, and on a phone with no robot nearby.
 - **A simulated cloud:** the app API in memory, behind the transport of `shared/cloud`. ai-platform's examples are replayed against it, as against ai-cloud.
   - It verifies a device's registration as ai-cloud does, and the tests' robot (`tests/shared/cloud/robot.ts`) signs registrations with a key of its own.

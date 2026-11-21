@@ -109,7 +109,7 @@ function failingOnce(cloud: Transport): Transport {
     send: async (request: CloudRequest) => {
       if (!failed && request.target.endsWith('/device-challenges')) {
         failed = true;
-        return { status: 503, headers: {}, body: '' };
+        return { status: 503, headers: {}, body: new Uint8Array() };
       }
       return cloud.send(request);
     },
@@ -541,7 +541,7 @@ describe('when something goes wrong', () => {
     const transport: Transport = {
       send: async (request: CloudRequest) =>
         failing.homes && request.method === 'GET' && /\/homes(\?|$)/.test(request.target)
-          ? { status: 503, headers: {}, body: '' }
+          ? { status: 503, headers: {}, body: new Uint8Array() }
           : made.cloud.send(request),
     };
     const queries = newQueryClient(runtimeSettings().queries);

@@ -41,7 +41,7 @@ Two things the library does not do are the app's own:
 - Negative / accepted trade-offs:
   - Not in Expo Go: set-up runs in a development build or a store build, and Expo Go and the web get a radio that says set-up is not supported there.
   - Its plugin declares `BLUETOOTH` and `BLUETOOTH_ADMIN` on every Android, where its own manifest limits them to Android 11: install-time permissions that ask nothing.
-  - It never settles an Android write that the device refused for its authentication, status 5 or 137 (`Peripheral.java`, `onCharacteristicWrite`: no callback, and its queue stays busy), where Android passes the status to the app. The radio's `write_timeout` ends the link, and the library's `disconnect` fails the callbacks waiting and empties its queue. A report upstream waits for the owner's approval (dev log, 2026-11-21).
+  - It never settles an Android write that the device refused for its authentication, status 5 or 137 (`Peripheral.java`, `onCharacteristicWrite`: no callback, and its queue stays busy), where Android passes the status to the app. The radio's `write_timeout` ends the link, and the library's `disconnect` fails the callbacks waiting and empties its queue. Reported upstream as [innoveit/react-native-ble-manager#1463](https://github.com/innoveit/react-native-ble-manager/issues/1463), opened 2026-11-21.
   - Native code of the app's own, one function for Android, which only a development or store build carries.
   - No test double: the tests stand in for the part of it the adapter uses.
 - Follow-up: try set-up on an iPhone, once there is one to test on (ADR-0001).

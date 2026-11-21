@@ -6,6 +6,7 @@ import {
   ProtocolError,
   readJson,
   setupChecked,
+  utf8Text,
   type Setup,
 } from '@/src/shared/protocols';
 
@@ -18,18 +19,12 @@ export function encodeMessage(message: Setup.Message): Uint8Array {
 
 /**
  * The JSON value that `bytes` hold, before its schema is checked: `ProtocolError` if they are
- * not UTF-8, or not JSON that every side can hold (ADR-0014). A byte order mark is kept, and so
- * refused: no side sends one (RFC 8259, 8.1), and the robot refuses one too.
+ * not UTF-8 (a byte order mark kept, and so refused), or not JSON that every side can hold
+ * (ADR-0014).
  */
 export function readMessage(bytes: Uint8Array, definition: 'from_app' | 'from_device'): unknown {
-  let text: string;
   try {
-    text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes);
-  } catch {
-    throw new ProtocolError(definition, '/', 'is not UTF-8');
-  }
-  try {
-    return readJson(text);
+    return readJson(utf8Text(bytes));
   } catch (error) {
     if (!(error instanceof JsonError)) throw error;
     throw new ProtocolError(definition, '/', error.message);

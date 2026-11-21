@@ -121,9 +121,11 @@ class WithoutETags implements Transport {
   async send(request: CloudRequest): Promise<CloudResponse> {
     const response = await this.cloud.send(request);
     if (request.method !== 'GET' || !request.target.includes('/devices')) return response;
-    const body = JSON.parse(response.body) as { devices: Record<string, unknown>[] };
+    const body = JSON.parse(new TextDecoder().decode(response.body)) as {
+      devices: Record<string, unknown>[];
+    };
     for (const device of body.devices) delete device.etag;
-    return { ...response, body: JSON.stringify(body) };
+    return { ...response, body: new TextEncoder().encode(JSON.stringify(body)) };
   }
 }
 
