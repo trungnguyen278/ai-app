@@ -164,8 +164,9 @@ class Replay {
   /** A request of the setting up, as `this.speaker`, which must succeed. */
   async call(method: Method, target: string, body?: Body, headers: Body = {}): Promise<Body> {
     const response = await this.cloud.send(this.request(method, target, body, headers));
-    if (response.status >= 300) throw new Error(`${target}: ${response.status} ${response.body}`);
-    return response.body === '' ? {} : JSON.parse(response.body);
+    const text = new TextDecoder().decode(response.body);
+    if (response.status >= 300) throw new Error(`${target}: ${response.status} ${text}`);
+    return text === '' ? {} : JSON.parse(text);
   }
 
   request(method: Method, target: string, body?: Body, extra: Body = {}): CloudRequest {
@@ -239,7 +240,7 @@ class Replay {
       expect([step.request, response.status]).toEqual([step.request, answer.status]);
       if (method === 'DELETE' && this.robot?.linked) this.robot.removed();
       if (answer.message !== undefined) {
-        const answered = JSON.parse(response.body);
+        const answered = JSON.parse(new TextDecoder().decode(response.body));
         this.learn(answer.message, answered, step.request);
         if (typeof answered.access_token === 'string') {
           this.tokens.set(this.speaker, {

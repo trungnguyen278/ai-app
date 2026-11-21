@@ -47,7 +47,8 @@ export function setUp(settings: Partial<SimulatedSettings> = {}) {
     }
     const request: CloudRequest = { method, target, headers, body };
     const response: CloudResponse = await cloud.send(request);
-    const parsed = response.body === '' ? {} : (JSON.parse(response.body) as Body);
+    const text = new TextDecoder().decode(response.body);
+    const parsed = text === '' ? {} : (JSON.parse(text) as Body);
     return { status: response.status, headers: response.headers, body: parsed };
   }
 

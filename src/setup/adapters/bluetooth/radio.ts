@@ -105,7 +105,7 @@ class BluetoothLink implements Link {
     let timer: ReturnType<typeof setTimeout> | undefined;
     // A write the device does not confirm ends the link, which lets the central's write go: on
     // Android, react-native-ble-manager never settles one that the device refused for its
-    // authentication, and its disconnection settles it.
+    // authentication (innoveit/react-native-ble-manager#1463), and its disconnection settles it.
     const late = new Promise<never>((_, reject) => {
       timer = setTimeout(() => {
         reject(new Error('the device did not confirm a write in time'));
