@@ -42,6 +42,7 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
   - A failure is named after what the phone's radio says once it happened: Bluetooth turned off while the phone connects fails the connection, which set-up once told as a code that expired.
 - Only what the protocol makes safe to repeat is sent again: a request with an Idempotency-Key, with the same key each time. A refresh token works once, so a refresh is never retried.
 - A simulated device or cloud keeps to the real one: the protocol's examples replay against it, and it refuses what the real one refuses, in the same order.
+- A refusal is read as what its answer says it is. An OAuth endpoint refuses as OAuth does, but with Problem Details where it refuses as every endpoint does, such as a body over 64 KiB (`413`): the media type tells them apart, and reading every refusal there as OAuth's turned a `413` into a protocol error.
 - A set-up session over a link: an answer can come before the app has written all it meant to, such as the device's error to the confirmation, in the clear. The app then stops writing, reads it, and takes in the clear only that error, before the device's first encrypted message. A link can also end before its listener is installed: the session ends at once.
 - Set-up's flow sends no `configure` and no `register` to a device that is bound already, tries a code only on the device whose discriminator matches, and drops its session once the session ends. Each step after an `await` checks that the screen is still there, so that a flow closed meanwhile does nothing more to the device.
   - What a step got while it waited, such as a link made after the close, is let go when the flow finds itself closed: `end()` in `run`'s catch. Letting a device go is an `await` too, followed by a check. Both once left a link open, or connected to the next device.
@@ -81,8 +82,8 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 - What people use has a label for screen readers, and enough contrast in the light and dark themes.
 - A message that appears or changes, such as a failure or what a change did, is a `Notice`, which each platform's screen reader says. A role alone says nothing on iOS, and React Native's `Text` drops `aria-live` (only its `View` maps it). An Android live region speaks a change to a view already on the screen, not a view that arrives with its text; and a `View` with nothing but a live region is flattened away.
 - What cannot be undone is a `danger` button, confirmed in the phone's own dialog (`Alert`) that says what goes.
-- A change sent with `If-Match` that the cloud refuses as stale (`Refused.stale`) keeps what the person typed, and says that someone changed it meanwhile. A component keyed by the ETag would forget both.
-- Changes to one thing sent with `If-Match`, such as a person's name and role, go one at a time: a second sent while the first is under way carries the same ETag, and is refused as stale, as if someone else had changed it.
+- A change sent with its etag that the cloud refuses as stale (`Refused.stale`, `etag_mismatch`) keeps what the person typed, and says that someone changed it meanwhile. A component keyed by the ETag would forget both.
+- Changes to one thing sent with its etag, such as a person's name and role, go one at a time: a second sent while the first is under way carries the same ETag, and is refused as stale, as if someone else had changed it.
 - A choice the cloud makes, such as a role, shows the option chosen while the cloud is asked, then what the cloud has: after a refusal, never the option refused.
 - A text has a key for each use: a state shown and a button to press are two keys (`setup.simulated.state.open`, `setup.simulated.open`), even where their English words are the same, as their translations need not be.
 - A group of radio buttons is a `radiogroup` that is not an element of its own: an `accessible` container would hide its options from screen readers.
@@ -110,6 +111,7 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 ### Types
 
 - `Omit` on a type with an index signature, such as one generated from a schema that allows more properties, drops every named key: `Pick` the keys wanted.
+- A rule across fields, such as a change that brings at least one field beside its etag (`dependentSchemas`), is not in the generated type, whose index signature takes anything: the client says it in a type of its own (`Changes`), and a test holds it with `@ts-expect-error`.
 - A type named as one of TypeScript's own (`Awaited`, `Record`) hides it in its file.
 
 ### Repository rules (CONTRIBUTING.md, AGENTS.md)

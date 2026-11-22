@@ -4,6 +4,7 @@
 // on it end to end; ai-platform's examples are replayed against it, as against ai-cloud, so
 // that it keeps to the protocol. It is a development cloud: its provider signs anyone in, and it
 // forgets everything when the app stops.
+import { MAX_BODY } from '../../http';
 import type { SimulatedSettings } from '../../settings';
 import type { CloudRequest, CloudResponse, Method, Transport } from '../../transport';
 import * as accounts from './accounts';
@@ -83,6 +84,12 @@ export class SimulatedCloud implements Transport {
   }
 
   async send(request: CloudRequest): Promise<CloudResponse> {
+    // A body over the limit is refused before anything else reads the request, at every
+    // endpoint, as ai-cloud's middleware does, around its routes (the app API, The cloud's
+    // address).
+    if (new TextEncoder().encode(request.body ?? '').length > MAX_BODY) {
+      return problem(413, `a request's body has ${MAX_BODY} bytes at most`).response;
+    }
     const incoming = new Incoming(request);
     // A request with an Idempotency-Key holds it while it runs: a copy of it then is refused
     // with 409, which the app tries again (the app API, Requests).

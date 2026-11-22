@@ -5,6 +5,7 @@
 import type { Rate, SimulatedSettings } from '../../settings';
 import type { CloudResponse } from '../../transport';
 import {
+  etagMatches,
   pageAfter,
   pageToken,
   type Account,
@@ -14,6 +15,28 @@ import {
   type Uuids,
 } from './model';
 import { problem, typed, unauthenticated, type Incoming } from './wire';
+
+/**
+ * Refuse a change to `what`, whose etag is now `tag`, unless it is made on that etag, as ai-cloud
+ * does (the app API, Requests, `etag`): `412` if the request's `If-Match`, as apps of 1.6 send
+ * it, names neither it nor any, then `409` `etag_mismatch` if `brought`, the etag in its body, is
+ * another, compared as written. `If-Match` comes first, as a precondition is evaluated before the
+ * content (RFC 9110, 13.2.1). A change that brings neither is made whatever the etag.
+ */
+export function checkEtag(
+  request: Incoming,
+  brought: string | undefined,
+  tag: string,
+  what: string,
+): void {
+  const ifMatch = request.header('if-match');
+  if (ifMatch !== undefined && !etagMatches(ifMatch, tag)) {
+    throw problem(412, `${what} changed since that If-Match`);
+  }
+  if (brought !== undefined && brought !== tag) {
+    throw typed('etag_mismatch', `${what} changed since that etag`);
+  }
+}
 
 /** The simulated cloud, as one request finds it. */
 export interface Context {

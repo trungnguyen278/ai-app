@@ -7,6 +7,7 @@ import { ACCESS_TOKEN_TYPE, REFRESH, TOKEN_EXCHANGE } from '../../http';
 import type { CloudResponse } from '../../transport';
 import {
   accountOf,
+  checkEtag,
   authenticate,
   IdTokenRefused,
   limitRate,
@@ -21,7 +22,6 @@ import { removeFromHomes } from './homes';
 import {
   DISPLAY_NAME_MAX,
   etag,
-  etagMatches,
   hasControlCharacters,
   instant,
   MAX_IDENTITIES,
@@ -280,10 +280,7 @@ export function changeAccount(context: Context, request: Incoming): CloudRespons
     throw problem(400, 'display_name: control characters');
   }
   const account = accountOf(context, principal);
-  const ifMatch = request.header('if-match');
-  if (ifMatch !== undefined && !etagMatches(ifMatch, etag(account.version))) {
-    throw problem(412, 'the account changed since that ETag');
-  }
+  checkEtag(request, changes.etag, etag(account.version), 'the account');
   account.displayName = changes.display_name ?? account.displayName;
   account.languages = changes.languages ?? account.languages;
   account.version += 1;

@@ -6,6 +6,7 @@
 import type { CloudResponse } from '../../transport';
 import {
   authenticate,
+  checkEtag,
   firstAnswer,
   idempotencyKey,
   keepFirstAnswer,
@@ -15,7 +16,7 @@ import {
   type Context,
 } from './context';
 import { checkMayManage, inHome, itemId } from './homes';
-import { etag, etagMatches, instant, newToken, type Description, type Device } from './model';
+import { etag, instant, newToken, type Description, type Device } from './model';
 import {
   challengeOf,
   RegistrationInvalid,
@@ -152,18 +153,15 @@ export function readDevice(context: Context, request: Incoming, ids: string[]): 
   return tagged(deviceAnswer(deviceIn(context, homeId, deviceId)));
 }
 
-/** Rename one of the home's devices, for the owner or an admin, if `If-Match` names its ETag,
- *  or is absent. */
+/** Rename one of the home's devices, for the owner or an admin, if the change is made on its
+ *  etag, or on none (`checkEtag`). */
 export function renameDevice(context: Context, request: Incoming, ids: string[]): CloudResponse {
   const principal = authenticate(context, request);
-  const { name } = request.json('device_update');
+  const { name, etag: brought } = request.json('device_update');
   const [homeId, deviceId] = ids.map(itemId);
   checkMayManage(inHome(context, homeId, principal).member);
   const device = deviceIn(context, homeId, deviceId);
-  const ifMatch = request.header('if-match');
-  if (ifMatch !== undefined && !etagMatches(ifMatch, etag(device.version))) {
-    throw problem(412, 'the device changed since that ETag');
-  }
+  checkEtag(request, brought, etag(device.version), 'the device');
   device.name = name;
   device.version += 1;
   return tagged(deviceAnswer(device));

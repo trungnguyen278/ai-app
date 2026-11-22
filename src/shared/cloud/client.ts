@@ -30,6 +30,17 @@ export interface PageRequest {
 /** An invitation as the answer that makes it has it: with its code. */
 export type NewInvitation = App.Invitation & { code: App.InvitationCode };
 
+/**
+ * The fields that a change of `T` brings: at least one of those its definition names, since a
+ * change with its etag alone is refused (`400`), and never the etag, which the change brings
+ * beside them (the app API, Requests, `etag`).
+ */
+export type Changes<T> = AtLeastOne<{
+  [K in keyof T as string extends K ? never : K extends 'etag' ? never : K]: T[K];
+}>;
+
+type AtLeastOne<T> = { [K in keyof T]-?: Required<Pick<T, K>> & Partial<T> }[keyof T];
+
 /** A device that a registration put in a home: `added` if it was not there already. */
 export interface Registered {
   device: App.Device;
@@ -190,14 +201,13 @@ export class CloudClient {
     return this.body({ ...read('account', '/account'), answer: 'account' });
   }
 
-  /** Change the account, if nobody changed it since `etag`: 412 otherwise. */
-  async updateAccount(changes: App.AccountUpdate, etag: string): Promise<App.Account> {
+  /** Change the account, if nobody changed it since `etag`: `etag_mismatch` otherwise. */
+  async updateAccount(changes: Changes<App.AccountUpdate>, etag: string): Promise<App.Account> {
     return this.body({
       operation: 'updateAccount',
       method: 'PATCH',
       path: `${API}/account`,
-      json: changes,
-      ifMatch: etag,
+      json: { ...changes, etag },
       success: [200],
       answer: 'account',
     });
@@ -265,14 +275,17 @@ export class CloudClient {
     return this.body({ ...read('home', `/homes/${segment(homeId)}`), answer: 'home' });
   }
 
-  /** Change a home, if nobody changed it since `etag`: 412 otherwise. */
-  async updateHome(homeId: string, changes: App.HomeUpdate, etag: string): Promise<App.Home> {
+  /** Change a home, if nobody changed it since `etag`: `etag_mismatch` otherwise. */
+  async updateHome(
+    homeId: string,
+    changes: Changes<App.HomeUpdate>,
+    etag: string,
+  ): Promise<App.Home> {
     return this.body({
       operation: 'updateHome',
       method: 'PATCH',
       path: `${API}/homes/${segment(homeId)}`,
-      json: changes,
-      ifMatch: etag,
+      json: { ...changes, etag },
       success: [200],
       answer: 'home',
     });
@@ -322,19 +335,18 @@ export class CloudClient {
     });
   }
 
-  /** Change a person, if nobody changed them since `etag`: 412 otherwise. */
+  /** Change a person, if nobody changed them since `etag`: `etag_mismatch` otherwise. */
   async updateMember(
     homeId: string,
     memberId: string,
-    changes: App.MemberUpdate,
+    changes: Changes<App.MemberUpdate>,
     etag: string,
   ): Promise<App.Member> {
     return this.body({
       operation: 'updateMember',
       method: 'PATCH',
       path: `${API}/homes/${segment(homeId)}/members/${segment(memberId)}`,
-      json: changes,
-      ifMatch: etag,
+      json: { ...changes, etag },
       success: [200],
       answer: 'member',
     });
@@ -440,19 +452,18 @@ export class CloudClient {
     return { device: body, added: status === 201 };
   }
 
-  /** Change a device, if nobody changed it since `etag`: 412 otherwise. */
+  /** Change a device, if nobody changed it since `etag`: `etag_mismatch` otherwise. */
   async updateDevice(
     homeId: string,
     deviceId: string,
-    changes: App.DeviceUpdate,
+    changes: Changes<App.DeviceUpdate>,
     etag: string,
   ): Promise<App.Device> {
     return this.body({
       operation: 'updateDevice',
       method: 'PATCH',
       path: `${API}/homes/${segment(homeId)}/devices/${segment(deviceId)}`,
-      json: changes,
-      ifMatch: etag,
+      json: { ...changes, etag },
       success: [200],
       answer: 'device',
     });

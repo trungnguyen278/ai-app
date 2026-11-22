@@ -6,6 +6,9 @@
 export const API = '/app/v1';
 export const TOKEN_PATH = '/app/token';
 export const REVOKE_PATH = '/app/revoke';
+/** The most bytes that a request's body holds, as sent: a larger one gets `413`, at every
+ *  endpoint (the app API, The cloud's address). Every body the app sends fits well within it. */
+export const MAX_BODY = 65_536;
 
 export const JSON_TYPE = 'application/json';
 /** Problem Details (RFC 9457, 3). */

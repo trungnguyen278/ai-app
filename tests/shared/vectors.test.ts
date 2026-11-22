@@ -20,6 +20,8 @@ import {
   type AppDefinition,
   type SetupDefinition,
 } from '@/src/shared/protocols';
+import * as appChecks from '@/src/shared/protocols/generated/app-checks';
+import * as setupChecks from '@/src/shared/protocols/generated/setup-checks';
 
 type Part = { text: string; times?: number } | { before: string; after: string; times: number };
 
@@ -41,6 +43,8 @@ interface ValidatingVector extends Vector {
   protocol: string;
   definition: string;
   result: 'valid' | 'invalid';
+  /** With `invalid`: the only keyword of the definition that the message breaks. */
+  keyword?: string;
 }
 
 interface Vectors<V> {
@@ -49,9 +53,16 @@ interface Vectors<V> {
   vectors: V[];
 }
 
+const PLATFORM = join(__dirname, '..', '..', 'platform');
+
 function file<V>(name: string): Vectors<V> {
-  const path = join(__dirname, '..', '..', 'platform', 'vectors', `${name}.json`);
-  return JSON.parse(readFileSync(path, 'utf8')) as Vectors<V>;
+  return JSON.parse(readFileSync(join(PLATFORM, 'vectors', `${name}.json`), 'utf8')) as Vectors<V>;
+}
+
+/** The names of the definitions of `protocol`'s pinned schema. */
+function definitions(protocol: string): string[] {
+  const path = join(PLATFORM, 'protocols', protocol, 'schema.json');
+  return Object.keys((JSON.parse(readFileSync(path, 'utf8')) as { $defs: object }).$defs);
 }
 
 const READING = file<ReadingVector>('reading');
@@ -167,12 +178,43 @@ describe.each(Object.entries(READERS))('%s reads each text as every side reads i
 /** The checks of each protocol whose vectors the app runs: the generated checks (ADR-0004) of
  * the app API and set-up, by definition, as the app and its simulated sides check what they
  * receive. The app does not speak the cloud link. */
-const CHECKS: Record<string, (definition: string, value: unknown) => unknown> = {
-  app: (definition, value) => checked(definition as AppDefinition, value),
-  setup: (definition, value) => setupChecked(definition as SetupDefinition, value),
+/** The protocols that the app checks, each with the definitions it has checks of, and its check. */
+const CHECKS: Record<
+  string,
+  { checks: object; check: (definition: string, value: unknown) => unknown }
+> = {
+  app: {
+    checks: appChecks,
+    check: (definition, value) => checked(definition as AppDefinition, value),
+  },
+  setup: {
+    checks: setupChecks,
+    check: (definition, value) => setupChecked(definition as SetupDefinition, value),
+  },
 };
 
-const CHECKED = VALIDATING.vectors.filter((vector) => vector.protocol in CHECKS);
+const RUN = VALIDATING.vectors.filter((vector) => vector.protocol in CHECKS);
+/**
+ * The vectors that the app checks: each but those of a definition that only tells bodies apart,
+ * such as the app API's `from_app`, which has no check (scripts/protocols.mjs), since each
+ * endpoint knows the body it takes. ai-cloud runs those.
+ */
+const CHECKED = RUN.filter((vector) => vector.definition in CHECKS[vector.protocol].checks);
+
+test('the vectors that the app does not check are of definitions of the pinned schemas', () => {
+  const unchecked = RUN.filter((vector) => !CHECKED.includes(vector));
+  for (const vector of unchecked) {
+    expect(definitions(vector.protocol)).toContain(vector.definition);
+  }
+});
+
+/** The schema's keyword that `rule`, as a `ProtocolError` words it, names. */
+function keywordOf(rule: string): string {
+  if (rule.startsWith('lacks ')) return 'required';
+  if (rule.startsWith('must be of type ')) return 'type';
+  // `breaks <keyword>`, and its limit when it has one.
+  return rule.split(' ')[1];
+}
 
 test.each(Object.keys(CHECKS))('the vectors of %s are run', (protocol) => {
   expect(CHECKED.some((vector) => vector.protocol === protocol)).toBe(true);
@@ -184,11 +226,13 @@ test.each(byId(CHECKED))('%s is checked as every side checks it', (_id, vector) 
   let valid = true;
   try {
     // Read as every text the app receives is, which must read it.
-    CHECKS[vector.protocol](vector.definition, readJson(utf8Text(given)));
+    CHECKS[vector.protocol].check(vector.definition, readJson(utf8Text(given)));
   } catch (error) {
-    // A refused read, or a definition with no check, fails the test.
+    // A refused read fails the test.
     if (!(error instanceof ProtocolError)) throw error;
     valid = false;
+    // The rule that the error names is the one the vector breaks, where it says which.
+    if (vector.keyword !== undefined) expect(keywordOf(error.rule)).toBe(vector.keyword);
   }
   expect(performance.now() - start).toBeLessThanOrEqual(VALIDATING.seconds * 1000);
   expect(valid).toBe(vector.result === 'valid');

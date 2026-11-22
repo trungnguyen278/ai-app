@@ -5,6 +5,7 @@
 import type { CloudResponse } from '../../transport';
 import {
   accountOf,
+  checkEtag,
   authenticate,
   firstAnswer,
   idempotencyKey,
@@ -18,7 +19,6 @@ import {
 } from './context';
 import {
   etag,
-  etagMatches,
   instant,
   newToken,
   sorted,
@@ -98,10 +98,7 @@ export function changeHome(context: Context, request: Incoming, [id]: string[]):
   if (changes.time_zone !== undefined) checkTimeZone(changes.time_zone);
   const view = inHome(context, homeId, principal);
   checkMayManage(view.member);
-  const ifMatch = request.header('if-match');
-  if (ifMatch !== undefined && !etagMatches(ifMatch, etag(view.home.version))) {
-    throw problem(412, 'the home changed since that ETag');
-  }
+  checkEtag(request, changes.etag, etag(view.home.version), 'the home');
   const { home } = view;
   home.name = changes.name ?? home.name;
   home.timeZone = changes.time_zone ?? home.timeZone;
@@ -209,10 +206,7 @@ export function changeMember(context: Context, request: Incoming, ids: string[])
       throw problem(409, 'a profile has no role, and only handing the home over makes an owner');
     }
   }
-  const ifMatch = request.header('if-match');
-  if (ifMatch !== undefined && !etagMatches(ifMatch, etag(target.version))) {
-    throw problem(412, 'the person changed since that ETag');
-  }
+  checkEtag(request, changes.etag, etag(target.version), 'the person');
   const demoted = target.role === 'admin' && changes.role === 'member';
   target.displayName = changes.display_name ?? target.displayName;
   target.role = (changes.role as Member['role']) ?? target.role;
