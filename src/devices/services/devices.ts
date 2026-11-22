@@ -56,7 +56,7 @@ export interface Rename {
 
 /**
  * Rename a device, as the screen last read it: a change made meanwhile, by someone else, is
- * refused (412). The device as renamed goes into the cache at once, and the devices are read
+ * refused (`etag_mismatch`). The device as renamed goes into the cache at once, and the devices are read
  * again either way, since an answer lost may hide a change made.
  */
 export function useRenameDevice(homeId: string) {

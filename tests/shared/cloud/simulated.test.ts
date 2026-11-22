@@ -2,6 +2,7 @@
 // The simulated cloud keeps to the app API where ai-platform's examples do not go: what it
 // refuses and when, its limits, how long things last, and what deleting takes with it.
 import type { Method } from '@/src/shared/cloud';
+import { MAX_BODY } from '@/src/shared/cloud/http';
 
 import { CLOUD, HOME, SETTINGS, setUp, type Body } from './simulated';
 
@@ -182,6 +183,40 @@ test('a request is refused for its body, its media type, its path, its method or
   expect(await status('GET', '/app/v1/homes/not-a-uuid', { token })).toBe(404);
   expect(await status('GET', '/app/v1/homes?page_size=51', { token })).toBe(400);
   expect(await status('GET', '/app/v1/homes?page_token=x', { token })).toBe(400);
+});
+
+test('a body over 64 KiB is refused with 413 at every endpoint, before anything else', async () => {
+  const { signIn, send } = setUp();
+  const { access: token } = await signIn('Linh');
+  // A body of `size` bytes, with a field that the schema leaves free, of characters that are
+  // three bytes each in UTF-8: the limit counts bytes.
+  const sized = (size: number) => {
+    const [head, tail] = ['{"display_name": "Linh", "x": "', '"}'];
+    const free = size - head.length - tail.length;
+    return head + 'ệ'.repeat(Math.floor(free / 3)) + 'a'.repeat(free % 3) + tail;
+  };
+  const patch = (body: string) =>
+    send('PATCH', '/app/v1/account', {
+      token,
+      body,
+      headers: { 'content-type': 'application/json' },
+    });
+  expect(new TextEncoder().encode(sized(MAX_BODY)).length).toBe(MAX_BODY);
+  expect((await patch(sized(MAX_BODY))).status).toBe(200);
+  const over = await patch(sized(MAX_BODY + 1));
+  expect([over.status, over.headers['content-type'], over.body.type, over.body.title]).toEqual([
+    413,
+    'application/problem+json',
+    'about:blank',
+    'Content Too Large',
+  ]);
+  // At the OAuth endpoints, and where nothing would be found, as well.
+  const token413 = await send('POST', '/app/token', {
+    body: sized(MAX_BODY + 1),
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+  });
+  const nowhere = await send('POST', '/app/v1/somewhere', { token, body: sized(MAX_BODY + 1) });
+  expect([token413.status, token413.body.type, nowhere.status]).toEqual([413, 'about:blank', 413]);
 });
 
 test('an Idempotency-Key gives a retry the first answer, for a while, and only for that request', async () => {

@@ -359,7 +359,8 @@ export function etag(version: number): string {
   return `W/"${version}"`;
 }
 
-/** Whether `ifMatch` names `tag`, or any (`*`): ETags are compared as the cloud gives them. */
+/** Whether `ifMatch`, as apps of 1.6 send it, names `tag`, or any (`*`): ETags are compared as
+ *  the cloud gives them. */
 export function etagMatches(ifMatch: string, tag: string): boolean {
   return ifMatch.split(',').some((candidate) => ['*', tag].includes(candidate.trim()));
 }

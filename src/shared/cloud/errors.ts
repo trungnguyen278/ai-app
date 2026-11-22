@@ -18,6 +18,7 @@ export const PROBLEMS = [
   'registration_invalid',
   'device_taken',
   'device_limit_reached',
+  'etag_mismatch',
 ] as const;
 export type ProblemCode = (typeof PROBLEMS)[number];
 
@@ -27,8 +28,6 @@ export const PROBLEM_TYPES = '/app/v1/problems/';
 export const ABOUT_BLANK = 'about:blank';
 /** The OAuth error after which the person signs in again (the app API, Errors). */
 export const INVALID_GRANT = 'invalid_grant';
-/** HTTP's answer to a change whose `If-Match` names what changed since (RFC 9110, 15.5.13). */
-export const PRECONDITION_FAILED = 412;
 
 /** The cloud refused the request, with Problem Details (RFC 9457). */
 export class Refused extends Error {
@@ -49,9 +48,10 @@ export class Refused extends Error {
     return this.type === PROBLEM_TYPES + code;
   }
 
-  /** Whether the change was refused because someone changed the same thing since it was read. */
+  /** Whether the change was refused because someone changed the same thing since it was read:
+   *  its `etag` is no longer the thing's (the app API, Requests). */
   get stale(): boolean {
-    return this.status === PRECONDITION_FAILED;
+    return this.is('etag_mismatch');
   }
 }
 

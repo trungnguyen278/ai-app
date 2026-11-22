@@ -5,6 +5,7 @@
 import { loadSettings } from '@/app.config';
 import {
   CloudClient,
+  failureMessage,
   OAuthRefused,
   Refused,
   SignedOut,
@@ -18,6 +19,7 @@ import {
   type Credentials,
   type Transport,
 } from '@/src/shared/cloud';
+import { MAX_BODY } from '@/src/shared/cloud/http';
 import { ProtocolError } from '@/src/shared/protocols';
 
 import { HELLO, Robot } from './robot';
@@ -193,11 +195,11 @@ test('a change sent with an ETag that is no longer the latest is refused as stal
   const stale = (await refusal(
     client.updateHome(home.id, { name: 'Nhà cũ' }, home.etag),
   )) as Refused;
-  expect([stale.status, stale.stale]).toEqual([412, true]);
+  expect([stale.status, stale.stale]).toEqual([409, true]);
 });
 
 test("the OAuth endpoints' refusals are OAuth's errors", async () => {
-  const { signIn } = setUp();
+  const { signIn, spy, cloud } = setUp();
   const unknown = (await refusal(signIn.refresh('not-a-refresh-token'))) as OAuthRefused;
   expect(unknown).toBeInstanceOf(OAuthRefused);
   expect([unknown.status, unknown.error, unknown.message]).toEqual([
@@ -208,16 +210,54 @@ test("the OAuth endpoints' refusals are OAuth's errors", async () => {
   const { signIn: stranger } = setUp({ settings: { ...SETTINGS, client_id: 'another-app' } });
   const client = (await refusal(stranger.refresh('not-a-refresh-token'))) as OAuthRefused;
   expect([client.status, client.error]).toEqual([401, 'invalid_client']);
+  // Only what says it is Problem Details is read as such: one that names no media type is OAuth's.
+  spy.instead.push(async (request) => {
+    const answer = await cloud.send(request);
+    const headers = { ...answer.headers };
+    delete headers['content-type'];
+    return { ...answer, headers };
+  });
+  const untyped = await refusal(signIn.refresh('not-a-refresh-token'));
+  expect(untyped).toBeInstanceOf(OAuthRefused);
 });
 
-test('a change made from a stale ETag is refused with 412', async () => {
-  const { person } = setUp();
+test('a change brings its etag in its body, beside what it changes, and never alone', async () => {
+  const { person, spy } = setUp();
   const { client } = await person('Linh');
   const { etag } = await client.account();
   const changed = await client.updateAccount({ languages: ['vi', 'en'] }, etag);
+  const sent = spy.requests.at(-1)!;
+  expect([JSON.parse(sent.body!), sent.headers['if-match']]).toEqual([
+    { languages: ['vi', 'en'], etag: 'W/"1"' },
+    undefined,
+  ]);
   expect([changed.languages, changed.etag]).toEqual([['vi', 'en'], 'W/"2"']);
   const stale = (await refusal(client.updateAccount({ display_name: 'Lin' }, etag))) as Refused;
-  expect(stale.status).toBe(412);
+  expect([stale.status, stale.type, stale.stale]).toEqual([
+    409,
+    '/app/v1/problems/etag_mismatch',
+    true,
+  ]);
+  // A change of nothing, which the cloud refuses, does not compile: nor does one of its etag.
+  // @ts-expect-error: nothing to change.
+  const nothing = (await refusal(client.updateAccount({}, changed.etag))) as Refused;
+  // @ts-expect-error: the etag goes beside the changes.
+  const etagAlone = (await refusal(client.updateAccount({ etag }, changed.etag))) as Refused;
+  expect([nothing.status, etagAlone.status, nothing.stale]).toEqual([400, 400, false]);
+});
+
+test('a body over the limit is refused with 413, at the API and the OAuth endpoints alike', async () => {
+  const { person, signIn } = setUp();
+  const { client } = await person('Linh');
+  const { etag } = await client.account();
+  const long = 'a'.repeat(MAX_BODY);
+  const api = (await refusal(client.updateAccount({ display_name: long }, etag))) as Refused;
+  expect([api.status, api.type]).toEqual([413, 'about:blank']);
+  // As every endpoint does: Problem Details, not OAuth's error.
+  const oauth = await refusal(signIn.refresh(long));
+  expect(oauth).toBeInstanceOf(Refused);
+  expect(oauth.message).toBe('refresh: 413 about:blank');
+  expect([failureMessage(api), failureMessage(oauth)]).toEqual(['cloud.failed', 'cloud.failed']);
 });
 
 test("a list is walked page by page, with the configuration's page size by default", async () => {
@@ -432,12 +472,12 @@ test('a device is added with a challenge, taken back, read, renamed with its ETa
   expect([back.added, back.device.name, back.device.etag]).toEqual([false, 'Robot', 'W/"1"']);
   // The ETag goes back exactly as it came (ADR-0013).
   const renamed = await client.updateDevice(home.id, ROBOT, { name: 'Bi' }, first.device.etag!);
-  expect(spy.requests.at(-1)!.headers['if-match']).toBe('W/"1"');
+  expect(JSON.parse(spy.requests.at(-1)!.body!)).toEqual({ name: 'Bi', etag: 'W/"1"' });
   expect([renamed.name, renamed.etag]).toEqual(['Bi', 'W/"2"']);
   const stale = (await refusal(
     client.updateDevice(home.id, ROBOT, { name: 'Bo' }, first.device.etag!),
   )) as Refused;
-  expect([stale.status, stale.stale]).toEqual([412, true]);
+  expect([stale.status, stale.stale]).toEqual([409, true]);
   expect(cloud.connectDevice(robot.key, HELLO)).toBe(true);
   expect(await client.device(home.id, ROBOT)).toMatchObject({
     name: 'Bi',

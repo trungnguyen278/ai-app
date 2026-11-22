@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 
 import { useCloud } from '@/src/account';
-import { everyPage, Refused } from '@/src/shared/cloud';
+import { everyPage, Refused, type Changes } from '@/src/shared/cloud';
 import type { App } from '@/src/shared/protocols';
 
 import { HOMES, invitationsOf, membersOf, previewOf } from '../domain/keys';
@@ -121,12 +121,12 @@ export function useAddProfile(homeId: string) {
 /** A change to a person: their name in the home, or their role. */
 export interface PersonChange {
   member: App.Member;
-  changes: App.MemberUpdate;
+  changes: Changes<App.MemberUpdate>;
 }
 
 /**
  * Change a person, as the screen last read them: a change made meanwhile, by someone else, is
- * refused (412). The person as changed goes into the cache at once, and the people are read
+ * refused (`etag_mismatch`). The person as changed goes into the cache at once, and the people are read
  * again either way. Making an admin a member revokes the invitations they made, so the open ones
  * are read again too: either way as well, since an answer lost may hide a change made.
  */

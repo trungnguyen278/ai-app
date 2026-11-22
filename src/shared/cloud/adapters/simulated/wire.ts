@@ -31,6 +31,7 @@ const PHRASES: Readonly<Record<number, string>> = {
   405: 'Method Not Allowed',
   409: 'Conflict',
   412: 'Precondition Failed',
+  413: 'Content Too Large',
   415: 'Unsupported Media Type',
   422: 'Unprocessable Content',
   429: 'Too Many Requests',
@@ -52,6 +53,7 @@ const TYPED: Readonly<Record<ProblemCode, [number, string]>> = {
   registration_invalid: [400, 'Registration invalid'],
   device_taken: [409, 'Device taken'],
   device_limit_reached: [409, 'Device limit reached'],
+  etag_mismatch: [409, 'Etag mismatch'],
 };
 
 /** An answer, thrown from where a request is refused to where it is answered. */

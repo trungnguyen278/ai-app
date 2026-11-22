@@ -18,6 +18,7 @@ import {
   formEncode,
   FORM_TYPE,
   JSON_TYPE,
+  mediaType,
   PROBLEM_TYPE,
   quoted,
   retryAfter,
@@ -41,8 +42,6 @@ export interface Call<K extends AppDefinition | null> {
   readonly bearer?: string;
   /** The Idempotency-Key, the same for every retry of one request. */
   readonly key?: string;
-  /** The ETag the change was made from. */
-  readonly ifMatch?: string;
   /** Whether a refusal is an OAuth error (RFC 6749, 5.2), not Problem Details. */
   readonly oauth?: boolean;
   /** The statuses of success. */
@@ -82,7 +81,9 @@ export async function exchange<K extends AppDefinition | null>(
   }
   if (status >= 400) {
     const body = readBody(call.operation, response.body);
-    if (call.oauth) {
+    // An OAuth endpoint refuses as OAuth does, but with Problem Details where it refuses as every
+    // endpoint does, as a body over the limit (the app API, Errors): their media type says which.
+    if (call.oauth && mediaType(response.headers['content-type']) !== PROBLEM_TYPE) {
       throw new OAuthRefused(call.operation, status, checked('oauth_error', body).error);
     }
     throw new Refused(call.operation, status, checked('problem', body).type, wait);
@@ -104,7 +105,6 @@ function request(call: Call<AppDefinition | null>): CloudRequest {
   }
   if (call.bearer !== undefined) headers.authorization = bearer(call.bearer);
   if (call.key !== undefined) headers['idempotency-key'] = quoted(call.key);
-  if (call.ifMatch !== undefined) headers['if-match'] = call.ifMatch;
   return { method: call.method, target: withQuery(call.path, call.query), headers, body };
 }
 

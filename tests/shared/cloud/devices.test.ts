@@ -477,21 +477,38 @@ test('a device has the name it came with, or none, and a nameless one takes the 
   expect([kept.status, kept.body.name, kept.body.etag]).toEqual([200, 'Robot', 'W/"2"']);
 });
 
-test('renaming a device takes its ETag, or none, and connecting changes no ETag', async () => {
+test('renaming a device takes its etag, as 1.6 its If-Match, and connecting changes no etag', async () => {
   const sim = await withHome();
   const device = robot(1);
   const added = await sim.add(device, 'Robot');
   const target = `${sim.devices()}/${device.id}`;
-  const rename = (name: string, headers: Record<string, string> = {}) =>
-    sim.send('PATCH', target, { token: sim.linh.access, json: { name }, headers });
-  const renamed = await rename('Bi', { 'if-match': added.body.etag as string });
+  const rename = (name: string, etag?: string, headers: Record<string, string> = {}) =>
+    sim.send('PATCH', target, { token: sim.linh.access, json: { name, etag }, headers });
+  const first = added.body.etag as string;
+  const renamed = await rename('Bi', first);
   expect([renamed.status, renamed.body.name, renamed.headers.etag]).toEqual([200, 'Bi', 'W/"2"']);
-  const stale = await rename('Bo', { 'if-match': added.body.etag as string });
-  expect([stale.status, stale.headers.etag]).toEqual([412, undefined]);
-  expect((await rename('Bo', { 'if-match': '*' })).body.etag).toBe('W/"3"');
-  expect((await rename('Bu', { 'if-match': 'W/"9", W/"3"' })).body.etag).toBe('W/"4"');
-  expect((await rename('Be')).body.etag).toBe('W/"5"');
+  const stale = await rename('Bo', first);
+  expect([stale.status, stale.body.type, stale.body.title, stale.headers.etag]).toEqual([
+    409,
+    '/app/v1/problems/etag_mismatch',
+    'Etag mismatch',
+    undefined,
+  ]);
+  // As apps of 1.6 send it: If-Match, compared as written, with any (*) and lists.
+  const ifMatch = (name: string, value: string, etag?: string) =>
+    rename(name, etag, { 'if-match': value });
+  expect((await ifMatch('Bo', first)).status).toBe(412);
+  expect((await ifMatch('Bo', '*')).body.etag).toBe('W/"3"');
+  expect((await ifMatch('Bu', 'W/"9", W/"3"')).body.etag).toBe('W/"4"');
+  // Both: each must match, If-Match first; neither: the change is made whatever the etag.
+  expect((await ifMatch('Ba', 'W/"9"', 'W/"8"')).status).toBe(412);
+  expect((await ifMatch('Ba', 'W/"4"', 'W/"8"')).status).toBe(409);
+  // The etag in the body is compared as written: any (*) is If-Match's alone.
+  expect((await rename('Ba', '*')).status).toBe(409);
+  expect((await ifMatch('Ba', 'W/"4"', 'W/"4"')).body.etag).toBe('W/"5"');
+  expect((await rename('Be')).body.etag).toBe('W/"6"');
   expect((await rename('')).status).toBe(400);
+  expect((await rename('Be', '')).status).toBe(400);
   expect(sim.cloud.connectDevice(device.key, HELLO)).toBe(true);
   const connected = await sim.send('GET', target, { token: sim.linh.access });
   expect(connected.body).toEqual({
@@ -500,9 +517,9 @@ test('renaming a device takes its ETag, or none, and connecting changes no ETag'
     ...HELLO,
     connected: true,
     create_time: added.body.create_time,
-    etag: 'W/"5"',
+    etag: 'W/"6"',
   });
-  expect(connected.headers.etag).toBe('W/"5"');
+  expect(connected.headers.etag).toBe('W/"6"');
   sim.cloud.disconnectDevice(device.key);
   const stopped = await sim.send('GET', target, { token: sim.linh.access });
   expect([stopped.body.connected, stopped.body.kind]).toEqual([false, HELLO.kind]);

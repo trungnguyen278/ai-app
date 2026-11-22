@@ -9,6 +9,7 @@ export type { Description as DeviceDescription } from './adapters/simulated/mode
 export type { PublicJwk } from './adapters/simulated/registration';
 export { CloudClient, SignInClient } from './client';
 export type {
+  Changes,
   ClientOptions,
   Credentials,
   ExchangeOptions,
