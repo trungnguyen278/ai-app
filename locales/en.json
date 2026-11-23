@@ -253,6 +253,7 @@
   "scanner.aim": "Point the camera at the QR code.",
   "native.camera": "The camera reads the QR code of an invitation to a home.",
   "native.bluetooth": "Bluetooth finds a device being set up nearby, and gives it a Wi-Fi network.",
+  "native.local_network": "Lets the app reach the development cloud running on your computer.",
   "studio.title": "Studio",
   "studio.appearance": "Appearance",
   "studio.appearance.system": "System",

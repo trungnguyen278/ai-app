@@ -253,6 +253,7 @@
   "scanner.aim": "Hướng camera vào mã QR.",
   "native.camera": "Camera dùng để đọc mã QR của lời mời vào một nhà.",
   "native.bluetooth": "Bluetooth dùng để tìm thiết bị đang cài đặt ở gần, và gửi cho nó mạng Wi-Fi.",
+  "native.local_network": "Cho phép app kết nối đến cloud phát triển đang chạy trên máy tính của bạn.",
   "studio.title": "Studio",
   "studio.appearance": "Giao diện",
   "studio.appearance.system": "Theo máy",
