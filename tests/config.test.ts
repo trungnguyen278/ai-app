@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-import { cpSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -142,6 +142,46 @@ test.each(['https://cloud.example', 'https://cloud.example:8443/base/', 'http://
     expect(loadSettings('development', directory, variables).cloud.address).toBe(address);
   },
 );
+
+/** A JSON Schema, or a part of one. */
+type Schema = Record<string, unknown>;
+
+const readSchema = (path: string) => JSON.parse(readFileSync(path, 'utf8')) as Schema;
+
+/** `schema`'s keywords, but its description, which bounds nothing. */
+function bounds(schema: Schema): Schema {
+  return Object.fromEntries(
+    Object.entries(schema).filter(([keyword]) => keyword !== 'description'),
+  );
+}
+
+/** How a setting's description names what the app API's schema bounds it with. */
+const NAMED = /the app API's \$defs\/(\w+)(?:, (\w+))?/i;
+
+test("each setting that the app API bounds keeps the app API's bounds", () => {
+  const api = readSchema(join(__dirname, '..', 'platform', 'protocols', 'app', 'schema.json'))
+    .$defs as Record<string, Schema>;
+  const bound: Record<string, { ours: Schema; theirs: Schema }> = {};
+  const walk = (node: unknown, at: string): void => {
+    if (typeof node !== 'object' || node === null) return;
+    const { description } = node as Schema;
+    const named = typeof description === 'string' ? NAMED.exec(description) : null;
+    if (named !== null) {
+      const [, definition, property] = named;
+      const theirs =
+        property === undefined
+          ? api[definition]
+          : (api[definition].properties as Record<string, Schema>)[property];
+      bound[at] = { ours: bounds(node as Schema), theirs: bounds(theirs) };
+    }
+    for (const [key, child] of Object.entries(node)) walk(child, `${at}/${key}`);
+  };
+  walk(readSchema(join(CONFIG, 'schema.json')), '');
+  expect(Object.keys(bound)).toContain('/properties/cloud/properties/client_id');
+  for (const [at, { ours, theirs }] of Object.entries(bound)) {
+    expect({ at, ...ours }).toEqual({ at, ...theirs });
+  }
+});
 
 describe("Expo's configuration", () => {
   const variables = [ENVIRONMENT_VARIABLE, CLOUD_ADDRESS_VARIABLE];

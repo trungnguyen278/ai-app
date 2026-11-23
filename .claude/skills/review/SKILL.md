@@ -26,6 +26,8 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 ### Data crossing a boundary (a device over Bluetooth LE, the cloud)
 
 - The protocol changed first, in ai-platform, and the submodule's pin moved with the code that speaks it.
+  - A new pin can narrow what a field takes: what the app and its tests send, tokens and settings among it, keeps to the pinned schema, or a test meets the schema's refusal instead of the answer it means, as two of ai-cloud's did with `not a token` (the app API 1.8). A setting that the app API bounds names the definition in its description, and `tests/config.test.ts` holds it to that definition's bounds: the app's identifier had fallen behind 1.8's pattern.
+  - A form is written as the WHATWG URL Standard writes it (`formEncode`), which percent-encodes `~`, as the vectors' byte counts assume: Python's `urlencode` leaves it, and ai-cloud's tests sent a shorter form than the app does.
 - Every message received is validated: its schema, its size, its numbers (finite), its strings (length); what fails is refused (SEC-14). Rates and sizes are limited (SEC-15).
 - Every JSON text received is read with `readJson` (`src/shared/protocols/json.ts`), never `JSON.parse`: it refuses what no side can hold (ai-platform ADR-0014), a U+0000, a lone surrogate, nesting past 64, a number past a double or a name twice in one object, as one it cannot read. `JSON.parse` takes all of them, and an escaped lone surrogate passes a schema's patterns.
   - A check of the parsed value sees only what the parser kept: `JSON.parse` keeps a repeated name's last value, and the value it dropped, a U+0000 in it, went unchecked. The other sides refuse the text.
