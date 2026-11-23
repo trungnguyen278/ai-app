@@ -11,27 +11,14 @@ import {
 } from '@/src/shared/cloud';
 import { ProtocolError } from '@/src/shared/protocols';
 
+import { answer, chunks, type Reading } from './answer';
+
 const REQUEST: CloudRequest = {
   method: 'POST',
   target: '/app/v1/homes?page_size=20',
   headers: { 'content-type': 'application/json', 'idempotency-key': '"x"' },
   body: '{"name":"Nhà"}',
 };
-
-/** An answer, as fetch gives one: its body, as text in UTF-8 or as bytes. */
-function answer(status: number, body: string | Uint8Array, headers: Record<string, string> = {}) {
-  const bytes = typeof body === 'string' ? new TextEncoder().encode(body) : body;
-  return {
-    status,
-    headers: {
-      forEach: (each: (value: string, name: string) => void) =>
-        Object.entries(headers).forEach(([name, value]) => each(value, name)),
-    },
-    arrayBuffer: async () => bytes.slice().buffer,
-    // fetch's own text repairs bytes that are not UTF-8, as the Fetch Standard's does.
-    text: async () => new TextDecoder().decode(bytes),
-  } as unknown as Response;
-}
 
 async function failure(work: Promise<unknown>): Promise<Error> {
   try {
@@ -93,37 +80,70 @@ test('a cloud that does not answer in time is given up on', async () => {
 });
 
 test('an answer that is cut off is an unreachable cloud', async () => {
-  const transport = new FetchTransport(
-    'https://cloud.example',
-    15,
-    1024,
-    async () =>
-      ({
-        ...answer(200, ''),
-        arrayBuffer: async () => {
-          throw new TypeError('Network request failed');
-        },
-      }) as unknown as Response,
+  let pulls = 0;
+  const cut = new ReadableStream<Uint8Array>(
+    {
+      pull(controller) {
+        pulls += 1;
+        if (pulls === 1) controller.enqueue(new TextEncoder().encode('{"id":'));
+        else controller.error(new TypeError('Network request failed'));
+      },
+    },
+    { highWaterMark: 0 },
   );
-  expect(await failure(transport.send(REQUEST))).toBeInstanceOf(Unreachable);
+  const transport = new FetchTransport('https://cloud.example', 15, 1024, async () =>
+    answer(200, cut),
+  );
+  const error = await failure(transport.send(REQUEST));
+  expect(error).toBeInstanceOf(Unreachable);
+  expect((error as Unreachable).reason).toBe('offline');
+});
+
+test('a cloud that stops in the middle of its answer is given up on at the same time', async () => {
+  jest.useFakeTimers();
+  let stalling: () => void = () => undefined;
+  const stalled = new Promise<void>((resolve) => (stalling = resolve));
+  const transport = new FetchTransport('https://cloud.example', 15, 1024, async (_, init) => {
+    let pulls = 0;
+    const body = new ReadableStream<Uint8Array>(
+      {
+        start(controller) {
+          init!.signal!.addEventListener('abort', () => controller.error(new Error('aborted')));
+        },
+        pull(controller) {
+          pulls += 1;
+          if (pulls === 1) {
+            controller.enqueue(new TextEncoder().encode('{"id":'));
+            return;
+          }
+          stalling();
+          return new Promise<void>(() => undefined);
+        },
+      },
+      { highWaterMark: 0 },
+    );
+    return answer(200, body);
+  });
+  const sent = failure(transport.send(REQUEST));
+  await stalled;
+  jest.advanceTimersByTime(15_000);
+  const error = await sent;
+  expect(error).toBeInstanceOf(Unreachable);
+  expect((error as Unreachable).reason).toBe('timeout');
 });
 
 test('an answer over the limit is refused, unread when it says its length', async () => {
-  const read = jest.fn(async () => new ArrayBuffer(1));
-  const told = new FetchTransport(
-    'https://cloud.example',
-    15,
-    1024,
-    async () =>
-      ({
-        ...answer(200, '', { 'content-length': '1025' }),
-        arrayBuffer: read,
-      }) as unknown as Response,
-  );
+  const reading: Reading = { chunks: 0 };
+  const signals: AbortSignal[] = [];
+  const told = new FetchTransport('https://cloud.example', 15, 1024, async (_, init) => {
+    signals.push(init!.signal!);
+    return answer(200, chunks(new Uint8Array(1025), 512, reading), { 'content-length': '1025' });
+  });
   const error = await failure(told.send(REQUEST));
   expect(error).toBeInstanceOf(ProtocolError);
   expect(error.message).toBe('answer: / is over 1024 bytes');
-  expect(read).not.toHaveBeenCalled();
+  expect(reading.chunks).toBe(0);
+  expect(signals[0].aborted).toBe(true);
   const untold = new FetchTransport('https://cloud.example', 15, 1024, async () =>
     answer(200, 'x'.repeat(1025)),
   );
@@ -141,6 +161,39 @@ test('an answer over the limit is refused, unread when it says its length', asyn
     answer(200, 'é'.repeat(512)),
   );
   expect((await fits.send(REQUEST)).body).toEqual(new TextEncoder().encode('é'.repeat(512)));
+});
+
+test('an answer that does not say its length is refused at the chunk that passes the limit', async () => {
+  // OkHttp's bytes() "loads entire response body into memory"; the transport counts as it reads.
+  const reading: Reading = { chunks: 0 };
+  const signals: AbortSignal[] = [];
+  const transport = new FetchTransport('https://cloud.example', 15, 1024, async (_, init) => {
+    signals.push(init!.signal!);
+    return answer(200, chunks(new Uint8Array(512 * 10), 512, reading, init!.signal!));
+  });
+  const error = await failure(transport.send(REQUEST));
+  expect(error).toBeInstanceOf(ProtocolError);
+  expect(error.message).toBe('answer: / is over 1024 bytes');
+  // The third chunk passes the limit, and the fetch is aborted: the download stops there.
+  expect(reading.chunks).toBe(3);
+  expect(signals[0].aborted).toBe(true);
+  // A limit reached exactly is within it, and the chunks come as one body, in order.
+  const bytes = Uint8Array.from({ length: 1024 }, (_, i) => i % 251);
+  const exactly = new FetchTransport('https://cloud.example', 15, 1024, async () =>
+    answer(200, chunks(bytes, 300)),
+  );
+  expect((await exactly.send(REQUEST)).body).toEqual(bytes);
+});
+
+test('an answer with no body comes as no bytes', async () => {
+  const transport = new FetchTransport('https://cloud.example', 15, 1024, async () =>
+    answer(204, null),
+  );
+  expect(await transport.send(REQUEST)).toEqual({
+    status: 204,
+    headers: {},
+    body: new Uint8Array(0),
+  });
 });
 
 test('an answer comes as its bytes, whatever they are', async () => {
