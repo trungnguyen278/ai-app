@@ -30,6 +30,7 @@ import {
 import * as appChecks from '@/src/shared/protocols/generated/app-checks';
 import * as setupChecks from '@/src/shared/protocols/generated/setup-checks';
 
+import { answer } from './cloud/answer';
 import { CLOUD as SET_UP_CLOUD, setUp } from './cloud/simulated';
 
 type Part = { text: string; times?: number } | { before: string; after: string; times: number };
@@ -97,17 +98,6 @@ function bytes(vector: Vector): Uint8Array {
 const CLOUD = runtimeSettings().cloud;
 const REQUEST: CloudRequest = { method: 'GET', target: '/app/v1/account', headers: {} };
 
-/** An answer of the cloud, as fetch gives one, whose body is `body`. */
-function answer(body: Uint8Array): Response {
-  return {
-    status: 200,
-    headers: { forEach: () => undefined },
-    arrayBuffer: async () => body.slice().buffer,
-    // fetch's own text repairs bytes that are not UTF-8, as the Fetch Standard's does.
-    text: async () => new TextDecoder().decode(body),
-  } as unknown as Response;
-}
-
 /**
  * The app's readers, each given a text's bytes as its transport gives them: a set-up message, as
  * a device's Bluetooth service carries it, and an answer of the app API, as fetch carries it, at
@@ -120,7 +110,7 @@ const READERS: Record<string, (given: Uint8Array) => Promise<unknown>> = {
       'https://cloud.example',
       CLOUD.timeout,
       CLOUD.answer_limit,
-      async () => answer(given),
+      async () => answer(200, given),
     );
     return readBody('account', (await transport.send(REQUEST)).body);
   },

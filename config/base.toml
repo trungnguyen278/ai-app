@@ -128,8 +128,10 @@ retries = 3
 retry_delay = 0.5
 # How many items a page of a list asks for: from 1 to 50 (the app API, Sessions).
 page_size = 20
-# The most bytes an answer may have: a larger one is refused, unread if it says its length
-# (SEC-15).
+# The most bytes an answer may have, counted as they come: a larger one is refused at the chunk
+# that passes this, and unread if it says its length (SEC-15). The app API bounds no answer, as
+# its schema allows fields that it does not name; the largest one's named fields, a page of 50
+# members, come to about 160 KB at most.
 answer_limit = 1_048_576
 
 [cloud.simulated]

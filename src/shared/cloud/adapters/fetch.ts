@@ -40,19 +40,46 @@ export class FetchTransport implements Transport {
         controller.abort();
         throw this.tooLarge();
       }
-      // Its bytes, not fetch's text, which repairs what is not UTF-8 (the Fetch Standard's
-      // text(), and expo/fetch's on Android, which decodes with Kotlin's UTF_8 charset).
-      const body = new Uint8Array(await response.arrayBuffer());
-      if (body.byteLength > this.answerLimit) {
-        throw this.tooLarge();
-      }
-      return { status: response.status, headers, body };
+      return { status: response.status, headers, body: await this.read(response, controller) };
     } catch (error) {
       if (error instanceof ProtocolError) throw error;
       throw new Unreachable(controller.signal.aborted ? 'timeout' : 'offline');
     } finally {
       clearTimeout(timer);
     }
+  }
+
+  /**
+   * The answer's body, read as it comes and given up at the first chunk past the limit:
+   * arrayBuffer() would hold the whole of it first, as OkHttp's bytes() does ("loads entire
+   * response body into memory"). Its bytes, not fetch's text, which repairs what is not UTF-8
+   * (the Fetch Standard's text(), and expo/fetch's on Android, which decodes with Kotlin's UTF_8
+   * charset).
+   */
+  private async read(response: Response, controller: AbortController): Promise<Uint8Array> {
+    // A status that has no body, or a HEAD (the Fetch Standard's null body).
+    if (response.body === null) return new Uint8Array(0);
+    // Read at once: until it is read, expo/fetch holds what arrives in a buffer of its own.
+    const reader = response.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let length = 0;
+    for (let next = await reader.read(); !next.done; next = await reader.read()) {
+      length += next.value.byteLength;
+      if (length > this.answerLimit) {
+        // An abort stops the download: it cancels OkHttp's call, or the URLSession task, where
+        // cancelling the reader would only stop expo/fetch giving the bytes on iOS.
+        controller.abort();
+        throw this.tooLarge();
+      }
+      chunks.push(next.value);
+    }
+    const body = new Uint8Array(length);
+    let at = 0;
+    for (const chunk of chunks) {
+      body.set(chunk, at);
+      at += chunk.byteLength;
+    }
+    return body;
   }
 
   private tooLarge(): ProtocolError {
