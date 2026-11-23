@@ -180,7 +180,11 @@ function currentRefreshToken(context: Context, sessionId: string) {
   return undefined;
 }
 
-/** POST /app/revoke: the session of a refresh or access token ends; any other ends nothing. */
+/**
+ * POST /app/revoke: the session of a refresh or access token ends; any other ends nothing, and
+ * gets `200` too (RFC 7009, 2.2). Both kinds are looked for, whatever `token_type_hint` says, so a
+ * hint that the cloud does not know changes nothing (the app API 1.9, Signing out).
+ */
 export function revoke(context: Context, request: Incoming): CloudResponse {
   const fields = checkedForm('revoke_request', request.form());
   checkClient(context, fields.client_id);

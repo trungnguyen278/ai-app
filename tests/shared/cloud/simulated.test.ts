@@ -135,6 +135,32 @@ test('signing out with either token ends the session at once; any other token en
   expect((await send('GET', '/app/v1/account', { token: linh.access })).status).toBe(401);
 });
 
+test.each(['refresh', 'access'] as const)(
+  'signing out with the %s token ends the session, whatever the hint says',
+  async (kind) => {
+    // The two hints the cloud reads, either of them wrong, and two it does not know, which it
+    // ignores (the app API 1.9, Signing out; RFC 7009, 2.1).
+    for (const hint of [
+      'refresh_token',
+      'access_token',
+      'pct',
+      'urn:ietf:params:oauth:token-type:refresh_token',
+    ]) {
+      const { signIn, send } = setUp();
+      const linh = await signIn('Linh');
+      const revoked = await send('POST', '/app/revoke', {
+        form: { token: linh[kind], token_type_hint: hint, client_id: CLOUD.client_id },
+      });
+      const after = await send('GET', '/app/v1/account', { token: linh.access });
+      expect({ hint, revoked: revoked.status, after: after.status }).toEqual({
+        hint,
+        revoked: 200,
+        after: 401,
+      });
+    }
+  },
+);
+
 test('the token endpoint refuses what OAuth refuses', async () => {
   const { send } = setUp();
   const token = (form: Record<string, string>) => send('POST', '/app/token', { form });

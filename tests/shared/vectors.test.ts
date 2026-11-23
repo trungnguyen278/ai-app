@@ -30,7 +30,7 @@ import {
 import * as appChecks from '@/src/shared/protocols/generated/app-checks';
 import * as setupChecks from '@/src/shared/protocols/generated/setup-checks';
 
-import { setUp } from './cloud/simulated';
+import { CLOUD as SET_UP_CLOUD, setUp } from './cloud/simulated';
 
 type Part = { text: string; times?: number } | { before: string; after: string; times: number };
 
@@ -282,6 +282,11 @@ describe("the OAuth forms' vectors, as the app writes a form", () => {
         // Read, and past the form's check: the service answers it, whatever it then finds.
         expect(status).not.toBe(413);
         expect(body.error).not.toBe('invalid_request');
+        if (vector.definition === 'revoke_request') {
+          // A revocation answers 200 whatever the token, and its hint (RFC 7009, 2.1 and 2.2),
+          // for the app's own client_id; another is invalid_client.
+          expect(status).toBe(fields.client_id === SET_UP_CLOUD.client_id ? 200 : 401);
+        }
         return;
       }
       let refusal: unknown;
