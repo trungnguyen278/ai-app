@@ -136,10 +136,11 @@
         },
         "plain_http": { "type": "boolean" },
         "client_id": {
-          "description": "The app API's $defs/client_id",
+          "description": "The app API's $defs/client_id: printable ASCII",
           "type": "string",
           "minLength": 1,
-          "maxLength": 128
+          "maxLength": 128,
+          "pattern": "^[ -~]+$"
         },
         "timeout": { "type": "number", "exclusiveMinimum": 0 },
         "retries": { "type": "integer", "minimum": 0 },

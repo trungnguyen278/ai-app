@@ -9,6 +9,13 @@ import { join } from 'node:path';
 import { readMessage } from '@/src/setup/domain/messages';
 import { FetchTransport, type CloudRequest } from '@/src/shared/cloud';
 import { readBody } from '@/src/shared/cloud/exchange';
+import {
+  FORM_TYPE,
+  formEncode,
+  REVOKE_PATH,
+  TOKEN_PATH,
+  type Fields,
+} from '@/src/shared/cloud/http';
 import { runtimeSettings } from '@/src/shared/config';
 import {
   checked,
@@ -22,6 +29,8 @@ import {
 } from '@/src/shared/protocols';
 import * as appChecks from '@/src/shared/protocols/generated/app-checks';
 import * as setupChecks from '@/src/shared/protocols/generated/setup-checks';
+
+import { setUp } from './cloud/simulated';
 
 type Part = { text: string; times?: number } | { before: string; after: string; times: number };
 
@@ -175,10 +184,11 @@ describe.each(Object.entries(READERS))('%s reads each text as every side reads i
   });
 });
 
-/** The checks of each protocol whose vectors the app runs: the generated checks (ADR-0004) of
- * the app API and set-up, by definition, as the app and its simulated sides check what they
- * receive. The app does not speak the cloud link. */
-/** The protocols that the app checks, each with the definitions it has checks of, and its check. */
+/**
+ * The protocols whose vectors the app runs, each with its generated checks (ADR-0004), by
+ * definition, and its check, as the app and its simulated sides check what they receive. The app
+ * does not speak the cloud link.
+ */
 const CHECKS: Record<
   string,
   { checks: object; check: (definition: string, value: unknown) => unknown }
@@ -236,4 +246,65 @@ test.each(byId(CHECKED))('%s is checked as every side checks it', (_id, vector) 
   }
   expect(performance.now() - start).toBeLessThanOrEqual(VALIDATING.seconds * 1000);
   expect(valid).toBe(vector.result === 'valid');
+});
+
+/** The endpoint of each OAuth form, which the app sends as a form, not as JSON (the app API,
+ *  The exchange, Refreshing and Signing out). */
+const FORMS: Record<string, string> = {
+  token_exchange_request: TOKEN_PATH,
+  refresh_request: TOKEN_PATH,
+  revoke_request: REVOKE_PATH,
+};
+
+/** A vector's fields, which a form carries only as text. */
+const fieldsOf = (vector: Vector) =>
+  JSON.parse(new TextDecoder().decode(bytes(vector))) as Record<string, unknown>;
+
+/** The vectors of the OAuth forms that a form can carry: those whose fields are all text. */
+const SENT = CHECKED.filter(
+  (vector) =>
+    vector.protocol === 'app' &&
+    vector.definition in FORMS &&
+    Object.values(fieldsOf(vector)).every((value) => typeof value === 'string'),
+);
+
+describe("the OAuth forms' vectors, as the app writes a form", () => {
+  test.each(byId(SENT))(
+    '%s is answered at its endpoint as the schema finds it',
+    async (_id, vector) => {
+      const fields = fieldsOf(vector) as Fields;
+      const { send } = setUp();
+      const { status, body } = await send('POST', FORMS[vector.definition], {
+        body: formEncode(fields),
+        headers: { 'content-type': FORM_TYPE },
+      });
+      if (vector.result === 'valid') {
+        // Read, and past the form's check: the service answers it, whatever it then finds.
+        expect(status).not.toBe(413);
+        expect(body.error).not.toBe('invalid_request');
+        return;
+      }
+      let refusal: unknown;
+      try {
+        CHECKS.app.check(vector.definition, fields);
+      } catch (error) {
+        refusal = error;
+      }
+      // Refused as the app's own check refuses it, naming the field and the rule, which the
+      // vectors' keywords hold above, and never what the form holds (SEC-5).
+      expect([status, body.error]).toEqual([400, 'invalid_request']);
+      expect(refusal).toBeInstanceOf(ProtocolError);
+      expect(body.error_description).toBe((refusal as ProtocolError).message);
+      // A value may be named only as a field's name, as a refresh's grant is `refresh_token`.
+      for (const value of Object.values(fields) as string[]) {
+        if (!(value in fields)) expect(body.error_description).not.toContain(value);
+      }
+    },
+  );
+
+  test("the longest is as long as its vector says: a form percent-encodes `~`, as WHATWG's does", () => {
+    // app-token-exchange-longest's comment, and the app API, The cloud's address: 16,120 bytes.
+    const longest = SENT.find((vector) => vector.id === 'app-token-exchange-longest')!;
+    expect(new TextEncoder().encode(formEncode(fieldsOf(longest) as Fields)).length).toBe(16_120);
+  });
 });
