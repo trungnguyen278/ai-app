@@ -1,16 +1,28 @@
 // SPDX-License-Identifier: MIT
-import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { getConfig, type ConfigContext } from 'expo/config';
+import { compileModsAsync } from 'expo/config-plugins';
 
 import appConfig, {
+  appTransportSecurity,
   catalogLanguages,
+  cleartextHost,
   CLOUD_ADDRESS_VARIABLE,
   ENVIRONMENT_VARIABLE,
   loadSettings,
   merge,
+  networkSecurityConfig,
   runtimeSettings,
   SOURCE_LANGUAGE,
 } from '@/app.config';
@@ -271,5 +283,122 @@ describe("Expo's configuration", () => {
       const { exp } = getConfig(join(__dirname, '..'), { skipSDKVersionRequirement: true });
       expect(exp.extra?.settings).toEqual(runtimeSettings(loadSettings(environment)));
     }
+  });
+
+  test.each([
+    ['simulated', undefined],
+    ['https://cloud.example', undefined],
+    ['http://192.168.1.20:8000', '192.168.1.20'],
+    ['http://Dev-Box.example:8000/base/', 'dev-box.example'],
+    ['http://[::1]:8000', '::1'],
+  ])('a build whose cloud is %j reaches %j without TLS', (address, host) => {
+    const variables = { [CLOUD_ADDRESS_VARIABLE]: address };
+    expect(cleartextHost(loadSettings('development', directory, variables))).toBe(host);
+  });
+
+  test('a build that reaches no cloud over http:// keeps iOS as its template has it', () => {
+    for (const environment of ['development', 'production']) {
+      process.env[ENVIRONMENT_VARIABLE] = environment;
+      expect(expo().ios?.infoPlist).toEqual({ CFBundleAllowMixedLocalizations: true });
+      expect(JSON.stringify(expo().locales)).not.toContain('NSLocalNetworkUsageDescription');
+    }
+  });
+
+  test("iOS reaches a developer's own cloud over http://, by its name only, and says why", () => {
+    process.env[ENVIRONMENT_VARIABLE] = 'development';
+    process.env[CLOUD_ADDRESS_VARIABLE] = 'http://Dev-Box.example:8000';
+    expect(expo().ios?.infoPlist).toEqual({
+      CFBundleAllowMixedLocalizations: true,
+      NSAppTransportSecurity: {
+        NSAllowsArbitraryLoads: false,
+        NSAllowsLocalNetworking: true,
+        NSExceptionDomains: { 'dev-box.example': { NSExceptionAllowsInsecureHTTPLoads: true } },
+      },
+      NSLocalNetworkUsageDescription: CATALOGS.en['native.local_network'],
+    });
+    for (const [language, messages] of Object.entries(CATALOGS)) {
+      expect(expo().locales?.[language]).toEqual({
+        ios: {
+          NSCameraUsageDescription: messages['native.camera'],
+          NSBluetoothAlwaysUsageDescription: messages['native.bluetooth'],
+          NSLocalNetworkUsageDescription: messages['native.local_network'],
+        },
+      });
+    }
+    // An IP address is the local network's, which iOS takes as an exception only from iOS 17.
+    process.env[CLOUD_ADDRESS_VARIABLE] = 'http://192.168.1.20:8000';
+    expect(expo().ios?.infoPlist?.NSAppTransportSecurity).toEqual({
+      NSAllowsArbitraryLoads: false,
+      NSAllowsLocalNetworking: true,
+    });
+  });
+
+  describe("Android's network security configuration", () => {
+    let root: string;
+    const sources = () => join(root, 'android', 'app', 'src');
+    const manifest = (buildType: string, application: string) => {
+      mkdirSync(join(sources(), buildType), { recursive: true });
+      writeFileSync(
+        join(sources(), buildType, 'AndroidManifest.xml'),
+        '<manifest xmlns:android="http://schemas.android.com/apk/res/android" ' +
+          `xmlns:tools="http://schemas.android.com/tools">\n  <application ${application} />\n</manifest>\n`,
+      );
+    };
+    const file = (buildType: string) =>
+      join(sources(), buildType, 'res', 'xml', 'network_security_config.xml');
+    const prebuild = () => compileModsAsync(expo(), { projectRoot: root, platforms: ['android'] });
+
+    beforeEach(() => {
+      root = mkdtempSync(join(tmpdir(), 'prebuild-'));
+      // React Native's template opens its debug build types to plain HTTP. The main manifest
+      // is open here too, as `usesCleartextTraffic` can make it, which the configuration ends.
+      const open = 'android:usesCleartextTraffic="true"';
+      manifest('main', `android:name=".MainApplication" ${open}`);
+      manifest('debug', `${open} tools:replace="android:usesCleartextTraffic"`);
+      manifest('debugOptimized', `${open} tools:replace="android:usesCleartextTraffic"`);
+      manifest('release', 'tools:ignore="UnusedAttribute"');
+      mkdirSync(join(sources(), 'test'));
+    });
+
+    afterEach(() => rmSync(root, { recursive: true, force: true }));
+
+    test('a release build reaches nothing without TLS, and a debug build its development server', async () => {
+      await prebuild();
+      const named = readFileSync(join(sources(), 'main', 'AndroidManifest.xml'), 'utf8');
+      expect(named).toContain('android:networkSecurityConfig="@xml/network_security_config"');
+      expect(readFileSync(file('main'), 'utf8')).toBe(networkSecurityConfig());
+      expect(networkSecurityConfig()).toContain(
+        '<base-config cleartextTrafficPermitted="false" />',
+      );
+      expect(networkSecurityConfig()).not.toContain('domain');
+      for (const buildType of ['debug', 'debugOptimized']) {
+        expect(readFileSync(file(buildType), 'utf8')).toContain(
+          '<base-config cleartextTrafficPermitted="true" />',
+        );
+      }
+      expect(existsSync(file('release'))).toBe(false);
+      expect(existsSync(file('test'))).toBe(false);
+    });
+
+    test("a release build reaches a developer's own cloud over http://, and no other host", async () => {
+      process.env[ENVIRONMENT_VARIABLE] = 'development';
+      process.env[CLOUD_ADDRESS_VARIABLE] = 'http://[::1]:8000';
+      await prebuild();
+      expect(readFileSync(file('main'), 'utf8')).toBe(networkSecurityConfig('::1'));
+      expect(networkSecurityConfig('::1')).toContain(
+        '<base-config cleartextTrafficPermitted="false" />\n' +
+          '  <domain-config cleartextTrafficPermitted="true">\n' +
+          '    <domain includeSubdomains="false">::1</domain>\n',
+      );
+    });
+  });
+
+  test("is read by Expo's tools with a developer's own cloud over http://", () => {
+    process.env[ENVIRONMENT_VARIABLE] = 'development';
+    process.env[CLOUD_ADDRESS_VARIABLE] = 'http://dev-box.example:8000';
+    const { exp } = getConfig(join(__dirname, '..'), { skipSDKVersionRequirement: true });
+    expect(exp.ios?.infoPlist?.NSAppTransportSecurity).toEqual(
+      appTransportSecurity('dev-box.example'),
+    );
   });
 });

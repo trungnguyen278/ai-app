@@ -113,6 +113,7 @@ hidden = true
 # config/local.toml or in AI_APP_CLOUD_ADDRESS (.env.example), never in a committed file.
 address = "simulated"
 # Whether that address may be http://, without TLS: only to a developer's own machine (SEC-1).
+# A build whose address is http:// lets Android and iOS reach its host, and no other, that way.
 plain_http = false
 # The app's identifier at the cloud's OAuth endpoints, one that the cloud's configuration lists
 # (the app API, The exchange).

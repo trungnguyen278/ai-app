@@ -3,11 +3,18 @@
 // environment's file, then an optional, git-ignored config/local.toml, merged and checked
 // against config/schema.json. Expo reads this file when it starts or builds the app, and
 // cannot import TypeScript modules from it, so the loader lives here.
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { isIP } from 'node:net';
 import { join } from 'node:path';
 
 import Ajv2020 from 'ajv/dist/2020';
 import type { ConfigContext, ExpoConfig } from 'expo/config';
+import {
+  AndroidConfig,
+  withAndroidManifest,
+  withDangerousMod,
+  type ConfigPlugin,
+} from 'expo/config-plugins';
 import { parse } from 'smol-toml';
 
 export const ENVIRONMENT_VARIABLE = 'AI_APP_ENVIRONMENT';
@@ -178,22 +185,117 @@ export function catalogLanguages(directory = LOCALES_DIR): string[] {
 export const NATIVE_MESSAGES = {
   NSCameraUsageDescription: 'native.camera',
   NSBluetoothAlwaysUsageDescription: 'native.bluetooth',
+  NSLocalNetworkUsageDescription: 'native.local_network',
 } as const;
 
-/** The native messages, in each catalog's language that has them (Expo's `locales`). */
-export function nativeLocales(directory = LOCALES_DIR): Record<string, { ios: Table }> {
+type NativeKey = keyof typeof NATIVE_MESSAGES;
+
+/** Those of the native messages a build asks, in each catalog's language that has them. */
+export function nativeLocales(
+  keys: readonly NativeKey[],
+  directory = LOCALES_DIR,
+): Record<string, { ios: Table }> {
   const locales: Record<string, { ios: Table }> = {};
   for (const language of catalogLanguages(directory)) {
     const messages: Table = JSON.parse(readFileSync(join(directory, `${language}.json`), 'utf8'));
     const ios = Object.fromEntries(
-      Object.entries(NATIVE_MESSAGES)
-        .filter(([, id]) => typeof messages[id] === 'string')
-        .map(([key, id]) => [key, messages[id]]),
+      keys
+        .filter((key) => typeof messages[NATIVE_MESSAGES[key]] === 'string')
+        .map((key) => [key, messages[NATIVE_MESSAGES[key]]]),
     );
     if (Object.keys(ios).length > 0) locales[language] = { ios };
   }
   return locales;
 }
+
+/**
+ * The host that a build reaches without TLS: its cloud's, when the address is http://, which
+ * `loadSettings` allows only to a developer's own machine (SEC-1). It is written as both
+ * platforms match it: lowercase, without a port, and an IPv6 address without its brackets, as
+ * OkHttp gives it to Android's network security policy.
+ */
+export function cleartextHost(settings: Settings): string | undefined {
+  const { address } = settings.cloud;
+  if (!address.startsWith('http://')) return undefined;
+  const { hostname } = new URL(address);
+  return hostname.startsWith('[') ? hostname.slice(1, -1) : hostname;
+}
+
+/**
+ * iOS's side of SEC-1, for a build that reaches a developer's own cloud over http://: an
+ * exception of App Transport Security for the host by its name, never its subdomains, or local
+ * networking for an IP address, which iOS takes as an exception only from iOS 17. The
+ * template's own setting, which this replaces, is the same without the exception.
+ */
+export function appTransportSecurity(host: string): Table {
+  const exception = { [host]: { NSExceptionAllowsInsecureHTTPLoads: true } };
+  return {
+    NSAllowsArbitraryLoads: false,
+    NSAllowsLocalNetworking: true,
+    ...(isIP(host) === 0 && { NSExceptionDomains: exception }),
+  };
+}
+
+// Android's network security configuration: a resource of the app's, in each build type's
+// sources, which the manifest names.
+const NETWORK_SECURITY = 'network_security_config';
+
+/**
+ * What a release build may reach without TLS on Android: nothing, or a developer's own cloud
+ * by the host its address names, never that host's subdomains (SEC-1). Android refuses plain
+ * HTTP by default only from Android 9, and the app runs from Android 7, so the file says it.
+ */
+export function networkSecurityConfig(host?: string): string {
+  const exception = host
+    ? '  <domain-config cleartextTrafficPermitted="true">\n' +
+      `    <domain includeSubdomains="false">${host}</domain>\n` +
+      '  </domain-config>\n'
+    : '';
+  return (
+    '<?xml version="1.0" encoding="utf-8"?>\n<network-security-config>\n' +
+    `  <base-config cleartextTrafficPermitted="false" />\n${exception}</network-security-config>\n`
+  );
+}
+
+// A debug build reaches its development server over plain HTTP, as React Native's template has
+// it: those of the template's build types whose manifest allows it keep it in their own file,
+// since Android 7 and later ignore `usesCleartextTraffic` once a configuration is named.
+const DEVELOPMENT_SERVER =
+  '<?xml version="1.0" encoding="utf-8"?>\n<network-security-config>\n' +
+  '  <base-config cleartextTrafficPermitted="true" />\n</network-security-config>\n';
+const OPEN_TO_CLEARTEXT = /android:usesCleartextTraffic="true"/;
+
+/** Android's side of SEC-1: the configuration above, named by the manifest, in every build. */
+export const withNetworkSecurity: ConfigPlugin<{ host?: string }> = (config, { host }) => {
+  const named = withAndroidManifest(config, (each) => {
+    const application = AndroidConfig.Manifest.getMainApplicationOrThrow(each.modResults);
+    application.$['android:networkSecurityConfig'] = `@xml/${NETWORK_SECURITY}`;
+    return each;
+  });
+  return withDangerousMod(named, [
+    'android',
+    (each) => {
+      const sources = join(each.modRequest.platformProjectRoot, 'app', 'src');
+      const write = (buildType: string, text: string) => {
+        const directory = join(sources, buildType, 'res', 'xml');
+        mkdirSync(directory, { recursive: true });
+        writeFileSync(join(directory, `${NETWORK_SECURITY}.xml`), text);
+      };
+      write('main', networkSecurityConfig(host));
+      for (const buildType of readdirSync(sources)) {
+        const manifest = join(sources, buildType, 'AndroidManifest.xml');
+        if (
+          buildType !== 'main' &&
+          existsSync(manifest) &&
+          OPEN_TO_CLEARTEXT.test(readFileSync(manifest, 'utf8'))
+        ) {
+          write(buildType, DEVELOPMENT_SERVER);
+        }
+      }
+      return each;
+    },
+  ]);
+};
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   const settings = loadSettings(process.env[ENVIRONMENT_VARIABLE], CONFIG_DIR, process.env);
@@ -201,15 +303,25 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   const { version } = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf8'));
   const { light, dark } = JSON.parse(readFileSync(PALETTE, 'utf8'));
   const languages = catalogLanguages();
-  const locales = nativeLocales();
-  const reason = (key: keyof typeof NATIVE_MESSAGES): string => {
+  const host = cleartextHost(settings);
+  // iOS asks why the app reaches the local network, as Apple asks of an app that does: a
+  // build whose cloud is a developer's own machine.
+  const asked = (Object.keys(NATIVE_MESSAGES) as NativeKey[]).filter(
+    (key) => host !== undefined || key !== 'NSLocalNetworkUsageDescription',
+  );
+  const locales = nativeLocales(asked);
+  const reason = (key: NativeKey): string => {
     const text = locales[SOURCE_LANGUAGE]?.ios[key];
     if (typeof text !== 'string') {
       throw new Error(`locales/${SOURCE_LANGUAGE}.json lacks ${NATIVE_MESSAGES[key]}`);
     }
     return text;
   };
-  return {
+  const plainHttp = host && {
+    NSAppTransportSecurity: appTransportSecurity(host),
+    NSLocalNetworkUsageDescription: reason('NSLocalNetworkUsageDescription'),
+  };
+  const expo: ExpoConfig = {
     ...config,
     name: app.name,
     slug: app.slug,
@@ -221,8 +333,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ios: {
       bundleIdentifier: app.ios_bundle_identifier,
       // What iOS shows of the app in the person's language, from `locales` (Expo's guide to
-      // localization asks for both).
-      infoPlist: { CFBundleAllowMixedLocalizations: true },
+      // localization asks for both). A developer's own cloud over http:// is allowed (SEC-1).
+      infoPlist: { CFBundleAllowMixedLocalizations: true, ...plainHttp },
     },
     locales,
     plugins: [
@@ -262,4 +374,5 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     extra: { ...config.extra, settings: runtimeSettings(settings) },
     experiments: { typedRoutes: true },
   };
+  return withNetworkSecurity(expo, { host });
 };

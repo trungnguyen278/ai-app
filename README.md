@@ -59,7 +59,7 @@ After moving the pin of `platform/`, `npm run protocols` makes the protocols' ty
 
 The configuration is `config/base.toml`, then the environment's file in `config/environments/`, then an optional `config/local.toml` for one machine, which git ignores. Every value is required, and is checked when the app starts or is built.
 
-The app talks to a simulated cloud, the app API in memory, unless the machine that builds it names a cloud: `address` in the `[cloud]` table of `config/local.toml`, or `AI_APP_CLOUD_ADDRESS` (`.env.example`). In the development environment, a developer's own cloud may be reached over `http://`.
+The app talks to a simulated cloud, the app API in memory, unless the machine that builds it names a cloud: `address` in the `[cloud]` table of `config/local.toml`, or `AI_APP_CLOUD_ADDRESS` (`.env.example`). In the development environment, a developer's own cloud may be reached over `http://`: the build lets Android and iOS reach that host, and no other, without TLS, so another address needs another build.
 
 ## Documentation
 

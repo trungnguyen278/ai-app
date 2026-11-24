@@ -61,6 +61,8 @@ The linters and the tests the README lists, as CI runs them. A failing check is 
 - Secrets — the owner's session, a device's set-up code, the keys of a set-up session — stay in memory or in the phone's secure storage: never in plain files, logs, error reports or analytics.
 - A secret that a screen shows or sends, such as an invitation's code, stays in the cache only while that screen is open (`gcTime: 0`), and in no route but the link that brought it.
 - Every request is confined to the owner's homes and their devices (SEC-6).
+- Plain HTTP reaches a developer's own cloud alone (SEC-1): Android's network security configuration and iOS's App Transport Security come from the cloud's address in `app.config.ts`, for its host only, never a wider rule, such as a `base-config` that permits it, or `NSAllowsArbitraryLoads`.
+  - Once a network security configuration is named, Android ignores `usesCleartextTraffic`: the template's debug build types keep their development server in a file of their own. A mod that writes native files is tested by running it on a project (`compileModsAsync`).
 - An error names what failed, never a value: no code, password, network or name, and no length or size taken from the data (SEC-5).
 - The app asks for a permission, such as Bluetooth or notifications, when it first needs it, and says why, in the owner's language.
   - The phone's own question, such as iOS's reason for the camera, comes from the catalogs too, through `NATIVE_MESSAGES` in `app.config.ts`, as plain text.
